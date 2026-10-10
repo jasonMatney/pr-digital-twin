@@ -11,6 +11,7 @@ import { AlertsPanel } from './panels/alerts';
 import { ObjectPanel } from './panels/object';
 import { ExplorerPanel } from './panels/explorer';
 import { LineagePanel } from './panels/lineage';
+import { ScenarioPanel } from './panels/scenario';
 
 export interface DockTab {
   id: Exclude<S.RightPanel, null>;
@@ -22,9 +23,9 @@ export interface DockTab {
 export const TABS: DockTab[] = [
   { id: 'alerts', label: 'tab.alerts', icon: 'inbox', component: AlertsPanel },
   { id: 'object', label: 'tab.object', icon: 'object', component: ObjectPanel },
+  { id: 'scenario', label: 'tab.scenario', icon: 'wave', component: ScenarioPanel },
   { id: 'explorer', label: 'tab.explorer', icon: 'table', component: ExplorerPanel },
   { id: 'lineage', label: 'tab.lineage', icon: 'lineage', component: LineagePanel },
-  // { id: 'scenario', label: 'tab.scenario', icon: 'wave', component: ScenarioPanel },
   // { id: 'graph', label: 'tab.graph', icon: 'link', component: GraphPanel },
   // { id: 'sql', label: 'tab.sql', icon: 'table', component: SqlPanel },
 ];
@@ -64,7 +65,7 @@ export function Dock({ store }: { store: TwinStore }) {
       <div class="dock-grip" onPointerDown={onGrip} aria-hidden="true"><span /></div>
       <div class="dock-tabs" role="tablist">
         {TABS.map((x) => (
-          <button key={x.id} role="tab" aria-selected={cur === x.id && !collapsed} class={'dock-tab' + (cur === x.id && !collapsed ? ' on' : '')} onClick={() => pick(x.id)}>
+          <button key={x.id} role="tab" aria-selected={cur === x.id && !collapsed} title={t(x.label)} class={'dock-tab' + (cur === x.id && !collapsed ? ' on' : '')} onClick={() => pick(x.id)}>
             <Icon name={x.icon} size={15} />
             <span>{t(x.label)}</span>
           </button>

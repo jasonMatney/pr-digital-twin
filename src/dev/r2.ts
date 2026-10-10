@@ -17,8 +17,8 @@ async function main() {
   const notes: string[] = [];
   if (params.get('terrain') === 'real') {
     try {
-      const t: any = await import(/* @vite-ignore */ '../world/terrain/index');
-      const c: any = await import(/* @vite-ignore */ '../world/controls');
+      const t: any = await import('../world/terrain/index');
+      const c: any = await import('../world/controls');
       const mkT = t.createTerrain ?? t.default, mkC = c.createControls ?? c.default;
       if (mkT) parts.terrain = mkT; else notes.push('terrain module has no createTerrain');
       if (mkC) parts.controls = mkC; else notes.push('controls module has no createControls');

@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { curveDrop, lonLatToXZ, xzToLonLat } from '../core/geo.ts';
 import { params } from '../core/config';
+import * as S from '../core/state';
 import type { CameraView, FlyTo } from '../core/state';
 import type { ControlsApi, Frame, World } from './types';
 
@@ -16,17 +17,50 @@ export function createControls(world: World): ControlsApi {
   const target = new THREE.Vector3();
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Opening view: the whole island from the south-southeast, Vieques and Culebra in frame.
-  const aspect = (canvas.clientWidth || innerWidth) / Math.max(1, canvas.clientHeight || innerHeight);
-  const hHalf = Math.atan(Math.tan(camera.fov * D2R / 2) * aspect);
-  const [hx, hz] = lonLatToXZ(-66.1, 18.2);
-  const goal: Pose = { x: hx, z: hz, range: Math.min(MAX_RANGE, Math.max(212000, 136000 / Math.tan(hHalf))), heading: 349, pitch: 41 };
+  // ---- the part of the canvas the panels leave free ----
+  // The camera is slid sideways in its own image plane (no rotation) so the orbit target sits at the centre of the
+  // uncovered area. The projection stays symmetric, which the sky and ocean passes rely on; an off-centre projection
+  // (camera.setViewOffset) was tried and loses the ocean pass. Every ray is cast through the same placement, so
+  // picking, panning and zoom-to-cursor stay exact.
+  const pad = { l: 0, r: 0, t: 0, b: 0 };
+  let padInit = false, voKey = '';
+  const size = () => [canvas.clientWidth || innerWidth, Math.max(1, canvas.clientHeight || innerHeight)];
+  function padTarget() {
+    const p = S.viewPadding.value, [W, H] = size();
+    let l = Math.max(0, p.left || 0), r = Math.max(0, p.right || 0), t = Math.max(0, p.top || 0), b = Math.max(0, p.bottom || 0);
+    if (l + r > W * 0.7) { const k = W * 0.7 / (l + r); l *= k; r *= k; }
+    if (t + b > H * 0.7) { const k = H * 0.7 / (t + b); t *= k; b *= k; }
+    return { l, r, t, b };
+  }
+  function applyPadding(dt: number) {
+    const q = padTarget(), [W, H] = size();
+    const k = padInit && !reduced ? 1 - Math.exp(-dt * 9) : 1;
+    padInit = true;
+    for (const key of ['l', 'r', 't', 'b'] as const) { pad[key] += (q[key] - pad[key]) * k; if (Math.abs(q[key] - pad[key]) < 0.5) pad[key] = q[key]; }
+    padDx = (pad.l - pad.r) / 2; padDy = (pad.t - pad.b) / 2; padH = H; void W; void voKey;
+  }
+  let padDx = 0, padDy = 0, padH = size()[1];
+
+  // Opening view: the whole island (Culebra and Vieques included) composed in the uncovered area, north up.
+  const HOME_PITCH = 50;
+  function frameIsland(p: Pose) {
+    const q = padTarget(), [W, H] = size();
+    const tv = Math.tan(camera.fov * D2R / 2), th = tv * Math.max(120, W - q.l - q.r) / H, tu = tv * Math.max(120, H - q.t - q.b) / H;
+    const pr = HOME_PITCH * D2R, halfW = 113000, halfN = 41000;
+    const rH = halfW / th + halfN * Math.cos(pr), rV = halfN * Math.sin(pr) / tu + halfN * Math.cos(pr);
+    const [x, z] = lonLatToXZ(-66.26, 18.2);
+    p.x = x; p.z = z; p.heading = 0; p.pitch = HOME_PITCH;
+    p.range = Math.min(MAX_RANGE, Math.max(140000, Math.max(rH, rV) * 1.05));
+  }
+  const goal: Pose = { x: 0, z: 0, range: 300000, heading: 0, pitch: HOME_PITCH };
+  frameIsland(goal);
+  let auto = true, autoKey = '';          // until the user moves, the opening view follows the canvas and the panels
   const cam = params.get('cam');
   if (cam) {
     const v = cam.split(',').map(Number);
     if (v.length >= 2 && v.every(Number.isFinite)) {
       const [x, z] = lonLatToXZ(v[0], v[1]);
-      goal.x = x; goal.z = z;
+      goal.x = x; goal.z = z; auto = false;
       if (v[2]) goal.range = v[2]; if (v[3] != null) goal.heading = v[3]; if (v[4] != null) goal.pitch = v[4];
     }
   }
@@ -44,19 +78,22 @@ export function createControls(world: World): ControlsApi {
 
   // ---- camera from a pose ----
   const tmpCam = new THREE.PerspectiveCamera();
-  const tgt = new THREE.Vector3(), ray = new THREE.Ray(), ndc = new THREE.Vector3();
+  const tgt = new THREE.Vector3(), look = new THREE.Vector3(), ray = new THREE.Ray(), ndc = new THREE.Vector3();
   const groundAt = (x: number, z: number) => Math.max(terrain.heightAt(x, z) ?? 0, world.seaLevel);
   function place(c: THREE.PerspectiveCamera, p: Pose, gy: number) {
     const pr = p.pitch * D2R, hr = p.heading * D2R, horiz = Math.cos(pr) * p.range;
     tgt.set(p.x, gy - curveDrop(p.x, p.z), p.z);
     c.position.set(tgt.x - Math.sin(hr) * horiz, tgt.y + Math.sin(pr) * p.range, tgt.z + Math.cos(hr) * horiz);
     c.up.set(Math.sin(hr) * Math.sin(pr), Math.cos(pr), -Math.cos(hr) * Math.sin(pr));
-    c.lookAt(tgt);
+    // Slide in the image plane: metres per CSS pixel at the target's depth.
+    const k = 2 * p.range * Math.tan(camera.fov * D2R / 2) / padH, sr = -padDx * k, su = padDy * k;
+    look.set(tgt.x + Math.cos(hr) * sr + c.up.x * su, tgt.y + c.up.y * su, tgt.z + Math.sin(hr) * sr + c.up.z * su);
+    c.position.add(look).sub(tgt);
+    c.lookAt(look);
   }
   /** Ray through a canvas pixel for a given pose (used to solve "keep this ground point under the cursor"). */
   function poseRay(p: Pose, sx: number, sy: number) {
-    tmpCam.fov = camera.fov; tmpCam.aspect = camera.aspect; tmpCam.near = camera.near; tmpCam.far = camera.far;
-    tmpCam.updateProjectionMatrix();
+    tmpCam.projectionMatrix.copy(camera.projectionMatrix); tmpCam.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
     place(tmpCam, p, groundY);
     tmpCam.updateMatrixWorld();
     const r = canvas.getBoundingClientRect();
@@ -81,7 +118,7 @@ export function createControls(world: World): ControlsApi {
     const r = poseRay(cur, sx, sy);
     return terrain.raycast(r.origin, r.direction, 3e6);
   }
-  const userInput = () => { flight = null; };
+  const userInput = () => { flight = null; auto = false; };
 
   // ---- pointer ----
   const pts = new Map<number, { x: number; y: number }>();
@@ -180,7 +217,7 @@ export function createControls(world: World): ControlsApi {
   // ---- deep link ----
   let linkAt = 0, lastLink = '';
   function writeLink(now: number) {
-    if (now - linkAt < 0.6 || dragging || flight) return;
+    if (now - linkAt < 0.6 || dragging || flight || auto) return;
     linkAt = now;
     const [lon, lat] = xzToLonLat(cur.x, cur.z);
     const s = `${lon.toFixed(5)},${lat.toFixed(5)},${Math.round(cur.range)},${(((cur.heading % 360) + 360) % 360).toFixed(1)},${cur.pitch.toFixed(1)}`;
@@ -197,6 +234,11 @@ export function createControls(world: World): ControlsApi {
     target, enabled: true,
     update(frame: Frame) {
       const dt = frame.dt;
+      applyPadding(dt);
+      if (auto) {
+        const q = padTarget(), [W, H] = size(), key = `${W},${H},${q.l},${q.r},${q.t},${q.b}`;
+        if (key !== autoKey) { const first = !autoKey; autoKey = key; frameIsland(goal); if (first || frame.now < 1.5) Object.assign(cur, goal); }
+      }
       if (flight) {
         flight.t = Math.min(1, flight.t + dt / flight.dur);
         const e = ease(flight.t), a = flight.from, b = flight.to;
@@ -235,7 +277,7 @@ export function createControls(world: World): ControlsApi {
       place(camera, cur, groundY);
       target.copy(tgt);
       const p = camera.position, floor = groundAt(p.x, p.z) - curveDrop(p.x, p.z) + CLEARANCE;
-      if (p.y < floor) { p.y = floor; camera.lookAt(tgt); }
+      if (p.y < floor) { p.y = floor; camera.lookAt(look); }
       writeLink(frame.now);
     },
     flyTo(v: FlyTo) {
@@ -245,11 +287,12 @@ export function createControls(world: World): ControlsApi {
       const from: Pose = { ...cur };
       from.heading = ((from.heading % 360) + 360) % 360; to.heading = ((to.heading % 360) + 360) % 360;
       if (to.heading - from.heading > 180) from.heading += 360; else if (to.heading - from.heading < -180) from.heading -= 360;
-      vel.x = vel.z = 0;
+      vel.x = vel.z = 0; auto = false;
       const dist = Math.hypot(to.x - from.x, to.z - from.z), big = Math.max(from.range, to.range);
       const dur = v.seconds ?? Math.min(5, Math.max(1.2, 1.2 + 0.7 * Math.log2(1 + dist / big) + 0.35 * Math.abs(Math.log2(to.range / from.range))));
       if (reduced || dur <= 0) { Object.assign(cur, to); Object.assign(goal, to); flight = null; groundInit = false; return; }
-      flight = { from, to, t: 0, dur, hop: Math.min(MAX_RANGE - big, Math.max(0, dist * 0.75 - big)) };
+      // Long hops arc up and over: the apex is high enough to see both ends.
+      flight = { from, to, t: 0, dur, hop: Math.max(0, Math.min(MAX_RANGE - big, Math.max(0, dist * 0.9 - big * 0.8))) };
     },
     view(): CameraView {
       const [lon, lat] = xzToLonLat(cur.x, cur.z);

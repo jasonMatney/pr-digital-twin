@@ -8,11 +8,13 @@ export interface TileJob {
   dem: DemSrc[];                 // candidates in order of preference (exact tile, then an ancestor to upsample)
   img: string[][];               // candidates: four z+1 urls (nw, ne, sw, se) or one url; empty = no photo wanted
   crop?: DemSrc | null;          // nearest ancestor photo, cropped, when the tile adds elevation detail but has no photo of its own
+  bathy?: DemSrc[];              // seabed candidates for cells the elevation holds at about 0 m (bathymetry layer, then a coarse elevation ancestor)
+  bathyTrusted?: boolean;        // the first candidate is the real bathymetry layer
   root: boolean;                 // roots never fail: flat sea level and no photo instead
 }
 export interface TileResult {
   id: number; ok: boolean; aborted?: boolean; failed: string[]; okUrls: string[]; degraded?: boolean;
-  pos?: Float32Array; hts?: Int16Array; norm?: Uint8Array; photo?: ImageBitmap | null;
+  pos?: Float32Array; hts?: Int16Array; norm?: Uint8Array; photo?: Uint8Array | null; photoW?: number;
   minH?: number; maxH?: number; cx?: number; cy?: number; cz?: number; demZ?: number; imgZ?: number;
 }
 
@@ -47,12 +49,90 @@ function decodeTerrarium(bmp: ImageBitmap): { w: number; h: Float32Array } {
   return { w, h };
 }
 
+/** Upstream elevation has isolated garbage cells (2,448 m spikes, -22 km holes): replace them by the median of their neighbours. */
+const med = new Float32Array(8);
+function sanitize(H: Float32Array, w: number) {
+  const src = H.slice();
+  for (let j = 0; j < w; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i, h = src[k];
+    const l = src[i > 0 ? k - 1 : k], r = src[i < w - 1 ? k + 1 : k], u = src[j > 0 ? k - w : k], d = src[j < w - 1 ? k + w : k];
+    const range = h < -9000 || h > 1400;
+    if (!range && Math.abs(h - (l + r + u + d) * 0.25) < 60) continue;
+    let n = 0;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      if (!di && !dj) continue;
+      const ii = Math.min(w - 1, Math.max(0, i + di)), jj = Math.min(w - 1, Math.max(0, j + dj));
+      med[n++] = src[jj * w + ii];
+    }
+    med.sort();
+    let m = (med[3] + med[4]) * 0.5;
+    if (m < -9000 || m > 1400) m = med[3] >= -9000 && med[3] <= 1400 ? med[3] : med[4] >= -9000 && med[4] <= 1400 ? med[4] : 0;
+    if (range || Math.abs(h - m) > 120) H[k] = m;
+  }
+}
+
+/** 1 where the photo has no picture: large exactly-white (or exactly-black) blocks. Real roofs, sand and surf survive
+ *  because a pixel only counts when its whole 5x5 neighbourhood is blank too; the blank core is then grown back out
+ *  over the near-blank fringe that JPEG leaves at the block edge. Pixels beyond the tile edge count as blank. */
+function blankMask(d: Uint8ClampedArray, w: number): { mask: Uint8Array; count: number } {
+  const n = w * w, a = new Uint8Array(n), b = new Uint8Array(n), near = new Uint8Array(n);
+  let any = 0;
+  for (let i = 0, p = 0; i < n; i++, p += 4) {
+    const r = d[p], g = d[p + 1], bl = d[p + 2];
+    const mn = r < g ? (r < bl ? r : bl) : (g < bl ? g : bl), mx = r > g ? (r > bl ? r : bl) : (g > bl ? g : bl);
+    if (mn >= 250) { a[i] = 1; any = 1; } else if (mx <= 5) { a[i] = 2; any = 1; }
+    near[i] = mn >= 232 ? 1 : mx <= 22 ? 2 : 0;
+  }
+  const mask = new Uint8Array(n);
+  if (!any) return { mask, count: 0 };
+  // erode 5x5 (separable), per class
+  for (let j = 0; j < w; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i, c = a[k];
+    if (!c) continue;
+    let ok = 1;
+    for (let di = -2; di <= 2; di++) { const ii = i + di; if (ii >= 0 && ii < w && a[k + di] !== c) { ok = 0; break; } }
+    if (ok) b[k] = c;
+  }
+  const core = new Uint8Array(n);
+  for (let j = 0; j < w; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i, c = b[k];
+    if (!c) continue;
+    let ok = 1;
+    for (let dj = -2; dj <= 2; dj++) { const jj = j + dj; if (jj >= 0 && jj < w && b[jj * w + i] !== c) { ok = 0; break; } }
+    if (ok) core[k] = c;
+  }
+  // grow back 3 px over near-blank pixels of the same class
+  let count = 0, cur = core;
+  for (let it = 0; it < 3; it++) {
+    const nx = cur.slice();
+    for (let j = 0; j < w; j++) for (let i = 0; i < w; i++) {
+      const k = j * w + i;
+      if (cur[k] || !near[k]) continue;
+      const c = near[k];
+      if ((i > 0 && cur[k - 1] === c) || (i < w - 1 && cur[k + 1] === c) || (j > 0 && cur[k - w] === c) || (j < w - 1 && cur[k + w] === c)) nx[k] = c;
+    }
+    cur = nx;
+  }
+  for (let i = 0; i < n; i++) if (cur[i]) { mask[i] = 1; count++; }
+  return { mask, count };
+}
+
+let rcv: OffscreenCanvas | null = null;
+function pixels(bmp: ImageBitmap, w: number, sx = 0, sy = 0, sw = bmp.width, sh = bmp.height): Uint8ClampedArray {
+  if (!rcv || rcv.width !== w) rcv = new OffscreenCanvas(w, w);
+  const g = rcv.getContext('2d', { willReadFrequently: true, colorSpace: 'srgb' }) as OffscreenCanvasRenderingContext2D;
+  g.globalCompositeOperation = 'copy'; g.imageSmoothingQuality = 'high';
+  g.drawImage(bmp, sx, sy, sw, sh, 0, 0, w, w);
+  return g.getImageData(0, 0, w, w, { colorSpace: 'srgb' }).data;
+}
+
 async function loadDem(url: string, signal: AbortSignal) {
   const hit = demCache.get(url);
   if (hit) { demCache.delete(url); demCache.set(url, hit); return hit; }
   const bmp = await fetchBitmap(url, signal);
   const dem = decodeTerrarium(bmp);
   bmp.close();
+  sanitize(dem.h, dem.w);
   demCache.set(url, dem);
   if (demCache.size > 20) demCache.delete(demCache.keys().next().value!);
   return dem;
@@ -104,7 +184,137 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
   }
   const W = dem.w, H = dem.h;
   const s = 2 ** (z - src!.z), u0 = (x - src!.x * s) / s, v0 = (y - src!.y * s) / s;
-  const hAt = (u: number, v: number) => sample(H, W, (u0 + u / s) * W - 0.5, (v0 + v / s) * W - 0.5);
+  const hRaw = (u: number, v: number) => sample(H, W, (u0 + u / s) * W - 0.5, (v0 + v / s) * W - 0.5);
+
+  // ---- seabed for cells the elevation holds at about 0 m (lidar tiles have no bathymetry) ----
+  let bath: { w: number; h: Float32Array } | null = null, bsrc: DemSrc | null = null, trusted = false;
+  if (job.bathy?.length) {
+    let band = false;
+    const a0 = Math.max(0, Math.floor(u0 * W) - 1), a1 = Math.min(W - 1, Math.ceil((u0 + 1 / s) * W)), b0 = Math.max(0, Math.floor(v0 * W) - 1), b1 = Math.min(W - 1, Math.ceil((v0 + 1 / s) * W));
+    for (let j = b0; j <= b1 && !band; j++) for (let i = a0; i <= a1; i++) { const h = H[j * W + i]; if (h > -0.6 && h < 0.6) { band = true; break; } }
+    if (band) for (let ci = 0; ci < job.bathy.length; ci++) {
+      const c = job.bathy[ci];
+      if (c.url === src!.url) break;
+      try { bath = await loadDem(c.url, signal); bsrc = c; trusted = !!job.bathyTrusted && ci === 0; okUrls.push(c.url); break; } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, c.url)); }
+    }
+  }
+  let bAt: ((u: number, v: number) => number) | null = null;
+  if (bath && bsrc) {
+    const BW = bath.w, BH = bath.h, bs = 2 ** (z - bsrc.z), bu0 = (x - bsrc.x * bs) / bs, bv0 = (y - bsrc.y * bs) / bs;
+    bAt = (u, v) => sample(BH, BW, (bu0 + u / bs) * BW - 0.5, (bv0 + v / bs) * BW - 0.5);
+  }
+
+  // ---- photo: pixels, coverage mask, what it shows (water / built-up) ----
+  const T = 256;
+  let photo = await photoP;
+  if (!photo.ok && job.crop && src!.z === z) {
+    // Finer relief under the parent's picture is still an improvement.
+    try {
+      const c = job.crop, bmp = await fetchBitmap(c.url, signal), cs = 2 ** (z - c.z), w = bmp.width / cs;
+      if (!pcv || pcv.width !== 256) pcv = new OffscreenCanvas(256, 256);
+      const g = pcv.getContext('2d') as OffscreenCanvasRenderingContext2D;
+      g.globalCompositeOperation = 'copy'; g.imageSmoothingQuality = 'high';
+      g.drawImage(bmp, (x - c.x * cs) * w, (y - c.y * cs) * w, w, w, 0, 0, 256, 256);
+      bmp.close();
+      photo = { bmp: pcv.transferToImageBitmap(), imgZ: c.z, ok: true };
+    } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, job.crop.url)); }
+  }
+  if (!photo.ok && !job.root) return { res: { id: job.id, ok: false, failed, okUrls }, transfer: [] };
+  let px: Uint8Array | null = null, PW = 0;
+  const cls = new Uint8Array(T * T).fill(128);          // 0 = the photo shows water, 128 = neither, 255 = built-up
+  let wd: Float32Array | null = null;                   // depth (m) read off the photo's water colour, 0 = not water
+  if (photo.bmp) {
+    PW = photo.bmp.width >= 512 ? 512 : 256;
+    const d = pixels(photo.bmp, PW);
+    photo.bmp.close();
+    const { mask, count } = blankMask(d, PW);
+    if (count > PW * PW * 0.002 && job.crop && photo.imgZ > job.crop.z) {
+      // Blank on land: fill from the nearest ancestor photo where that one has a picture.
+      let land = false;
+      for (let j = 0; j < 32 && !land; j++) for (let i = 0; i < 32; i++) {
+        if (mask[(((j + 0.5) / 32 * PW) | 0) * PW + (((i + 0.5) / 32 * PW) | 0)] && hRaw((i + 0.5) / 32, (j + 0.5) / 32) > 0.6) { land = true; break; }
+      }
+      if (land) {
+        try {
+          const c = job.crop, bmp = await fetchBitmap(c.url, signal), cs = 2 ** (z - c.z), w = bmp.width / cs;
+          const keep = d.slice();
+          const pd = pixels(bmp, PW, (x - c.x * cs) * w, (y - c.y * cs) * w, w, w);
+          bmp.close();
+          const pm = blankMask(pd, PW).mask;
+          for (let i = 0, p = 0; i < PW * PW; i++, p += 4) if (mask[i] && !pm[i]) { keep[p] = pd[p]; keep[p + 1] = pd[p + 1]; keep[p + 2] = pd[p + 2]; mask[i] = 0; }
+          d.set(keep);
+        } catch (e) { if (signal.aborted) throw e; }
+      }
+    }
+    // Alpha = coverage; blank pixels go black so that rgb / alpha in the shader gives the picture's own colour at block edges.
+    for (let i = 0, p = 0; i < PW * PW; i++, p += 4) { if (mask[i]) { d[p] = d[p + 1] = d[p + 2] = d[p + 3] = 0; } else d[p + 3] = 255; }
+    px = new Uint8Array(d.buffer);
+    // classify on the 256 grid
+    const wraw = new Float32Array(T * T);
+    let anyW = false;
+    const f = PW / T, lum = new Float32Array(T * T), cr = new Float32Array(T * T), cg = new Float32Array(T * T), cb = new Float32Array(T * T), nd = new Uint8Array(T * T);
+    for (let j = 0, k = 0; j < T; j++) for (let i = 0; i < T; i++, k++) {
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let dj = 0; dj < f; dj++) for (let di = 0; di < f; di++) {
+        const p = ((j * f + dj) * PW + i * f + di) * 4;
+        if (d[p + 3]) { r += d[p]; g += d[p + 1]; b += d[p + 2]; n++; }
+      }
+      if (!n) { nd[k] = 1; wraw[k] = 9; anyW = true; continue; }
+      r /= n; g /= n; b /= n;
+      cr[k] = r; cg[k] = g; cb[k] = b; lum[k] = 0.3 * r + 0.59 * g + 0.11 * b;
+    }
+    for (let j = 0, k = 0; j < T; j++) for (let i = 0; i < T; i++, k++) {
+      if (nd[k]) continue;
+      let lo = 255, hi = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const ii = i + di, jj = j + dj;
+        if (ii < 0 || jj < 0 || ii >= T || jj >= T || nd[jj * T + ii]) continue;
+        const l = lum[jj * T + ii]; if (l < lo) lo = l; if (l > hi) hi = l;
+      }
+      const r = cr[k], g = cg[k], b = cb[k], l = lum[k], range = hi - lo, mx = Math.max(r, g, b), mn = Math.min(r, g, b), gb = Math.max(g, b);
+      if (r < 128 && b > g - 14 && gb > r + 8 && gb > r * 1.12 && range < 26) {
+        cls[k] = 0; anyW = true;
+        wraw[k] = Math.min(10, Math.max(0.9, (148 - l) * 0.11));
+      } else if (l > 96 && (mx - mn) / mx < 0.27 && range > 26) {
+        // Grey and busy = roofs and roads; tan (dry fields, bare soil, sand) is too saturated to count.
+        cls[k] = 128 + Math.round(127 * Math.min(1, (range - 26) / 36) * Math.min(1, (l - 96) / 44) * Math.min(1, (0.27 - (mx - mn) / mx) / 0.07));
+      }
+    }
+    // Surf is bright, grey and busy like a roof: nothing next to water counts as built-up.
+    if (anyW) for (let j = 0, k = 0; j < T; j++) for (let i = 0; i < T; i++, k++) {
+      if (cls[k] <= 128) continue;
+      search: for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {
+        const ii = i + di, jj = j + dj;
+        if (ii >= 0 && jj >= 0 && ii < T && jj < T && wraw[jj * T + ii]) { cls[k] = 128; break search; }
+      }
+    }
+    if (anyW) {
+      wd = new Float32Array(T * T);
+      for (let j = 0, k = 0; j < T; j++) for (let i = 0; i < T; i++, k++) {
+        if (!wraw[k]) continue;
+        let sum = 0, n = 0;
+        for (let dj = -3; dj <= 3; dj++) for (let di = -3; di <= 3; di++) {
+          const ii = i + di, jj = j + dj;
+          if (ii < 0 || jj < 0 || ii >= T || jj >= T) continue;
+          const v = wraw[jj * T + ii]; if (v) { sum += v; n++; }
+        }
+        // An isolated blue cell is a pool or a tarp, not the sea.
+        wd[k] = n >= 10 ? sum / n : 0;
+        if (n < 10 && !nd[k]) cls[k] = 128;
+      }
+    }
+  }
+  const WD = wd;
+  const hAt = (u: number, v: number) => {
+    let h = hRaw(u, v);
+    if (h > -0.6 && h < 0.6) {
+      if (bAt) { const b = bAt(u, v); if (b < -0.3) h = b; }
+      // Still at sea level where the photo shows water: take the depth read off the water's colour (the real
+      // bathymetry layer is trusted, so there only the minimum is applied).
+      if (WD && h > (trusted ? -0.3 : -3)) { const w = sample(WD, T, u * T - 0.5, v * T - 0.5); if (w > 0.05) h = Math.min(h, -(trusted ? Math.min(w, 0.4) : w)); }
+    }
+    return h;
+  };
 
   // compact heights for heightAt
   const hts = new Int16Array(HN * HN);
@@ -135,8 +345,8 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
     }
   }
 
-  // ---- normal map from the full-resolution heights; B carries height near sea level ----
-  const T = 256, G = new Float32Array((T + 2) * (T + 2));
+  // ---- normal map from the full-resolution heights; B carries height near sea level, A what the photo shows ----
+  const G = new Float32Array((T + 2) * (T + 2));
   for (let j = 0, k = 0; j < T + 2; j++) for (let i = 0; i < T + 2; i++, k++) G[k] = hAt((i - 0.5) / T, (j - 0.5) / T);
   const norm = new Uint8Array(T * T * 4);
   const dx2 = 2 * widthM / T;
@@ -150,27 +360,13 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
       norm[o + 1] = Math.round((nz * inv * 0.5 + 0.5) * 255);
       const hc = (G[k] + 96) / 128;                       // -96 m .. +32 m in 0.5 m steps
       norm[o + 2] = hc <= 0 ? 0 : hc >= 1 ? 255 : Math.round(hc * 255);
-      norm[o + 3] = 255;
+      norm[o + 3] = cls[j * T + i];
     }
   }
 
-  let photo = await photoP;
-  if (!photo.ok && job.crop && src!.z === z) {
-    // Finer relief under the parent's picture is still an improvement.
-    try {
-      const c = job.crop, bmp = await fetchBitmap(c.url, signal), cs = 2 ** (z - c.z), w = bmp.width / cs;
-      if (!pcv || pcv.width !== 256) pcv = new OffscreenCanvas(256, 256);
-      const g = pcv.getContext('2d') as OffscreenCanvasRenderingContext2D;
-      g.globalCompositeOperation = 'copy'; g.imageSmoothingQuality = 'high';
-      g.drawImage(bmp, (x - c.x * cs) * w, (y - c.y * cs) * w, w, w, 0, 0, 256, 256);
-      bmp.close();
-      photo = { bmp: pcv.transferToImageBitmap(), imgZ: c.z, ok: true };
-    } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, job.crop.url)); }
-  }
-  if (!photo.ok && !job.root) return { res: { id: job.id, ok: false, failed, okUrls }, transfer: [] };
-  const res: TileResult = { id: job.id, ok: true, failed, okUrls, degraded: failed.length > 0, pos, hts, norm, photo: photo.bmp, minH, maxH, cx, cy, cz, demZ: src!.z, imgZ: photo.imgZ };
+  const res: TileResult = { id: job.id, ok: true, failed, okUrls, degraded: failed.length > 0, pos, hts, norm, photo: px, photoW: PW, minH, maxH, cx, cy, cz, demZ: src!.z, imgZ: photo.imgZ };
   const transfer: Transferable[] = [pos.buffer, hts.buffer, norm.buffer];
-  if (photo.bmp) transfer.push(photo.bmp);
+  if (px) transfer.push(px.buffer);
   return { res, transfer };
 }
 

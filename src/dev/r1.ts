@@ -20,13 +20,26 @@ if (flag('pump')) {
   };
   (globalThis as any).requestAnimationFrame = (f: FrameRequestCallback) => { cb = f; ch.port2.postMessage(0); return 1; };
 }
+const tParam = params.get('t');
+if (tParam && !Number.isNaN(Date.parse(tParam))) { S.clockMode.value = 'manual'; S.sceneTime.value = Date.parse(tParam); }
+if (params.has('sea')) S.scenario.value = { ...S.scenario.value, seaLevelM: +params.get('sea')!, label: 'manual' };
+// ?pad=left,right,top,bottom stands in for the UI panels (CSS px).
+const pad = params.get('pad')?.split(',').map(Number);
+if (pad && pad.length === 4 && pad.every(Number.isFinite)) S.viewPadding.value = { left: pad[0], right: pad[1], top: pad[2], bottom: pad[3] };
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const engine = createEngine(canvas, { terrain: createTerrain, controls: createControls });
+// ?post=real: the real sky, sea and tone mapping instead of the placeholder.
+const parts: any = { terrain: createTerrain, controls: createControls };
+if (params.get('post') === 'real') parts.post = (await import('../world/post/index')).createPost;
+const engine = createEngine(canvas, parts);
 const { world } = engine;
 const g: any = ((globalThis as any).__garita = {
   ready: false, world,
   debug: () => ({ stats: S.stats.value, view: world.controls.view(), terrain: world.terrain.stats(), selftest: g.selftest }),
 });
+if (params.has('night')) engine.onFrame(() => { world.night = +params.get('night')!; });
+if (params.get('tint') === 'elevation') world.terrain.setTint?.('elevation');
+const fly = params.get('fly')?.split(',').map(Number);
+if (fly && fly.length >= 2) setTimeout(() => { S.flyTo.value = { lon: fly[0], lat: fly[1], range: fly[2] || undefined, heading: fly[3], pitch: fly[4], seconds: fly[5] || undefined }; }, 1500);
 const sun = params.get('sun');
 if (sun) { const [az, el] = sun.split(',').map(Number), a = az * Math.PI / 180, e = el * Math.PI / 180; engine.onFrame(() => world.sunDir.set(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e))); }
 

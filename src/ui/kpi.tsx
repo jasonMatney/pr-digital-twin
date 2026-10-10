@@ -4,7 +4,7 @@ import type { TwinStore } from '../ontology/types';
 import * as S from '../core/state';
 import { t } from '../i18n/index';
 import { Icon } from './icons';
-import { DASH, num, compact, compass, haversineKm } from './format';
+import { DASH, num, compact, compass, haversineKm, toMs } from './format';
 import { storeTick, nowTick, useQuery, eventTimes, explorerType, SEV_FLOOD, sevClass } from './uistate';
 
 const PR = { lat: 18.22, lon: -66.45 };
@@ -23,14 +23,16 @@ async function loadKpi(store: TwinStore, now: number): Promise<Kpi> {
   const counts = await store.countByType();
   const srcs = await store.sources();
   const ran = (id: string) => srcs.some((s) => s.source.id === id && s.lastRun && s.lastRun.status !== 'error');
-  const [alerts, quakes, gauges, regions, tide, cyclones] = await Promise.all([
-    store.listObjects('weather_alert', { limit: 500 }),
+  const [alertsAll, quakes, gauges, regions, tide, cyclones] = await Promise.all([
+    store.listObjects('weather_alert', { limit: 500, props: ['expires'] }),
     store.listObjects('earthquake', { limit: 300, props: ['magnitude'], orderBy: '-updatedAt' }),   // newest first; event times are looked up once and cached
     store.listObjects('stream_gauge', { limit: 1000, props: ['flood_category'] }),
     store.listObjects('power_region', { props: ['customers', 'customers_out'] }),
     store.getObject('tide_station:9755371'),
     store.listObjects('tropical_cyclone', { props: ['distance_to_pr_km'] }),
   ]);
+  // Only alerts still in force: fixtures and slow feeds can leave expired ones in the list.
+  const alerts = alertsAll.filter((a) => { const e = toMs(a.props?.expires); return a.status !== 'expired' && (e == null || e > now); });
   const k: Kpi = { alerts: null, quakes: null, gauges: null, power: null, tide: null, cyclones: null };
   // Ephemeral types are legitimately empty; only say "0" once their feed has actually reported.
   if (alerts.length || ran('nws_alerts')) k.alerts = { count: alerts.length, maxSev: Math.max(0, ...alerts.map((a) => a.severity ?? 0)) };

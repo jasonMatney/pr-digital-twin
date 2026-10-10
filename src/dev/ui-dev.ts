@@ -26,6 +26,9 @@ stage?.addEventListener('pointermove', (e) => {
   S.cursorGeo.value = { lon: -67.4 + ((e.clientX - r.left) / r.width) * 2.2, lat: 18.75 - ((e.clientY - r.top) / r.height) * 1.1, elev: NaN };
 });
 
+// Recorded San Juan water level, so the dev page never shows the default 0 as if it were a reading.
+store.getObject('tide_station:9755371').then((o) => { const v = o?.props?.water_level_m; if (typeof v === 'number') S.weather.value = { ...S.weather.value, tideM: v }; });
+
 const unmount = mountUI(document.getElementById('ui')!, { store });
 S.booted.value = true;
 (globalThis as any).__garita = { ready: true, debug: () => ({ selected: S.selectedId.value, panel: S.rightPanel.value, narrow: ui.narrow.value }), S, ui, store, unmount };

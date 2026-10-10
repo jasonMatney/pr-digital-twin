@@ -55,6 +55,23 @@ const D: Dict = {
   'tab.alerts': ['Alerts', 'Avisos'], 'tab.object': ['Object', 'Objeto'], 'tab.explorer': ['Explorer', 'Explorador'], 'tab.lineage': ['Lineage', 'Procedencia'],
   'dock.collapse': ['Collapse panel', 'Contraer panel'], 'dock.expand': ['Expand panel', 'Expandir panel'], 'dock.close': ['Close panel', 'Cerrar panel'],
 
+  'tab.scenario': ['Scenario', 'Escenario'],
+  'sc.level': ['Water level above mean sea level', 'Nivel del agua sobre el nivel medio del mar'],
+  'sc.manual': ['manual', 'manual'], 'sc.tide': ["Add today's tide at San Juan", 'Sumar la marea de hoy en San Juan'], 'sc.tide.short': ['tide', 'marea'],
+  'sc.surge': ['What-if surge', 'Marejada hipotética'], 'sc.surge.label': ['what-if surge', 'marejada hipotética'],
+  'sc.noaa': ['NOAA 2022 projections · San Juan · metres vs 2005', 'Proyecciones NOAA 2022 · San Juan · metros vs. 2005'],
+  'sc.noaa.none': ['Projection file not available.', 'Archivo de proyecciones no disponible.'],
+  'sc.noaa.note': ['Relative sea level change at tide station 9755371. Pick a cell to set the level.', 'Cambio relativo del nivel del mar en el mareógrafo 9755371. Escoge una celda para fijar el nivel.'],
+  'sc.scenario': ['Scenario', 'Escenario'], 'sc.buildings': ['Buildings by ground elevation', 'Edificios por elevación del terreno'],
+  'sc.atorbelow': ['buildings at or below', 'edificios en o bajo'], 'sc.below': ['buildings below', 'edificios bajo'],
+  'sc.binned': ['counted at the 0.25 m bin edge under the level, not interpolated', 'contados en el borde de 0.25 m bajo el nivel, sin interpolar'],
+  'sc.muni': ['Municipio · top 10', 'Municipio · primeros 10'], 'sc.count': ['Buildings', 'Edificios'], 'sc.share': ['Share', 'Parte'],
+  'sc.nohist': ['No elevation histograms in the store yet.', 'Aún no hay histogramas de elevación en la base de datos.'],
+  'sc.assets': ['Facilities with ground elevation', 'Instalaciones con elevación del terreno'], 'sc.units': ['units', 'unidades'], 'sc.residents': ['residents', 'residentes'],
+  'sc.method': ['Method and caveats', 'Método y limitaciones'],
+  'sc.method.body': ["Bathtub screen: ground elevation at one point per structure from 10 m USGS 3DEP via Terrain Tiles (which terraces at whole metres in the coastal plain), compared with a flat water level. No waves, drainage, levees or connectivity. Building counts: OpenStreetMap footprints, derived by Garita. NOAA's connected-inundation mapping is the 'Sea level rise (NOAA)' overlay — compare the two.", "Filtro de bañera: elevación del terreno en un punto por estructura, de USGS 3DEP a 10 m vía Terrain Tiles (que forma terrazas en metros enteros en el llano costero), comparada con un nivel de agua plano. Sin oleaje, drenaje, diques ni conectividad. Conteo de edificios: huellas de OpenStreetMap, derivado por Garita. El mapa de inundación conectada de NOAA es la superposición 'Alza del mar (NOAA)' — compara ambos."],
+  'sc.overlay': ['Show NOAA sea level rise overlay', 'Mostrar superposición de alza del mar (NOAA)'],
+
   // alerts
   'al.title': ['Inbox', 'Bandeja'],
   'al.sec.weather': ['Weather watches and warnings', 'Vigilancias y avisos del tiempo'],

@@ -6,7 +6,8 @@ import type { TwinStore } from '../ontology/types';
 import * as S from '../core/state';
 import './tokens.css';
 import './ui.css';
-import { bindStore, storeTick, nowTick, narrow, paletteOpen, railGroup } from './uistate';
+import { effect } from '@preact/signals';
+import { bindStore, storeTick, nowTick, narrow, paletteOpen, railGroup, dockCollapsed, sheetVh } from './uistate';
 import { TopBar } from './topbar';
 import { KpiStrip } from './kpi';
 import { Rail } from './rail';
@@ -14,6 +15,7 @@ import { Dock } from './dock';
 import { BottomBar } from './bottombar';
 import { SearchPalette } from './search';
 import { Toasts } from './toasts';
+import { HoverTip, LegendCard } from './hover';
 
 function App({ store }: { store: TwinStore }) {
   useEffect(() => {
@@ -38,6 +40,8 @@ function App({ store }: { store: TwinStore }) {
       <Dock store={store} />
       <BottomBar />
       <Toasts store={store} />
+      <LegendCard />
+      <HoverTip store={store} />
       {paletteOpen.value && <SearchPalette store={store} />}
     </div>
   );
@@ -58,7 +62,22 @@ export function mountUI(root: HTMLElement, deps: { store: TwinStore }): () => vo
   onMq(); mq.addEventListener('change', onMq);
 
   render(<App store={store} />, root);
+
+  // Tell the camera how much of the viewport the panels cover, measured from the real rectangles.
+  const measure = () => {
+    const q = (sel: string) => root.querySelector(sel)?.getBoundingClientRect();
+    const W = window.innerWidth, H = window.innerHeight;
+    const top = q('.topbar'), kpi = q('.kpis'), rail = q('.rail'), dock = q('.dock'), bottom = q('.bottombar');
+    const pad = { left: 0, right: 0, top: Math.round(Math.max(top?.bottom ?? 0, kpi?.bottom ?? 0)), bottom: Math.round(bottom ? H - bottom.top : 0) };
+    if (narrow.value) { if (rail) pad.top = Math.round(Math.max(pad.top, rail.bottom)); if (dock) pad.bottom = Math.round(Math.max(pad.bottom, H - dock.top)); }
+    else { if (rail) pad.left = Math.round(rail.right); if (dock && dock.height > 80) pad.right = Math.round(W - dock.left); }
+    const cur = S.viewPadding.peek();
+    if (cur.left !== pad.left || cur.right !== pad.right || cur.top !== pad.top || cur.bottom !== pad.bottom) S.viewPadding.value = pad;
+  };
+  const offPad = effect(() => { void S.rightPanel.value; void dockCollapsed.value; void narrow.value; void sheetVh.value; requestAnimationFrame(measure); });
+  window.addEventListener('resize', measure);
   return () => {
+    offPad(); window.removeEventListener('resize', measure);
     offChange(); clearInterval(clock); clearTimeout(timer); mq.removeEventListener('change', onMq);
     render(null, root);
   };

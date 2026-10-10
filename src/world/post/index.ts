@@ -14,11 +14,11 @@ import * as S from '../../core/state';
 import { ORIGIN } from '../../core/geo.ts';
 import { dataUrl, params } from '../../core/config';
 import type { Frame, PostApi, World } from '../types';
-import { SceneOceanPass, SKY_GLSL } from './ocean';
+import { SceneOceanPass, SKY_GLSL, OVER_WATER_LAYER } from './ocean';
 
 // Scene lights by sun elevation (after procedural-sanjuan's tables). A sunlit white wall is about 1 in scene units.
-const DAY = { hemi: 0.45, sun: 3.4, sunColor: new THREE.Color(0xfff0dc), exposure: 0.9, bloom: 0.25 };
-const NIGHT = { hemi: 0.10, sun: 0.17, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.0, bloom: 0.4 };
+const DAY = { hemi: 0.45, sun: 3.4, sunColor: new THREE.Color(0xfff0dc), exposure: 0.95, bloom: 0.25 };
+const NIGHT = { hemi: 0.22, sun: 0.5, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.2, bloom: 0.5 };   // a readable night: moonlight even at new moon
 const SUNSET = new THREE.Color(0xff9a52);
 // Scene radiance -> the atmosphere's units. The takram sun delivers solarIrradiance (1.47, 1.85, 1.91) x transmittance
 // (about 0.8 at noon) on the ground, so its sunlit white wall is ~1.43 / pi; ours is DAY.sun / pi.
@@ -33,6 +33,22 @@ class Scale extends Effect {
       { uniforms: new Map([['k', new THREE.Uniform(k)]]) });
   }
   set k(v: number) { this.uniforms.get('k')!.value = v; }
+}
+
+/** After tone mapping (display-linear in): white lift, a soft S-curve and saturation. g = (gain, curve, saturation). */
+class Grade extends Effect {
+  constructor() {
+    super('Grade', `uniform vec3 g;
+      void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+        vec3 c = clamp(inputColor.rgb * g.x, 0.0, 1.0);
+        vec3 p = pow(c, vec3(1.0 / 2.2));
+        p = mix(p, p * p * (3.0 - 2.0 * p), g.y);
+        c = pow(p, vec3(2.2));
+        float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        outputColor = vec4(clamp(mix(vec3(l), c, g.z), 0.0, 1.0), inputColor.a);
+      }`, { uniforms: new Map([['g', new THREE.Uniform(new THREE.Vector3(1.1, 0.3, 1.12))]]) });
+  }
+  get g(): THREE.Vector3 { return this.uniforms.get('g')!.value; }
 }
 
 type Mode = 'takram' | 'basic' | 'plain';
@@ -69,6 +85,9 @@ export function createPost(world: World): PostApi {
   const scaleIn = new Scale(UNITS), scaleOut = new Scale(1);
   const scaleInPass = new EffectPass(camera, scaleIn);
 
+  const cloudNight = new THREE.Uniform(new THREE.Vector3());   // moonlit clouds: the library gives them no light at night
+  const cloudGain = new THREE.Uniform(+(params.get('cg') ?? 1.5));
+  const field = new THREE.Uniform(new THREE.Vector4(0.085, 0.3, 0.8, 0.36));   // field frequency factor, clear-lane weather scale, island boost, field threshold
   let aerial: any = null, plain: any = null, clouds: any = null, cloudPass: EffectPass | null = null, skyPass: EffectPass | null = null;
   const wantClouds = !off('clouds');
   if (wantTakram) {
@@ -82,6 +101,14 @@ export function createPost(world: World): PostApi {
         const fx: any = new AerialPerspectiveEffect(camera);
         fx.sky = true; fx.sun = true; fx.moon = true; fx.ground = false;
         fx.worldToECEFMatrix.copy(worldToECEF);
+        let src: string = fx.getFragmentShader();
+        // the sky is added to what the ocean pass wrote in sky pixels (night sky and stars)
+        const skyHook = '    outputColor.a = 1.0;\n    #else // SKY';
+        if (src.includes(skyHook)) src = src.replace(skyHook, '    outputColor.rgb += inputColor.rgb;\n' + skyHook);
+        // the cloud buffer is brightened: the library's clouds come out darker than sunlit sand in our units
+        const ovHook = 'vec4 overlay = texture(overlayBuffer, uv);';
+        if (src.includes(ovHook)) { src = src.replace(ovHook, ovHook + '\n  overlay.rgb = overlay.rgb * garitaCloudGain + overlay.a * garitaCloudNight;').replace('uniform sampler2D overlayBuffer;', 'uniform sampler2D overlayBuffer;\nuniform float garitaCloudGain;\nuniform vec3 garitaCloudNight;'); fx.uniforms.set('garitaCloudGain', cloudGain); fx.uniforms.set('garitaCloudNight', cloudNight); }
+        fx.setFragmentShader(src);
         return fx;
       };
       plain = make();
@@ -95,6 +122,29 @@ export function createPost(world: World): PostApi {
         clouds = new CloudsEffect(camera);
         clouds.worldToECEFMatrix.copy(worldToECEF);
         clouds.localWeatherVelocity.set(0.0006, 0.0002);
+        // trade-wind cumulus between 600 m and 2200 m, in cells a few km across
+        clouds.cloudLayers[0].set({ altitude: 600, height: 800, densityScale: 0.3 });
+        clouds.cloudLayers[1].set({ altitude: 800, height: 1400, densityScale: 0.3 });
+        clouds.localWeatherRepeat.setScalar(+(params.get('lw') ?? 60));
+        // Cloud FIELDS: a low-frequency copy of the weather map opens clear lanes between fields of cumulus, and
+        // there is more over the island's mountains than over open sea (in the cloud pass and in its shadow pass).
+        const where = 'vec2 getGlobeUv(const vec3 position) {', mask = '  #ifdef SHADOW\n  localWeather *= shadowLayerMask;';
+        for (const material of [clouds.cloudsPass.currentMaterial, clouds.shadowPass.currentMaterial]) {
+          const src: string = material.fragmentShader;
+          if (!src.includes(where) || !src.includes(mask)) { console.warn('[garita/post] cloud shader changed: no cloud fields'); continue; }
+          material.fragmentShader = src
+            .replace(where, `uniform vec4 garitaField;\nvec3 garitaPos;\n${where}\n  garitaPos = position;`)
+            .replace(mask, `  {
+    vec3 gw = (ecefToWorldMatrix * vec4(garitaPos - altitudeCorrection, 1.0)).xyz;
+    float gf = textureLod(localWeatherTexture, uv * localWeatherRepeat * garitaField.x + vec2(0.37, 0.61), 0.0).r;
+    float gfield = smoothstep(garitaField.w - 0.14, garitaField.w + 0.14, gf);
+    float gisland = exp(-(gw.x * gw.x) / (2.0 * 70000.0 * 70000.0) - ((gw.z - 3000.0) * (gw.z - 3000.0)) / (2.0 * 17000.0 * 17000.0));
+    localWeather.rg *= mix(garitaField.y, 1.0, gfield) * (1.0 + garitaField.z * gisland);
+  }
+${mask}`);
+          material.uniforms.garitaField = field;
+          material.needsUpdate = true;
+        }
         Object.assign(clouds, generator.textures);
         const pass = (property: string) => {
           if (property === 'atmosphereOverlay') aerial.overlay = clouds.atmosphereOverlay;
@@ -125,7 +175,8 @@ export function createPost(world: World): PostApi {
   composer.addPass(new EffectPass(camera, scaleOut));
   const bloom = new BloomEffect({ intensity: DAY.bloom, luminanceThreshold: 1.0, luminanceSmoothing: 0.35, mipmapBlur: true, radius: 0.7 });
   const tone = new ToneMappingEffect({ mode: params.get('tm') === 'aces' ? ToneMappingMode.ACES_FILMIC : params.get('tm') === 'neutral' ? ToneMappingMode.NEUTRAL : ToneMappingMode.AGX });
-  composer.addPass(new EffectPass(camera, bloom, tone));
+  const grade = new Grade();
+  composer.addPass(new EffectPass(camera, bloom, tone, grade));
   const aaPass = new EffectPass(camera, new SMAAEffect({ preset: SMAAPreset.HIGH }));
   (aaPass as any).dithering = true;
   composer.addPass(aaPass);
@@ -161,7 +212,7 @@ export function createPost(world: World): PostApi {
   const sstep = THREE.MathUtils.smoothstep, lerp = THREE.MathUtils.lerp;
   const cDayZen = new THREE.Vector3(0.050, 0.115, 0.30), cDayHor = new THREE.Vector3(0.34, 0.42, 0.53);
   const cDuskZen = new THREE.Vector3(0.022, 0.040, 0.105), cDuskHor = new THREE.Vector3(0.46, 0.27, 0.13);
-  const cNightZen = new THREE.Vector3(0.0022, 0.0034, 0.0075), cNightHor = new THREE.Vector3(0.0050, 0.0066, 0.0110);
+  const cNightZen = new THREE.Vector3(0.0040, 0.0062, 0.0140), cNightHor = new THREE.Vector3(0.0090, 0.0120, 0.0200);
   const tmpC = new THREE.Color();
 
   function setTime(epochMs: number): void {
@@ -186,10 +237,13 @@ export function createPost(world: World): PostApi {
     else lightDir.set(0.3, 0.8, 0.5).normalize();
     // the low sun is dimmer as well as warmer: more air in the way
     const airmass = sstep(deg, -2, 30);
-    sun.intensity = DAY.sun * st.daylight * (0.35 + 0.65 * airmass) + NIGHT.sun * st.moonlight * (0.25 + 0.75 * moonUp);
+    sun.intensity = DAY.sun * st.daylight * (0.35 + 0.65 * airmass) + NIGHT.sun * st.moonlight * (0.6 + 0.4 * moonUp);
+    cloudNight.value.set(0.55, 0.68, 1.0).multiplyScalar(0.008 * st.dark * st.dark);
+    grade.g.set(lerp(1.1, 1.0, st.dark), 0.3 * (1 - st.dark) * sstep(deg, 0, 30), lerp(1.12, 1.0, st.dark));   // (no shadow-crushing curve in low light)
     sun.color.copy(DAY.sunColor).lerp(SUNSET, st.warmth * 0.85).lerp(NIGHT.sunColor, st.moonlight);
     hemi.intensity = lerp(DAY.hemi, NIGHT.hemi, st.dark);
-    st.exposure = lerp(DAY.exposure, NIGHT.exposure, st.dark) * (1 + 0.25 * st.warmth * (1 - st.dark));
+    const lowSun = (1 - sstep(deg, 2, 35)) * (1 - st.dark);   // the ground gets a fraction of the noon light: open up
+    st.exposure = lerp(DAY.exposure, NIGHT.exposure, st.dark) * (1 + 1.5 * lowSun);
     st.bloom = lerp(DAY.bloom, NIGHT.bloom, st.dark);
     bloom.intensity = st.bloom;
 
@@ -208,11 +262,12 @@ export function createPost(world: World): PostApi {
     if (bakedSun.angleTo(world.sunDir) > 0.035) bakeEnv();
   }
 
+  let orbitOnly = false;   // from orbit the volumetric clouds are replaced by the ocean pass's 2D cloud field
   function applyMode(next: Mode): void {
     mode = next;
     const tk = next === 'takram';
     const q = S.quality.value;
-    const cloudsOn = tk && !!cloudPass && q !== 'low' && S.layerOn.value.clouds !== false;
+    const cloudsOn = tk && !!cloudPass && q !== 'low' && S.layerOn.value.clouds !== false && !orbitOnly;
     scaleInPass.enabled = tk;
     if (cloudPass) cloudPass.enabled = cloudsOn;
     if (skyPass) skyPass.enabled = tk && !cloudsOn;
@@ -237,7 +292,7 @@ export function createPost(world: World): PostApi {
       bloom.blendMode.opacity.value = q === 'low' ? 0.6 : 1;
       applyMode(want);
     }
-    if (clouds && cover !== lastCover) { lastCover = cover; clouds.coverage = THREE.MathUtils.clamp(0.12 + 0.62 * cover, 0, 0.9); }
+
     scaleOut.k = mode === 'takram' ? st.exposure / UNITS : st.exposure;
     sun.target.position.copy(world.controls?.target ?? sun.target.position);
     sun.position.copy(sun.target.position).addScaledVector(lightDir, 1e5);
@@ -245,6 +300,14 @@ export function createPost(world: World): PostApi {
     oin.seaLevel = world.seaLevel; oin.time = frame.now; oin.windMs = w.windMs; oin.windDirDeg = w.windDirDeg;
     oin.waveH = w.waveHeightM; oin.wavePeriod = w.wavePeriodS; oin.waveDirDeg = w.waveDirDeg;
     ocean.update(oin);
+    // Volumetric clouds up to ~60 km camera height; from there to 150 km they give way to the 2D field (specks otherwise).
+    const cloudsWanted = wantClouds && q !== 'low' && S.layerOn.value.clouds !== false;
+    const orbit = cloudsWanted ? sstep(ocean.uniforms.uCamH.value, 60000, 150000) : 0;
+    ocean.uniforms.uOrbit.value = orbit;
+    (ocean.uniforms.uCloud2.value as THREE.Vector4).w = (cover - 0.3) * 0.25;
+    const cov = THREE.MathUtils.clamp(0.2 + 0.22 * cover, 0, 0.42) * (1 - orbit);   // (above ~0.4 the layer closes into a flat deck)
+    if (clouds && cov !== lastCover) { lastCover = cov; clouds.coverage = cov; }
+    if ((orbit > 0.999) !== orbitOnly) { orbitOnly = orbit > 0.999; applyMode(mode); }
     try { composer.render(frame.dt); }
     catch (e) { if (mode === 'takram') { wantTakram = false; warn(e); applyMode('basic'); } else { mode = 'plain'; console.warn('[garita/post] render failed: plain render', e); } }
   }
@@ -252,11 +315,11 @@ export function createPost(world: World): PostApi {
   setTime(S.sceneTime.value);
   bakeEnv();
 
-  return {
+  const api = {
     render,
-    resize(width, height, dpr) { renderer.setPixelRatio(dpr); composer.setSize(width, height, false); },
+    resize(width: number, height: number, dpr: number) { renderer.setPixelRatio(dpr); composer.setSize(width, height, false); },
     setTime,
-    setSeaLevel(m) { world.seaLevel = m; },
+    setSeaLevel(m: number) { world.seaLevel = m; },
     dispose() {
       renderer.debug.onShaderError = prevOnShaderError;
       scene.remove(sun, sun.target, hemi);
@@ -264,6 +327,11 @@ export function createPost(world: World): PostApi {
       composer.dispose();
     },
     // not part of PostApi: for the test page
+    overWaterLayer: OVER_WATER_LAYER,
+    set overWater(v: boolean) { ocean.overWater = v; },
+    get overWater() { return ocean.overWater; },
+    tune: { DAY, NIGHT, clouds: () => clouds, aerial: () => aerial, ocean, grade, bloom, cloudGain, field, apply: () => setTime(date.getTime()) },
     ...({ debug: () => ({ mode, lutsReady, clouds: !!cloudPass?.enabled, units: UNITS, ...st, sun: world.sunDir.toArray().map((v) => +v.toFixed(3)) }) } as object),
   };
+  return api as PostApi;
 }

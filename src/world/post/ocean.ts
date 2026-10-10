@@ -10,6 +10,8 @@ import * as THREE from 'three';
 import { Pass } from 'postprocessing';
 import { R_EARTH } from '../../core/geo.ts';
 
+/** Meshes on this layer (and not on layer 0) are drawn after the ocean when `overWater` is on. */
+export const OVER_WATER_LAYER = 3;
 export const N_OCT = 6, N_PER = 6, N_WAVES = N_OCT * N_PER;
 
 /** Analytic sky radiance (scene units) shared by the water's reflection, the fallback sky and the environment map. */
@@ -37,6 +39,8 @@ const FRAG = /* glsl */`
   uniform sampler2D tDepth;
   uniform float uNear, uFar, uCamH, uTime, uPix, uOcean, uBasic, uMss, uWindMs, uWaveH, uNight, uDeepGain;
   uniform vec2 uTan, uOR, uWrap;
+  uniform float uOrbit;
+  uniform vec4 uCloud2;   // threshold, softness, ground shadow strength, cover bias
   uniform vec3 uCamPos, uRight, uUp, uFwd, uLightDir, uLightE, uEd, uK, uDeepR;
   uniform vec4 uWave[${N_WAVES}];   // kx, kz, phase at the camera, slope amplitude
   uniform vec2 uOct[${N_OCT}];      // wavelength, share of the mean-square slope
@@ -73,6 +77,22 @@ const FRAG = /* glsl */`
     return smoothstep(0.55, 0.95, r) * 0.7 + smoothstep(0.6, 0.97, q) * 0.5;
   }
 
+  // Cloud cover as seen from orbit (a 2D field on a shell 1.5 km up): fields of cumulus with clear lanes, more over the island.
+  float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vnoise(p, 4096.0); p = p * 2.07 + 13.7; a *= 0.5; } return s / 0.9375; }
+  float cloud2D(vec2 p) {
+    float field = fbm(p / 90000.0 + 31.0);
+    float cells = 0.72 * fbm(p / 9000.0 + 5.0) + 0.28 * fbm(p / 2100.0 + 41.0);
+    float island = exp(-(p.x * p.x) / (2.0 * 70000.0 * 70000.0) - ((p.y - 3000.0) * (p.y - 3000.0)) / (2.0 * 17000.0 * 17000.0));
+    float c = cells + (smoothstep(0.38, 0.62, field) - 0.5) * 0.30 + 0.10 * island + uCloud2.w;
+    return smoothstep(uCloud2.x, uCloud2.x + uCloud2.y, c);
+  }
+  float stars(vec3 d) {
+    vec3 p = d * 230.0, q = floor(p), f = p - q - 0.5;
+    float h = hash(q.xy + q.z * 37.17), h2 = fract(h * 91.7);
+    float r = length(f + (vec3(h2, fract(h * 13.3), fract(h * 57.1)) - 0.5) * 0.5);
+    return step(0.93, h) * smoothstep(0.28, 0.03, r) * (0.04 + 0.5 * h2 * h2 * h2);
+  }
+
   void main() {
     vec2 ndc = vUv * 2.0 - 1.0;
     vec3 rd = normalize(uFwd + ndc.x * uTan.x * uRight + ndc.y * uTan.y * uUp);
@@ -89,7 +109,11 @@ const FRAG = /* glsl */`
     float b = rd.y + dot(uOR, rd.xz);
     float disc = b * b - 4.0 * a * uCamH;
     float tW = 2.0 * uCamH / (-b + sqrt(max(disc, 0.0)));
-    bool water = uOcean > 0.5 && uCamH > 0.0 && b < 0.0 && disc > 0.0 && tW < tScene;
+    // what the depth buffer and the terrain mesh can tell apart at this distance: closer than this to sea level, the
+    // seabed's depth is unknown (it must not flicker between wet and dry, or foam, pixel by pixel)
+    float eps = min(0.03 + tW * 1.2e-4, 2.0);
+    // (rays that miss the sea by less than 0.04 degrees still count: no sliver of below-horizon sky between sea and sky)
+    bool water = uOcean > 0.5 && uCamH > 0.0 && b < 0.0 && (disc > 0.0 || (b - 7e-4) * (b - 7e-4) > 4.0 * a * uCamH) && tW < tScene + eps;
 
     if (water) {
       vec2 rel = rd.xz * tW;                         // hit point, relative to the camera
@@ -153,28 +177,47 @@ const FRAG = /* glsl */`
       glint = min(glint, vec3(60.0));
 
       // ---- foam: lace at the waterline, breakers over the shallows, whitecaps in wind
-      float near1 = clamp(3.0 / fp, 0.0, 1.0);       // lace resolved?
+      float near1 = clamp(1.6 / fp - 0.6, 0.0, 1.0);  // lace (cells ~1.8 m) resolved? otherwise its mean
       float lc = mix(0.32, lace((uWrap + rel) * 0.55, uTime), near1);
       float band = fwidth(dV);
-      float edge = (1.0 - smoothstep(0.02, 0.45, dV)) * clamp(0.45 / max(band, 1e-3), 0.0, 1.0);
+      float flat0 = 1.0 - smoothstep(eps, 2.5 * eps, dV);     // seabed indistinguishable from sea level
+      // ... and the photo there shows water (terrain tiles without bathymetry): the photo is then the water's own colour,
+      // and it gets the surface (reflection, glitter) but no absorption and no foam
+      float photoSea = flat0 * smoothstep(0.02, 0.12, (col.b - col.r) / max(col.b + col.r, 1e-3));
+      float edge = (1.0 - smoothstep(0.02, 0.45, dV)) * clamp(0.45 / max(band, 1e-3), 0.0, 1.0) * (1.0 - flat0) * clamp(3.0 / fp - 0.5, 0.0, 1.0);
       float surfD = 0.6 + 1.2 * uWaveH;
-      float surf = (1.0 - smoothstep(0.25 * surfD, surfD, dV)) * clamp(surfD / max(band, 1e-3), 0.0, 1.0);
+      float surf = (1.0 - smoothstep(0.25 * surfD, surfD, dV)) * clamp(surfD / max(band, 1e-3), 0.0, 1.0) * (1.0 - flat0) * clamp(12.0 / fp - 0.5, 0.0, 1.0);
       float cap = clamp(3.84e-6 * pow(max(uWindMs, 0.0), 3.41), 0.0, 0.25) * smoothstep(6.0, 9.0, uWindMs);
-      float capN = mix(cap, smoothstep(1.0 - 2.5 * cap, 1.0, vnoise((uWrap + rel) * 0.045 + uTime * 0.02, 64.0)) * lc * 2.2, clamp(40.0 / fp, 0.0, 1.0));
+      float capN = mix(cap, smoothstep(1.0 - 2.5 * cap, 1.0, vnoise((uWrap + rel) * 0.045 + uTime * 0.02, 64.0)) * lc * 2.2, clamp(3.0 / fp - 1.0, 0.0, 1.0));   // the crests are a few metres across: unresolved, they are only their mean whiteness
       float foam = clamp(edge * (0.35 + 0.65 * lc) * 0.75 + surf * lc * 0.5 + capN, 0.0, 0.9);
-      foam *= smoothstep(0.0, 0.03, dV);
+      foam *= smoothstep(eps, 2.0 * eps + 0.03, dV);
 
-      float wet = smoothstep(0.0, 0.06, dV);          // the film at the very edge neither mirrors nor glitters
-      vec3 sea = Lw * (1.0 - F) / (N_W * N_W) * mix(1.0, N_W * N_W / max(1.0 - F, 0.05), 1.0 - wet) + (Ls * F + glint) * wet;
+      float wet = max(smoothstep(eps, eps + 0.06, dV), photoSea);   // the film at the very edge neither mirrors nor glitters
+      vec3 sea = Lw * (1.0 - F) / (N_W * N_W) * mix(1.0, N_W * N_W / max(1.0 - F, 0.05), 1.0 - wet) * mix(1.0, N_W * N_W, photoSea) + (Ls * F + glint) * wet;
       col = mix(sea, uEd * 0.82, foam);
       float vz = tW * cosF;
       outDepth = clamp(uFar * (1.0 - uNear / vz) / (uFar - uNear), 0.0, 0.999999);
       sky = false;
     }
 
+    if (uOrbit > 0.001 && !sky) {
+      float hc = uCamH - 1500.0, dc = b * b - 4.0 * a * hc;
+      if (hc > 0.0 && b < 0.0 && dc > 0.0) {
+        float tC = 2.0 * hc / (-b + sqrt(dc)), tG = water ? tW : tScene;
+        vec2 gp = uCamPos.xz + rd.xz * tG;
+        col *= 1.0 - uCloud2.z * uOrbit * cloud2D(gp + uLightDir.xz / max(uLightDir.y, 0.15) * 1500.0);
+        if (tC < tG) {
+          vec2 cp = uCamPos.xz + rd.xz * tC;
+          float cv = cloud2D(cp);
+          float lit = clamp(0.55 + 0.45 * cv + (cv - cloud2D(cp + normalize(uLightDir.xz + 1e-4) * 1100.0)) * 1.6, 0.0, 1.0);   // thick and sun-facing: bright
+          col = mix(col, uEd * 0.86 * mix(vec3(0.60, 0.66, 0.76), vec3(1.0), lit), pow(cv, 0.8) * uOrbit * 0.94);
+        }
+      }
+    }
+    if (sky) col = (skyRad(rd, rd.y + sqrt(max(2.0 * uCamH / R, 0.0))) + vec3(stars(rd)) * smoothstep(-0.02, 0.08, rd.y)) * uNight * uNight;   // night sky and stars: the aerial effect adds its sky to this
     if (uBasic > 0.5) { // fallback: analytic sky and haze, when the physical atmosphere is not running
       if (sky) {
-        col = skyRad(rd, rd.y + sqrt(max(2.0 * uCamH / R, 0.0)));
+        col = mix(skyRad(rd, rd.y + sqrt(max(2.0 * uCamH / R, 0.0))), col, uNight * uNight);
         col += uLightE * 40.0 * smoothstep(0.99996, 0.99999, dot(rd, uSunDir));
       } else {
         float t = min(tScene, water ? tW : tScene);
@@ -197,6 +240,7 @@ export class SceneOceanPass extends Pass {
   readonly uniforms: Record<string, THREE.IUniform>;
   private srcScene: THREE.Scene;
   private srcCamera: THREE.PerspectiveCamera;
+  overWater = false;
   private height = 1;
   private seed: Float32Array;
 
@@ -214,6 +258,7 @@ export class SceneOceanPass extends Pass {
       tColor: { value: this.target.texture }, tDepth: { value: depthTexture },
       uNear: { value: 1 }, uFar: { value: 1e6 }, uCamH: { value: 100 }, uTime: { value: 0 }, uPix: { value: 0.001 },
       uOcean: { value: 1 }, uBasic: { value: 0 }, uMss: { value: 0.03 }, uWindMs: { value: 6 }, uWaveH: { value: 1 }, uNight: { value: 0 }, uDeepGain: { value: 1 },
+      uOrbit: { value: 0 }, uCloud2: { value: new THREE.Vector4(0.60, 0.24, 0.5, 0) },
       uTan: { value: new THREE.Vector2(1, 1) }, uOR: { value: new THREE.Vector2() }, uWrap: { value: new THREE.Vector2() },
       uCamPos: { value: v3() }, uRight: { value: v3() }, uUp: { value: v3() }, uFwd: { value: v3() },
       uLightDir: { value: new THREE.Vector3(0, 1, 0) }, uLightE: { value: new THREE.Vector3(3, 3, 3) }, uEd: { value: new THREE.Vector3(1, 1, 1) },
@@ -285,6 +330,12 @@ export class SceneOceanPass extends Pass {
     renderer.render(this.srcScene, this.srcCamera);
     renderer.setRenderTarget(this.renderToScreen ? null : inputBuffer);
     renderer.render(this.scene, this.camera);
+    if (this.overWater) {   // meshes on OVER_WATER_LAYER: drawn after the sea, depth-tested against land and water
+      const cam = this.srcCamera, mask = cam.layers.mask, auto = renderer.autoClear, bg = this.srcScene.background;
+      cam.layers.set(OVER_WATER_LAYER); renderer.autoClear = false; this.srcScene.background = null;
+      renderer.render(this.srcScene, cam);
+      cam.layers.mask = mask; renderer.autoClear = auto; this.srcScene.background = bg;
+    }
   }
 
   override setSize(width: number, height: number): void {

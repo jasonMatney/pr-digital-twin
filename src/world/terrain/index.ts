@@ -2,7 +2,7 @@
 // Tiles are fetched and decoded in workers (tileWorker.ts); this file selects, draws, caches and answers height queries.
 import * as THREE from 'three';
 import * as S from '../../core/state';
-import { dataUrl, flag, UPSTREAM } from '../../core/config';
+import { dataUrl, flag, params, UPSTREAM } from '../../core/config';
 import {
   ORIGIN, M_PER_DEG_LAT, M_PER_DEG_LON, R_EARTH, ROOT_Z, ROOT_X0, ROOT_X1, ROOT_Y0, ROOT_Y1,
   tileBounds, lonLatToXZ, curveDrop, lonToTileX, latToTileY,
@@ -31,7 +31,7 @@ class Tile {
   mesh: THREE.Mesh | null = null;
   mat: THREE.MeshStandardMaterial | null = null;
   u: TileUniforms | null = null;
-  photo: THREE.Texture | null = null;
+  photo: THREE.Texture | null = null; ovKey = '';
   norm: THREE.DataTexture | null = null;
   hts: Int16Array | null = null;
   lastUsed = 0; prio = 0; failedAt = 0; split = false; noPhoto = false;
@@ -110,11 +110,11 @@ export function createTerrain(world: World): TerrainApi {
   world.scene.add(group);
 
   const wire = flag('wire'), lodTint = flag('lod');
-  const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  const maxAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
   const white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); white.needsUpdate = true;
   const clear = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1); clear.needsUpdate = true;
   const flatNorm = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1); flatNorm.needsUpdate = true;
-  const globalU = { uOvOpacity: { value: 0 }, uRelief: { value: 0.62 }, uLod: { value: lodTint ? 1 : 0 } };
+  const globalU = { uOvOpacity: { value: 0 }, uRelief: { value: 0.62 }, uLod: { value: lodTint ? 1 : 0 }, uNight: { value: 0 }, uTintMode: { value: 0 }, uLightGain: { value: +(params.get('lights') ?? 2.2) } };
   const shared = new Map<number, Shared>();
   const sharedFor = (N: number) => { let s = shared.get(N); if (!s) shared.set(N, s = makeShared(N)); return s; };
 
@@ -128,6 +128,16 @@ export function createTerrain(world: World): TerrainApi {
       index = { dem: conv(j.dem), img: conv(j.img) };
     }
   }).catch(() => {}).finally(() => { indexDone = true; });
+  // Bathymetry layer (optional): Terrarium tiles of the seabed, used where the elevation holds the sea at about 0 m.
+  let bathyIdx: Map<number, Set<number>> | null = null, bathyDone = false, bathyMin = 99, bathyMax = 0;
+  fetch(dataUrl('tiles/bathy/index.json')).then((r) => (r.ok && !(r.headers.get('content-type') || '').startsWith('text/html') ? r.json() : null)).then((j) => {
+    if (j && j.tiles) {
+      const m = new Map<number, Set<number>>();
+      for (const z in j.tiles) { m.set(+z, new Set((j.tiles[z] as [number, number][]).map(([x, y]) => pack(x, y)))); bathyMin = Math.min(bathyMin, +z); bathyMax = Math.max(bathyMax, +z); }
+      if (m.size) bathyIdx = m;
+    }
+  }).catch(() => {}).finally(() => { bathyDone = true; });
+  const bathyUrl = (z: number, x: number, y: number) => dataUrl(`tiles/bathy/${z}/${x}/${y}.png`);
   const has = (kind: 'dem' | 'img', z: number, x: number, y: number) => (index ? !!index[kind].get(z)?.has(pack(x, y)) : z <= 10);
   const hostDown = { dem: 0, img: 0 };
   const bad = new Map<string, number>();     // url -> when it last failed; not retried for a minute
@@ -164,7 +174,18 @@ export function createTerrain(world: World): TerrainApi {
       if (!img.length && !(dem.length && dem[0].z === z && crop) && z > ROOT_Z) return null;
     }
     if (!dem.length && z > ROOT_Z) return null;
-    return { type: 'tile', id: 0, z, x, y, grid: z >= 14 ? 128 : 64, dem, img, crop, root: z === ROOT_Z };
+    const bathy: DemSrc[] = [];
+    let bathyTrusted = false;
+    if (bathyIdx) for (let bz = Math.min(z, bathyMax); bz >= bathyMin; bz--) {
+      const d = z - bz, bx = x >> d, by = y >> d;
+      if (bathyIdx.get(bz)?.has(pack(bx, by)) && usable(bathyUrl(bz, bx, by), now)) { bathy.push({ url: bathyUrl(bz, bx, by), z: bz, x: bx, y: by }); bathyTrusted = true; break; }
+    }
+    // Coarse stand-in: only zoom 10 and below carry bathymetry (zooms 11+ hold the sea at exactly 0 m).
+    if (z >= 11) for (let az = 10; az >= ROOT_Z; az--) {
+      const d = z - az, ax = x >> d, ay = y >> d;
+      if (has('dem', az, ax, ay)) { bathy.push({ url: demUrl(az, ax, ay), z: az, x: ax, y: ay }); break; }
+    }
+    return { type: 'tile', id: 0, z, x, y, grid: z >= 14 ? 128 : 64, dem, img, crop, bathy, bathyTrusted, root: z === ROOT_Z };
   }
 
   // ---- workers ----
@@ -191,14 +212,23 @@ export function createTerrain(world: World): TerrainApi {
       else bad.set(u, now);
     }
     for (const u of r.okUrls) { if (u.includes('amazonaws')) hostDown.dem = 0; else if (u.includes('nationalmap')) hostDown.img = 0; }
-    if (!t) { r.photo?.close(); return; }
+    if (!t) return;
     jobs.delete(r.id);
     load[wi]--; fetching -= t.cost; t.jobId = 0;
-    if (r.aborted || t.dead) { r.photo?.close(); if (t.state === LOADING) t.state = NEW; return; }
+    if (r.aborted || t.dead) { if (t.state === LOADING) t.state = NEW; return; }
     if (!r.ok) { if (t.state === READY) t.degradedAt = now; else { t.state = FAILED; t.failedAt = now; } return; }
-    if (t.state === READY) { freeGpu(t); readyCount--; }     // a degraded tile reloaded in place
-    t.degradedAt = r.degraded ? now : 0;
-    build(t, r);
+    // Uploads are spread over frames (see update) so a burst of finished tiles does not stall one frame.
+    built.push({ t, r });
+  }
+  const built: { t: Tile; r: TileResult }[] = [];
+  function flushBuilt(max: number) {
+    for (let n = 0; n < max && built.length; n++) {
+      const { t, r } = built.shift()!;
+      if (t.dead) continue;
+      if (t.state === READY) { freeGpu(t); readyCount--; }     // a degraded tile reloaded in place
+      t.degradedAt = r.degraded ? performance.now() : 0;
+      build(t, r);
+    }
   }
 
   function build(t: Tile, r: TileResult) {
@@ -211,8 +241,9 @@ export function createTerrain(world: World): TerrainApi {
     t.norm.generateMipmaps = true; t.norm.minFilter = THREE.LinearMipmapLinearFilter; t.norm.magFilter = THREE.LinearFilter;
     t.norm.anisotropy = Math.min(4, maxAniso); t.norm.needsUpdate = true;
     if (r.photo) {
-      const p = new THREE.Texture(r.photo as any);
+      const p = new THREE.DataTexture(r.photo, r.photoW!, r.photoW!, THREE.RGBAFormat);
       p.colorSpace = THREE.SRGBColorSpace; p.flipY = false; p.premultiplyAlpha = false;
+      p.onUpdate = () => { (p.image as any).data = null; };     // the pixels live on the GPU from here on
       p.generateMipmaps = true; p.minFilter = THREE.LinearMipmapLinearFilter; p.magFilter = THREE.LinearFilter;
       p.anisotropy = maxAniso; p.needsUpdate = true;
       t.photo = p;
@@ -234,7 +265,8 @@ export function createTerrain(world: World): TerrainApi {
   function freeGpu(t: Tile) {
     if (t.mesh) { group.remove(t.mesh); t.mesh.geometry.dispose(); t.mesh = null; }
     t.mat?.dispose(); t.mat = null; t.u = null;
-    if (t.photo) { (t.photo.image as ImageBitmap)?.close?.(); t.photo.dispose(); t.photo = null; }
+    if (t.photo) { t.photo.dispose(); t.photo = null; }
+    releaseOverlay(t);
     t.norm?.dispose(); t.norm = null; t.hts = null; t.ovGen = -1;
   }
   function disposeTile(t: Tile) {
@@ -334,30 +366,49 @@ export function createTerrain(world: World): TerrainApi {
 
   // ---- overlay ----
   let overlay: OverlaySource | null = null, ovGen = 0;
-  const ovCache = new Map<string, { tex: THREE.Texture | null; done: boolean; waiters: Tile[] }>();
+  interface OvEntry { tex: THREE.Texture | null; done: boolean; waiters: Tile[]; refs: number; gen: number }
+  const ovCache = new Map<string, OvEntry>();
+  function dropOv(key: string, e: OvEntry) {
+    if (e.tex) { (e.tex.image as ImageBitmap)?.close?.(); e.tex.dispose(); e.tex = null; }
+    e.gen = -1; e.waiters.length = 0;
+    if (ovCache.get(key) === e) ovCache.delete(key);
+  }
+  /** Overlay tiles live as long as a terrain tile uses them. */
+  function releaseOverlay(t: Tile) {
+    if (!t.ovKey) return;
+    const e = ovCache.get(t.ovKey);
+    if (e) { const i = e.waiters.indexOf(t); if (i >= 0) e.waiters.splice(i, 1); if (--e.refs <= 0) dropOv(t.ovKey, e); }
+    t.ovKey = '';
+  }
   function attachOverlay(t: Tile) {
+    releaseOverlay(t);
     t.ovGen = ovGen;
     const src = overlay!, u = t.u!;
     u.tOverlay.value = clear;
     if (t.z < src.minZoom) return;
     const d = Math.max(0, t.z - src.maxZoom), oz = t.z - d, ox = t.x >> d, oy = t.y >> d, s = 1 / 2 ** d;
     u.uOvXf.value.set(s, s, (t.x - ox * 2 ** d) * s, (t.y - oy * 2 ** d) * s);
-    const url = src.url(oz, ox, oy);
-    if (!url) return;
+    const url = src.draw ? '' : src.url(oz, ox, oy);
+    if (!src.draw && !url) return;
     const key = `${oz}/${ox}/${oy}`, gen = ovGen;
     let e = ovCache.get(key);
     if (!e) {
-      ovCache.set(key, e = { tex: null, done: false, waiters: [] });
+      ovCache.set(key, e = { tex: null, done: false, waiters: [], refs: 0, gen });
       const ent = e;
-      fetch(url, { mode: 'cors' }).then((r) => (r.ok ? r.blob() : Promise.reject(r.status))).then((b) => createImageBitmap(b, { premultiplyAlpha: 'none' })).then((bmp) => {
-        if (gen !== ovGen) { bmp.close(); return; }
-        const tex = new THREE.Texture(bmp as any);
+      const got: Promise<TexImageSource | null> = src.draw
+        ? Promise.resolve().then(() => src.draw!(oz, ox, oy))
+        : fetch(url!, { mode: 'cors' }).then((r) => (r.ok ? r.blob() : Promise.reject(r.status))).then((b) => createImageBitmap(b, { premultiplyAlpha: 'none' }));
+      got.then((img) => {
+        if (!img) return;
+        if (ent.gen !== gen || gen !== ovGen) { (img as ImageBitmap).close?.(); return; }
+        const tex = new THREE.Texture(img as any);
         tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false; tex.premultiplyAlpha = false; tex.generateMipmaps = true;
-        tex.minFilter = THREE.LinearMipmapLinearFilter; tex.needsUpdate = true;
+        tex.minFilter = THREE.LinearMipmapLinearFilter; tex.anisotropy = Math.min(4, maxAniso); tex.needsUpdate = true;
         ent.tex = tex;
         for (const w of ent.waiters) if (w.u && w.ovGen === gen) w.u.tOverlay.value = tex;
       }).catch(() => {}).finally(() => { ent.done = true; ent.waiters.length = 0; });
     }
+    e.refs++; t.ovKey = key;
     if (e.tex) u.tOverlay.value = e.tex; else if (!e.done) e.waiters.push(t);
   }
   function eachTile(t: Tile, f: (t: Tile) => void) { f(t); if (t.children) for (const c of t.children) eachTile(c, f); }
@@ -414,23 +465,26 @@ export function createTerrain(world: World): TerrainApi {
       thr = S.quality.value === 'low' ? 3.4 : S.quality.value === 'high' ? 1.7 : 2.3;
       for (let i = 0; i < drawn.length; i++) drawn[i].mesh && (drawn[i].mesh!.visible = false);
       drawn.length = 0; queue.length = 0; deepest = 0;
-      if (indexDone) { for (let i = 0; i < roots.length; i++) visit(roots[i]); dispatch(); }
+      globalU.uNight.value = world.night;
+      flushBuilt(frame.dt > 0.03 ? 2 : 4);
+      if (indexDone && bathyDone) { for (let i = 0; i < roots.length; i++) visit(roots[i]); dispatch(); }
       if (frameNo % 20 === 0) housekeeping();
     },
     heightAt, raycast,
+    setTint(mode) { globalU.uTintMode.value = mode === 'elevation' ? 1 : 0; },
     setOverlay(source, opacity) {
       globalU.uOvOpacity.value = source ? opacity : 0;
-      if (source?.id === overlay?.id && source?.url === overlay?.url) return;
+      if (source === overlay || (source && overlay && source.id === overlay.id && source.url === overlay.url && source.draw === overlay.draw)) return;
       overlay = source; ovGen++;
-      for (const e of ovCache.values()) { if (e.tex) { (e.tex.image as ImageBitmap)?.close?.(); e.tex.dispose(); } }
+      for (const [k, e] of [...ovCache]) dropOv(k, e);
       ovCache.clear();
-      for (const r of roots) eachTile(r, (t) => { if (t.u) t.u.tOverlay.value = clear; });
+      for (const r of roots) eachTile(r, (t) => { t.ovKey = ''; if (t.u) t.u.tOverlay.value = clear; });
     },
-    stats: () => ({ tiles: drawn.length, pending: queue.length + jobs.size, maxZoom: deepest }),
+    stats: () => ({ tiles: drawn.length, pending: queue.length + jobs.size + built.length, maxZoom: deepest }),
     dispose() {
       for (const w of workers) w.terminate();
       for (const r of roots) eachTile(r, disposeTile);
-      for (const e of ovCache.values()) e.tex?.dispose();
+      for (const [k, e] of [...ovCache]) dropOv(k, e);
       for (const s of shared.values()) { /* attributes are freed with their geometries */ void s; }
       abyssal.geometry.dispose(); (abyssal.material as THREE.Material).dispose();
       white.dispose(); clear.dispose(); flatNorm.dispose();
