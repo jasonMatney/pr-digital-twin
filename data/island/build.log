@@ -1,16 +1,28 @@
-04:52:50 stage 1, node v22.23.3, sharp 0.33.5, out /home/runner/work/pr-digital-twin/pr-digital-twin/out, cache /home/runner/work/pr-digital-twin/pr-digital-twin/tile-cache
-04:52:50 coverage dem: z8=6 z9=24 z10=96
-04:52:50 coverage img: z8=6 z9=24 z10=96
-04:52:52 download dem: 126 tiles {"fetched":126}
-04:52:54 download img: 126 tiles {"404":120,"fetched":6}
-04:52:58 dem: 126 tiles, raw 14.43 MB -> re-encoded 5.56 MB (38.6 %), round-trip max abs error 0.2500 m, range -7948 .. 3979 m
-04:52:58 img z8: wanted 6, written 6 (jpeg kept 6, png->jpeg 0, of which with transparency 0), 404 0, failed 0, 0.06 MB (raw 0.06 MB)
-04:52:58 img z9: wanted 24, written 0 (jpeg kept 0, png->jpeg 0, of which with transparency 0), 404 24, failed 0, 0.00 MB (raw 0.00 MB)
-04:52:58 img z10: wanted 96, written 0 (jpeg kept 0, png->jpeg 0, of which with transparency 0), 404 96, failed 0, 0.00 MB (raw 0.00 MB)
-04:52:58 img: total 0.06 MB
-04:53:07 mosaic dem_z10.png 3072x2048 3995 kB, -7948 .. 2448 m, land 10.0 % of pixels
-04:53:07 mosaic img_z10.jpg 3072x2048 18 kB, synthetic fill on 96 of 96 tiles: ["316/456:neutral-deep-blue","317/456:neutral-deep-blue","318/456:neutral-deep-blue","319/456:neutral-deep-blue","320/456:neutral-deep-blue","321/456:neutral-deep-blue","322/456:neutral-deep-blue","323/456:neutral-deep-blue","324/456:neutral-deep-blue","325/456:neutral-deep-blue","326/456:neutral-deep-blue","327/456:neutral-deep-blue","316/457:neutral-deep-blue","317/457:neutral-deep-blue","318/457:neutral-deep-blue","319/457:neutral-deep-blue","320/457:neutral-deep-blue","321/457:neutral-deep-blue","322/457:neutral-deep-blue","323/457:neutral-deep-blue","324/457:neutral-deep-blue","325/457:neutral-deep-blue","326/457:neutral-deep-blue","327/457:neutral-deep-blue","316/458:neutral-deep-blue","317/458:neutral-deep-blue","318/458:neutral-deep-blue","319/458:neutral-deep-blue","320/458:neutral-deep-blue","321/458:neutral-deep-blue","322/458:neutral-deep-blue","323/458:neutral-deep-blue","324/458:neutral-deep-blue","325/458:neutral-deep-blue","326/458:neutral-deep-blue","327/458:neutral-deep-blue","316/459:neutral-deep-blue","317/459:neutral-deep-blue","318/459:neutral-deep-blue","319/459:neutral-deep-blue","320/459:neutral-deep-blue","321/459:neutral-deep-blue","322/459:neutral-deep-blue","323/459:neutral-deep-blue","324/459:neutral-deep-blue","325/459:neutral-deep-blue","326/459:neutral-deep-blue","327/459:neutral-deep-blue","316/460:neutral-deep-blue","317/460:neutral-deep-blue","318/460:neutral-deep-blue","319/460:neutral-deep-blue","320/460:neutral-deep-blue","321/460:neutral-deep-blue","322/460:neutral-deep-blue","323/460:neutral-deep-blue","324/460:neutral-deep-blue","325/460:neutral-deep-blue","326/460:neutral-deep-blue","327/460:neutral-deep-blue","316/461:neutral-deep-blue","317/461:neutral-deep-blue","318/461:neutral-deep-blue","319/461:neutral-deep-blue","320/461:neutral-deep-blue","321/461:neutral-deep-blue","322/461:neutral-deep-blue","323/461:neutral-deep-blue","324/461:neutral-deep-blue","325/461:neutral-deep-blue","326/461:neutral-deep-blue","327/461:neutral-deep-blue","316/462:neutral-deep-blue","317/462:neutral-deep-blue","318/462:neutral-deep-blue","319/462:neutral-deep-blue","320/462:neutral-deep-blue","321/462:neutral-deep-blue","322/462:neutral-deep-blue","323/462:neutral-deep-blue","324/462:neutral-deep-blue","325/462:neutral-deep-blue","326/462:neutral-deep-blue","327/462:neutral-deep-blue","316/463:neutral-deep-blue","317/463:neutral-deep-blue","318/463:neutral-deep-blue","319/463:neutral-deep-blue","320/463:neutral-deep-blue","321/463:neutral-deep-blue","322/463:neutral-deep-blue","323/463:neutral-deep-blue","324/463:neutral-deep-blue","325/463:neutral-deep-blue","326/463:neutral-deep-blue","327/463:neutral-deep-blue"]
-04:53:08 qa_hillshade.jpg 3072 px wide, q82, 344 kB
-04:53:08 index dem: z8=6 z9=24 z10=96
-04:53:08 index img: z8=6
-04:53:08 sizes: dem tiles 5.56 MB, img tiles 0.06 MB, total tiles 5.62 MB; done in 18 s
+04:56:53 stage 2, node v22.23.3, sharp 0.33.5, out /home/runner/work/pr-digital-twin/pr-digital-twin/out, cache /home/runner/work/pr-digital-twin/pr-digital-twin/tile-cache
+04:56:53 coverage dem: z8=6 z9=24 z10=96 z11=85 z12=297 z13=20 z14=70 z15=247
+04:56:53 coverage img: z8=6 z9=24 z10=96 z11=85 z12=297 z13=1170 z14=70 z15=247 z16=888
+04:56:59   dem: 500/845
+04:57:03 download dem: 845 tiles {"fetched":845}
+04:57:21   img: 500/2883
+04:57:37   img: 1000/2883
+04:57:54   img: 1500/2883
+04:58:08   img: 2000/2883
+04:58:24   img: 2500/2883
+04:58:36 download img: 2883 tiles {"404":135,"fetched":2748}
+04:58:52 dem: 845 tiles, raw 47.97 MB -> re-encoded 17.10 MB (35.7 %), round-trip max abs error 0.2500 m, range -32768 .. 3979 m
+04:59:07 img z8: wanted 6, written 6 (jpeg kept 6, png->jpeg 0, of which with transparency 0), 404 0, failed 0, 0.06 MB (raw 0.06 MB)
+04:59:07 img z9: wanted 24, written 0 (jpeg kept 0, png->jpeg 0, of which with transparency 0), 404 24, failed 0, 0.00 MB (raw 0.00 MB)
+04:59:07 img z10: wanted 96, written 0 (jpeg kept 0, png->jpeg 0, of which with transparency 0), 404 96, failed 0, 0.00 MB (raw 0.00 MB)
+04:59:07 img z11: wanted 85, written 70 (jpeg kept 12, png->jpeg 58, of which with transparency 58), 404 15, failed 0, 0.50 MB (raw 2.45 MB)
+04:59:07 img z12: wanted 297, written 297 (jpeg kept 68, png->jpeg 229, of which with transparency 229), 404 0, failed 0, 1.97 MB (raw 7.65 MB)
+04:59:07 img z13: wanted 1170, written 1170 (jpeg kept 398, png->jpeg 772, of which with transparency 772), 404 0, failed 0, 8.34 MB (raw 19.61 MB)
+04:59:07 img z14: wanted 70, written 70 (jpeg kept 50, png->jpeg 20, of which with transparency 20), 404 0, failed 0, 1.59 MB (raw 2.69 MB)
+04:59:07 img z15: wanted 247, written 247 (jpeg kept 207, png->jpeg 40, of which with transparency 40), 404 0, failed 0, 6.17 MB (raw 8.22 MB)
+04:59:07 img z16: wanted 888, written 888 (jpeg kept 828, png->jpeg 60, of which with transparency 60), 404 0, failed 0, 22.72 MB (raw 25.87 MB)
+04:59:07 img: total 41.36 MB
+04:59:15 mosaic dem_z10.png 3072x2048 3995 kB, -7948 .. 2448 m, land 10.0 % of pixels
+04:59:18 mosaic img_z10.jpg 3072x2048 302 kB, layers [{"zoom":8,"tiles":6,"method":"assembled, enlarged 4x (bicubic)"},{"zoom":11,"tiles":70,"method":"each tile reduced 2x (lanczos3)"},{"zoom":12,"tiles":297,"method":"each tile reduced 4x (lanczos3)"},{"zoom":13,"tiles":1170,"method":"each tile reduced 8x (lanczos3)"}], pixels with no imagery at any zoom (neutral deep blue): 0.00 %
+04:59:19 qa_hillshade.jpg 3072 px wide, q82, 344 kB
+04:59:19 index dem: z8=6 z9=24 z10=96 z11=85 z12=297 z13=20 z14=70 z15=247
+04:59:19 index img: z8=6 z11=70 z12=297 z13=1170 z14=70 z15=247 z16=888
+04:59:19 sizes: dem tiles 17.10 MB, img tiles 41.36 MB, total tiles 58.47 MB; done in 146 s
