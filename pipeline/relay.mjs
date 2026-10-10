@@ -13,7 +13,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const UA = 'garita-relay (+https://github.com/jasonMatney/pr-digital-twin)';
+const UA = 'garita-relay (+https://github.com/webgpu-demos/garita)';
 const TIMEOUT_MS = 30_000;
 export const BOX = { south: 16.5, north: 20, west: -69, east: -63.5 };
 

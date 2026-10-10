@@ -1,6 +1,6 @@
 // Maps a live URL to the recorded payload that stands in for it in fixtures mode (?fixtures=1) and in tests.
 // Pure: the scheduler resolves the name against dataUrl('fixtures/<name>').
-export const RELAY_BASE = 'https://raw.githubusercontent.com/jasonMatney/pr-digital-twin/relay/';
+export const RELAY_BASE = 'https://raw.githubusercontent.com/webgpu-demos/garita/relay/';
 export const relayUrl = (file: string) => RELAY_BASE + file;
 
 const RULES: [test: RegExp, file: string | ((m: RegExpExecArray) => string)][] = [

@@ -2,7 +2,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const UA = 'garita-pr-digital-twin (github.com/jasonMatney/pr-digital-twin)';
+export const UA = 'garita (github.com/webgpu-demos/garita)';
 const FIX = process.env.SEED_FIXTURES || '';
 let fixIndex = null;
 function fixtureFor(url) {

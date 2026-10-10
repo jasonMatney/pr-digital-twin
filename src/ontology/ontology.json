@@ -3894,7 +3894,7 @@
    "id": "garita_derived",
    "name": "Derived by Garita (spatial joins, elevation sampling, scenario counts)",
    "org": "Garita",
-   "url": "https://github.com/jasonMatney/pr-digital-twin",
+   "url": "https://github.com/webgpu-demos/garita",
    "license": "MIT",
    "kind": "derived",
    "note": "Computed from the sources above. Screening-level; not an engineering model."

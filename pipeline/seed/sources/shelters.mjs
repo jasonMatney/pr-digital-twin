@@ -52,7 +52,7 @@ export async function build(ctx) {
   ctx.probe('shelters_link_samples', located.slice(0, 12).map((l, i) => ({ url: rows[i].url, ...l, final: String(l.final || '').slice(0, 300) })));
   // OpenStreetMap facilities published by the vector pipeline: used to link a shelter to the school that houses it.
   let schools = null, osmGen = null;
-  const OSM = ['https://jasonmatney.github.io/pr-digital-twin/data/osm/facilities.json', 'https://raw.githubusercontent.com/jasonMatney/pr-digital-twin/gh-pages/data/osm/facilities.json'];
+  const OSM = ['https://webgpu-demos.github.io/garita/data/osm/facilities.json', 'https://raw.githubusercontent.com/webgpu-demos/garita/gh-pages/data/osm/facilities.json'];
   for (const u of OSM) { if (schools) break; try { const fj = await fetchJson(u, { tries: 2 }); schools = indexSchools(fj.facilities || []); osmGen = fj.generated || null; } catch (e) { problems.push(`OSM facilities not read from ${u}: ${e.message}`); } }
   const nSchools = rows.filter((r) => facilityType(r.name) === 'school').length;
   const objects = [], olinks = [], perMuni = new Map(), seen = new Set(); let nLoc = 0, nFar = 0, nErr = 0, nMatch = 0, nOsmLoc = 0, nConflict = 0;

@@ -13,7 +13,7 @@ import {
 const STAGE = Number(process.env.TILES_STAGE || 2);          // 1 = zooms 8..10 only, 2 = everything
 const OUT = path.resolve(process.env.TILES_OUT || 'out');
 const CACHE = path.resolve(process.env.TILES_CACHE || 'cache');
-const UA = 'garita-pr-digital-twin (github.com/jasonMatney/pr-digital-twin)';
+const UA = 'garita (github.com/webgpu-demos/garita)';
 const DEM_URL = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
 const IMG_URL = (z, x, y) => `https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/${z}/${y}/${x}`;
 const SAN_JUAN = { west: -66.17, east: -65.97, south: 18.36, north: 18.48 };

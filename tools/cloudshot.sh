@@ -2,14 +2,14 @@
 # Screenshots of the DEPLOYED site rendered on a GitHub runner (live network, software GL). Nothing runs locally
 # or on anyone's own computer.
 #   tools/cloudshot.sh <name> <request.json>
-# <request.json>: { "shots": [{ "id": "island", "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&cam=…", "w": 1280, "h": 800, "wait": 4000 }] }
+# <request.json>: { "shots": [{ "id": "island", "url": "https://webgpu-demos.github.io/garita/?ui=0&cam=…", "w": 1280, "h": 800, "wait": 4000 }] }
 # Writes /tmp/claude-0/shots/<name>/<id>.jpg and results.json (console errors, __garita.debug()). Takes 3-8 minutes.
 # Deploy first if the page changed (tools/deploy.sh …) and allow ~90 s for Pages to publish.
 set -euo pipefail
 NAME="$1"; REQ="$(realpath "$2")"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WT="/home/claude/shots-wt-$NAME"; OUT="/tmp/claude-0/shots/$NAME"
-REPO="https://github.com/jasonMatney/pr-digital-twin"
+REPO="https://github.com/webgpu-demos/garita"
 retry() { for i in 1 2 3 4 5 6; do "$@" && return 0; sleep 15; done; return 1; }
 if [ ! -d "$WT/.git" ]; then retry git clone -q --depth 1 --no-tags "$REPO" "$WT"; fi
 cd "$WT"
@@ -36,4 +36,4 @@ for i in $(seq 1 200); do
     exit 0
   fi
 done
-echo "cloudshot: timed out waiting for shots-out/$NAME (check: gh run list -R jasonMatney/pr-digital-twin --workflow shots.yml -L 3)" >&2; exit 1
+echo "cloudshot: timed out waiting for shots-out/$NAME (check: gh run list -R webgpu-demos/garita --workflow shots.yml -L 3)" >&2; exit 1

@@ -2,7 +2,7 @@
 # Records one real response per source into out/. Never fails the job: a dead endpoint is recorded in status.tsv.
 set -u
 mkdir -p out && cd out
-UA="garita-pr-digital-twin (github.com/jasonMatney/pr-digital-twin)"
+UA="garita (github.com/webgpu-demos/garita)"
 D30=$(date -u -d '30 days ago' +%F); D7=$(date -u -d '7 days ago' +%F); NOW=$(date -u +%FT%TZ)
 date -u +%FT%TZ > recorded_at.txt
 : > status.tsv

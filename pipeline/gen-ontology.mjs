@@ -229,7 +229,7 @@ const sources = [
   S('ndbc', 'Buoy observations', 'NOAA National Data Buoy Center', 'https://www.ndbc.noaa.gov/', 'Public domain', 'relay', 600),
   S('luma', 'Customers without service by region', 'LUMA Energy', 'https://miluma.lumapr.com/outages/outageMap', 'Public web data', 'relay', 600),
   S('hurdat2', 'Atlantic hurricane best tracks (HURDAT2)', 'NOAA National Hurricane Center', 'https://www.nhc.noaa.gov/data/#hurdat', 'Public domain', 'baked'),
-  S('garita_derived', 'Derived by Garita (spatial joins, elevation sampling, scenario counts)', 'Garita', 'https://github.com/jasonMatney/pr-digital-twin', 'MIT', 'derived', undefined, 'Computed from the sources above. Screening-level; not an engineering model.'),
+  S('garita_derived', 'Derived by Garita (spatial joins, elevation sampling, scenario counts)', 'Garita', 'https://github.com/webgpu-demos/garita', 'MIT', 'derived', undefined, 'Computed from the sources above. Screening-level; not an engineering model.'),
   S('user', 'Notes and status set in this browser', 'You', '', 'Local to this browser', 'user'),
 ];
 const out = { version: '2026.10.1', objectTypes, linkTypes, sources };

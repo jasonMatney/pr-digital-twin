@@ -3,7 +3,7 @@
 # GeoJSON-sequence files: buildings (areas), facilities (points, lines, areas) and coastline (lines).
 set -euo pipefail
 WORK="${WORK_DIR:-work}"; CACHE="$WORK/cache"; OSM="$WORK/osm"
-UA="garita-pr-digital-twin (github.com/jasonMatney/pr-digital-twin)"
+UA="garita (github.com/webgpu-demos/garita)"
 URL="https://download.geofabrik.de/north-america/us/puerto-rico-latest.osm.pbf"
 mkdir -p "$CACHE" "$OSM"
 PBF="$CACHE/puerto-rico-latest.osm.pbf"

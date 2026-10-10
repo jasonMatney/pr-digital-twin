@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const UA = 'garita-pr-digital-twin (github.com/jasonMatney/pr-digital-twin)';
+export const UA = 'garita (github.com/webgpu-demos/garita)';
 export const OUT = path.resolve(process.env.OUT_DIR || 'out');
 export const WORK = path.resolve(process.env.WORK_DIR || 'work');
 export const CACHE = path.join(WORK, 'cache');

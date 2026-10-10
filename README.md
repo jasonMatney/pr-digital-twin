@@ -4,7 +4,7 @@
 bathymetry; 1.5 million buildings; live public feeds; and an ontology-backed database that runs in the browser.
 Named for the sentry boxes on the walls of Old San Juan.
 
-**[Open the twin → jasonmatney.github.io/pr-digital-twin](https://jasonmatney.github.io/pr-digital-twin/)**
+**[Open the twin → webgpu-demos.github.io/garita](https://webgpu-demos.github.io/garita/)**
 
 An independent demonstrator. Not affiliated with the Departamento de la Vivienda, FEMA, HUD, NOAA or USGS, and
 not for operational use.

@@ -69,7 +69,7 @@ export function AboutSheet() {
           <p class="muted">{tr('Heavy on older machines? Switch quality to Low (top right).', '¿Va lento en equipos viejos? Cambia la calidad a Baja (arriba a la derecha).')}</p>
         </div>
         <footer class="about-foot">
-          <a href="https://github.com/jasonMatney/pr-digital-twin" target="_blank" rel="noopener noreferrer"><Icon name="external" size={12} />github.com/jasonMatney/pr-digital-twin</a>
+          <a href="https://github.com/webgpu-demos/garita" target="_blank" rel="noopener noreferrer"><Icon name="external" size={12} />github.com/webgpu-demos/garita</a>
           <button class="link-btn" onClick={() => { S.rightPanel.value = 'lineage'; close(); }}>{tr('Where every number comes from', 'De dónde sale cada número')}</button>
           <button class="btn primary" onClick={close}>{tr('Explore the island', 'Explorar la isla')}</button>
         </footer>

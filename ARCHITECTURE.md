@@ -8,12 +8,12 @@ aerial perspective, clouds, buildings).
 
 ## Hard constraints
 
-- **No server.** Everything runs in the browser from `https://jasonmatney.github.io/pr-digital-twin/`.
+- **No server.** Everything runs in the browser from `https://webgpu-demos.github.io/garita/`.
 - **The dev sandbox cannot reach data hosts** (only GitHub and npm). Three consequences:
   1. Baked data is fetched and compiled **on the GitHub Actions runner** (`pipeline/`, `.github/workflows/`).
   2. Live feeds are fetched **by the browser**, so they must send CORS headers. Feeds that do not (NHC, NDBC,
      LUMA outages) are snapshotted by a scheduled Action to the `relay` branch and read from
-     `https://raw.githubusercontent.com/jasonMatney/pr-digital-twin/relay/<file>`.
+     `https://raw.githubusercontent.com/webgpu-demos/garita/relay/<file>`.
   3. Local tests run on recorded payloads in `tests/fixtures/` (captured from the real endpoints by the runner).
      The app's `?fixtures=1` mode reads the same files from `/fixtures/`.
 - **Nothing invented is presented as real.** Every value carries its source. Synthetic or modelled content is
@@ -101,7 +101,7 @@ Feeds never touch the scene or the UI. A feed returns an `IngestBatch`; the stor
 - `node tools/shot.mjs <url> out.png --w 1600 --h 900 --wait 4000` takes a headless screenshot (software GL, slow).
   The page must set `globalThis.__garita = { ready: true, debug() {...} }`.
 - `ENTRY=r1.html tools/deploy.sh dev/r1` publishes a test page to
-  `https://jasonmatney.github.io/pr-digital-twin/dev/r1/r1.html` (about a minute to go live) where it can be
+  `https://webgpu-demos.github.io/garita/dev/r1/r1.html` (about a minute to go live) where it can be
   opened on a real GPU with live network. `tools/sync-site.sh` refreshes the local copy of `gh-pages`.
 - Files that Node tests import use explicit `.ts` extensions on relative imports and erasable TypeScript only
   (no enums, no parameter properties): Node 22 runs them directly (`node --test tests/*.test.ts`).
