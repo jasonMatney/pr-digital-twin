@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-10T05:04:11.850Z",
+ "generated": "2026-10-10T05:07:03.000Z",
  "flood_attached": true,
  "buildings": {
   "total": 1500471,
@@ -138,10 +138,19 @@
   "failed": 0,
   "unknown": 0,
   "below_0": 1368,
-  "at_or_below_1m": 8757,
-  "at_or_below_2m": 24543,
-  "at_or_below_3m": 61520,
+  "lt_1m": 8757,
+  "lt_2m": 24543,
+  "lt_3m": 61520,
+  "at_or_below": {
+   "1": 12344,
+   "2": 25953,
+   "3": 94324,
+   "5": 138479,
+   "0.5": 4954,
+   "1.5": 18202
+  },
   "above_10": 1272488,
+  "note": "lt_X = strictly below X m (histogram bins); at_or_below = inclusive. They differ a lot at 1, 3 m because of the whole-metre terraces in the elevation source.",
   "integer_plateaus": {
    "note": "buildings whose sampled ground elevation is a whole metre to within 5 mm, by metre, among buildings between 0.5 and 15.5 m",
    "by_metre": {
@@ -303,9 +312,10 @@
    },
    "sfha": 6281,
    "sfha_share": 0.2028,
-   "below_1m": 491,
-   "below_2m": 1367,
-   "below_3m": 5331
+   "lt_1m": 491,
+   "at_or_below_1m": 560,
+   "at_or_below_2m": 1434,
+   "at_or_below_3m": 11988
   },
   "catano": {
    "geoid": "72033",
@@ -319,9 +329,10 @@
    },
    "sfha": 3381,
    "sfha_share": 0.366,
-   "below_1m": 1640,
-   "below_2m": 2776,
-   "below_3m": 4839
+   "lt_1m": 1640,
+   "at_or_below_1m": 1758,
+   "at_or_below_2m": 3001,
+   "at_or_below_3m": 6622
   },
   "san_juan": {
    "geoid": "72127",
@@ -335,9 +346,10 @@
    },
    "sfha": 14378,
    "sfha_share": 0.1386,
-   "below_1m": 1509,
-   "below_2m": 3714,
-   "below_3m": 11085
+   "lt_1m": 1509,
+   "at_or_below_1m": 1635,
+   "at_or_below_2m": 3959,
+   "at_or_below_3m": 14047
   }
  },
  "facilities": {
