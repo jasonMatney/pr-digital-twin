@@ -25,8 +25,10 @@ async function one(s) {
     await page.waitForFunction(() => globalThis.__garita && globalThis.__garita.ready, null, { timeout: s.ready ?? 180000 }).catch(() => logs.push('[shot] ready flag never set'));
     if (s.eval) await page.evaluate(s.eval).catch((e) => logs.push('[eval] ' + String(e).slice(0, 200)));
     await page.waitForTimeout(s.wait ?? 4000);
-    await page.screenshot({ path: `${outDir}/${s.id}.jpg`, type: 'jpeg', quality: s.quality ?? 86 });
+    // Debug first: under software GL a heavy frame can outlast the screenshot's own timeout, and then this is the evidence.
     r.debug = await page.evaluate(() => globalThis.__garita?.debug?.() ?? null).catch(() => null);
+    r.frameMs = await page.evaluate(() => new Promise((res) => { const e = globalThis.__garita?.engine; if (!e) return res(null); let n = 0; const t0 = performance.now(); const off = e.onFrame(() => { n++; }); setTimeout(() => { off(); res(n ? Math.round((performance.now() - t0) / n) : -1); }, 6000); })).catch(() => null);
+    await page.screenshot({ path: `${outDir}/${s.id}.jpg`, type: 'jpeg', quality: s.quality ?? 86, timeout: 180000 });
     r.ok = true;
   } catch (e) { r.ok = false; r.error = String(e).slice(0, 400); }
   r.ms = Date.now() - t0; r.logs = [...new Set(logs)].slice(0, 30); r.failedHosts = failed;
