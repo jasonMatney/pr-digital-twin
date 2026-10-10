@@ -15,6 +15,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
     env:
       OUT_DIR: ${{ github.workspace }}/out
       WORK_DIR: ${{ github.workspace }}/work
@@ -38,25 +41,25 @@ jobs:
           key: vector-cache-v1-${{ github.run_id }}
           restore-keys: vector-cache-v1-
       - name: Stage 1 - boundaries
-        run: mkdir -p "$WORK_DIR/cache" "$OUT_DIR" && node pipeline/vector/stage1_boundaries.mjs
+        run: mkdir -p "$WORK_DIR/cache" "$OUT_DIR" && node pipeline/vector/stage1_boundaries.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Publish stage 1
         if: ${{ !cancelled() }}
         run: bash pipeline/vector/publish.sh "vector - boundaries (TIGERweb) $(date -u +%FT%TZ)"
       - name: Stage 2 - OSM extract
         if: ${{ !cancelled() && hashFiles('pipeline/vector/stage2_osm.sh') != '' }}
-        run: bash pipeline/vector/stage2_osm.sh
+        run: bash pipeline/vector/stage2_osm.sh 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Stage 2-3 - buildings, facilities, elevation
         if: ${{ !cancelled() && hashFiles('pipeline/vector/build.mjs') != '' }}
-        run: NO_FLOOD=1 node --max-old-space-size=10000 pipeline/vector/build.mjs
+        run: NO_FLOOD=1 node --max-old-space-size=10000 pipeline/vector/build.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Publish stage 2-3
         if: ${{ !cancelled() && hashFiles('pipeline/vector/build.mjs') != '' }}
         run: bash pipeline/vector/publish.sh "vector - OSM buildings + facilities with elevation $(date -u +%FT%TZ)" --replace-tiles
       - name: Land-clipped municipios
         if: ${{ !cancelled() && hashFiles('pipeline/vector/land.mjs') != '' }}
-        run: node --max-old-space-size=8000 pipeline/vector/land.mjs
+        run: node --max-old-space-size=8000 pipeline/vector/land.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Stage 4 - FEMA NFHL download
         if: ${{ !cancelled() && hashFiles('pipeline/vector/nfhl.mjs') != '' }}
-        run: node --max-old-space-size=10000 pipeline/vector/nfhl.mjs
+        run: node --max-old-space-size=10000 pipeline/vector/nfhl.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Save download cache
         if: ${{ !cancelled() }}
         uses: actions/cache/save@v4
@@ -65,7 +68,7 @@ jobs:
           key: vector-cache-v1-${{ github.run_id }}
       - name: Stage 4 - flood zones attached, exposure
         if: ${{ !cancelled() && hashFiles('pipeline/vector/build.mjs') != '' }}
-        run: node --max-old-space-size=10000 pipeline/vector/build.mjs
+        run: node --max-old-space-size=10000 pipeline/vector/build.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Publish stage 4
         if: ${{ !cancelled() }}
         run: bash pipeline/vector/publish.sh "vector - flood zones, exposure, land-clipped municipios $(date -u +%FT%TZ)" --replace-tiles
