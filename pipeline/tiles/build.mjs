@@ -211,12 +211,12 @@ async function buildImg(cov) {
     s.bytes += jpg.length; s.rawBytes += raw.length;
     (present[z] ||= []).push([x, y]);
     const wm = whiteMask((await flatRGB(jpg)).data, 3);
-    if (wm.c >= 65536 * 0.02) { (white[z] ||= []).push([x, y, Math.round(100 * wm.c / 65536)]); s.white = (s.white || 0) + 1; if (wm.c >= 65536 * 0.995) s.allWhite = (s.allWhite || 0) + 1; }
+    if (wm.c >= 65536 * 0.005) { (white[z] ||= []).push([x, y, Math.round(100 * wm.c / 65536)]); s.white = (s.white || 0) + 1; if (wm.c >= 65536 * 0.995) s.allWhite = (s.allWhite || 0) + 1; }
   });
   let total = 0;
   for (const z of Object.keys(stats)) {
     const s = stats[z]; total += s.bytes;
-    log(`img z${z}: wanted ${s.want}, written ${s.jpeg + s.png} (jpeg kept ${s.jpeg}, png->jpeg ${s.png}, of which with transparency ${s.pngAlpha}), 404 ${s.missing404}, failed ${s.failed}, with >=2 % pure white ${s.white || 0} (entirely white ${s.allWhite || 0}), ${mb(s.bytes)} (raw ${mb(s.rawBytes)})`);
+    log(`img z${z}: wanted ${s.want}, written ${s.jpeg + s.png} (jpeg kept ${s.jpeg}, png->jpeg ${s.png}, of which with transparency ${s.pngAlpha}), 404 ${s.missing404}, failed ${s.failed}, with >=0.5 % pure white ${s.white || 0} (entirely white ${s.allWhite || 0}), ${mb(s.bytes)} (raw ${mb(s.rawBytes)})`);
   }
   for (const o of odd.slice(0, 40)) log('  img odd:', o);
   log(`img: total ${mb(total)}`);
@@ -291,14 +291,23 @@ async function buildMosaics(dem, img) {
       const sz = 256 >> (z - MOSAIC_Z); let masked = 0;
       await pool(tiles, 4, async ([x, y]) => {
         const { data: d, info } = await sharp(await rawOf(z, x, y)).ensureAlpha().toColourspace('srgb').raw().toBuffer({ resolveWithObject: true });
-        const tw = info.width, th = info.height, { m, c } = whiteMask(d, 4);
-        if (c >= tw * th * 0.02) {                       // white = outside the imagery footprint: cut it out, 2 px wider for JPEG ringing
+        const tw = info.width, th = info.height, { m: w, c } = whiteMask(d, 4);
+        if (c >= 12) {
+          // white = outside the imagery footprint. Only runs of >= 12 white pixels along a row or a column count
+          // (roofs and surf are shorter); cut them out 2 px wider for JPEG ringing.
+          const m = new Uint8Array(tw * th); let any = 0;
+          for (let yy = 0; yy < th; yy++) for (let xx = 0, run = 0; xx <= tw; xx++) {
+            if (xx < tw && w[yy * tw + xx]) run++; else { if (run >= 12) { for (let k = xx - run; k < xx; k++) m[yy * tw + k] = 1; any = 1; } run = 0; }
+          }
+          for (let xx = 0; xx < tw; xx++) for (let yy = 0, run = 0; yy <= th; yy++) {
+            if (yy < th && w[yy * tw + xx]) run++; else { if (run >= 12) { for (let k = yy - run; k < yy; k++) m[k * tw + xx] = 1; any = 1; } run = 0; }
+          }
           for (let yy = 0; yy < th; yy++) for (let xx = 0; xx < tw; xx++) if (m[yy * tw + xx])
             for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
               const ax = xx + dx, ay = yy + dy;
               if (ax >= 0 && ay >= 0 && ax < tw && ay < th) d[(ay * tw + ax) * 4 + 3] = 0;
             }
-          masked++;
+          masked += any;
         }
         let p = sharp(d, { raw: { width: tw, height: th, channels: 4 } });
         if (sz !== tw) p = p.resize(sz, sz, { kernel: 'lanczos3', fit: 'fill' });
@@ -351,7 +360,7 @@ async function buildMosaics(dem, img) {
       outliers },
     img: {
       file: 'img_z10.jpg', jpegQuality: JPEG_Q, bytes: imgJpg.length,
-      composition: 'Resampled from the real USGSImageryOnly tiles of every mirrored zoom <= 13, painted coarse to fine (finer zoom wins where it has data; upstream transparency respected; upstream pure-white no-data areas (all channels >= 248, in tiles where they exceed 2 %) are cut out so the coarser layer shows). The service answers 404 for zoom 10 itself, so no zoom-10 tile is used unless listed in layers.',
+      composition: 'Resampled from the real USGSImageryOnly tiles of every mirrored zoom <= 13, painted coarse to fine (finer zoom wins where it has data; upstream transparency respected; upstream pure-white no-data areas (runs of >= 12 pixels with all channels >= 248, grown 2 px) are cut out so the coarser layer shows). The service answers 404 for zoom 10 itself, so no zoom-10 tile is used unless listed in layers.',
       layers,
       fill: 'No imagery is invented. Pixels with no imagery at any mirrored zoom are neutral deep blue rgb(11,42,74).',
       neutralFillFraction: Number(unpainted.toFixed(5)),
@@ -389,7 +398,7 @@ const index = {
     imgPartlyTransparentUpstream: img.partial,
     imgPartlyTransparentNote: 'these tiles came as PNG with transparent pixels; in the mirrored JPEG those pixels are pure white, the colour upstream itself uses for no imagery (see imgWhiteNoData)',
     imgWhiteNoData: img.white,
-    imgWhiteNoDataNote: 'USGS paints areas outside the imagery footprint PURE WHITE in its JPEG tiles (coast and open sea at z11..13, some tiles entirely white). Listed [x, y, percent white] for tiles with >= 2 % of pixels >= 248 on all channels. JPEG tiles are mirrored byte-for-byte; PNG tiles are re-encoded with their transparent pixels also white. So in every mirrored tile pure white = no imagery: mask it (e.g. fall back to the parent tile or water colour).',
+    imgWhiteNoDataNote: 'USGS paints areas outside the imagery footprint PURE WHITE in its JPEG tiles (coast and open sea at z11..13, some tiles entirely white). Listed [x, y, percent white] for tiles with >= 0.5 % of pixels >= 248 on all channels (thinner slivers exist in other coastal tiles). JPEG tiles are mirrored byte-for-byte; PNG tiles are re-encoded with their transparent pixels also white. So in every mirrored tile pure white = no imagery: mask it (e.g. fall back to the parent tile or water colour).',
     demNoData: dem.noData,
     demNoDataNote: 'elevation tiles with pixels at -32768 m (RGB 0,0,0 upstream = no data), [x, y, pixel count]; kept as served',
     failed: [...dl1.errors, ...dl2.errors].map((e) => e.split(' ').slice(0, 2).join(' ')),
