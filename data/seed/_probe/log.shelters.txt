@@ -82,7 +82,7 @@ Refugios 2026   Barceloneta
                 Barranquitas   Centro Geriátrico La Hermandad                   Carr. 152 KM 6.2 Bo. Quebradilla                                      https://maps.app.goo.gl/2e3ZF9Sx4XDWwVqF7
                 Barranquitas   Esc. Antonio Vázquez Ramos - La Loma             carr. 156, km 20 hm 1, Bo. Quebrada Grande                             https://maps.app.goo.gl/X6c353v7sjuSo5FS6
 [municipios] Counties: 78 rows; fields: MTFCC,OID,GEOID,STATE,COUNTY,COUNTYNS,BASENAME,NAME,LSADC,FUNCSTAT,COUNTYCC,AREALAND,AREAWATER,OBJECTID,STGEOMETRY,CENTLAT,CENTLON,INTPTLAT,INTPTLON
-[shelters] wrote 40-shelters: {"shelter":343,"municipio":78} links 343
+[shelters] wrote 40-shelters: {"shelter":343,"municipio":78} links 572
 {
  "shelters": {
   "status": "ok",
@@ -90,7 +90,7 @@ Refugios 2026   Barceloneta
    "shelter": 343,
    "municipio": 78
   },
-  "links": 343,
-  "problems": 7
+  "links": 572,
+  "problems": 10
  }
 }
