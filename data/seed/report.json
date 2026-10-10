@@ -1,5 +1,5 @@
 {
- "startedAt": "2026-10-10T05:09:49.832Z",
+ "startedAt": "2026-10-10T05:12:10.838Z",
  "ontologyVersion": "2026.10.1",
  "sources": {
   "census_tiger": {
@@ -27,7 +27,7 @@
    },
    "links": 1882,
    "problems": [],
-   "ms": 2183
+   "ms": 698
   },
   "hud": {
    "status": "ok",
@@ -80,7 +80,7 @@
     "159 projects had no county FIPS (not geocoded by HUD): municipio taken from the project city where it equals a municipio name, confidence 0.7",
     "4 projects without a usable county/tract FIPS: no municipio link"
    ],
-   "ms": 1854
+   "ms": 3615
   },
   "openfema": {
    "status": "ok",
@@ -122,7 +122,7 @@
     "county \"Statewide\" not matched to a municipio (1 registrations left out)",
     "disaster numbers in the PR housing data that have no PR declaration row (impact objects kept, no link to a declaration): 1561, 4337"
    ],
-   "ms": 1323
+   "ms": 3438
   },
   "coops": {
    "status": "ok",
@@ -146,25 +146,25 @@
    "links": 0,
    "problems": [
     "9752621 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9752621/floodlevels.json?units=metric",
-    "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
-    "9752695 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752695&units=metric",
-    "9754229 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9754229/floodlevels.json?units=metric",
-    "9753216 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9753216/floodlevels.json?units=metric",
     "9752235 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752235&units=metric",
+    "9752695 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752695&units=metric",
+    "9753216 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9753216/floodlevels.json?units=metric",
+    "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
+    "9754229 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9754229/floodlevels.json?units=metric",
     "9755968 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9755968/floodlevels.json?units=metric",
     "9754229 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9754229&units=metric",
-    "9753216 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9753216&units=metric",
     "9757811 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9757811/floodlevels.json?units=metric",
+    "9753216 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9753216&units=metric",
     "9758066 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9758066/floodlevels.json?units=metric",
     "9755968 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9755968&units=metric",
     "9757811 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9757811&units=metric",
     "9758066 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9758066&units=metric",
     "9759413 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9759413/floodlevels.json?units=metric",
     "9759394 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759394&units=metric",
-    "9759413 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759413&units=metric",
-    "9759938 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759938&units=metric"
+    "9759938 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759938&units=metric",
+    "9759413 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759413&units=metric"
    ],
-   "ms": 21002
+   "ms": 20247
   },
   "usgs": {
    "status": "ok",
@@ -189,7 +189,7 @@
    },
    "links": 142,
    "problems": [],
-   "ms": 783
+   "ms": 523
   },
   "nws": {
    "status": "ok",
@@ -227,7 +227,7 @@
    },
    "links": 78,
    "problems": [],
-   "ms": 1492
+   "ms": 1207
   },
   "cdc_svi": {
    "status": "ok",
@@ -252,7 +252,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 2073
+   "ms": 3242
   },
   "shelters": {
    "status": "ok",
@@ -288,7 +288,7 @@
     "Ponce / Centro Comunal Ernesto Ramos Antonini: link resolves 76.4 km from the municipio internal point; coordinates not used",
     "Vieques / Esc. María M. Simmons de Rivera: name matches OpenStreetMap node/4306469326 \"Escuela María M. Simmons De Rivera\" (score 1.00) but it is 2.3 km from the list's map link; match not used"
    ],
-   "ms": 14504
+   "ms": 11808
   },
   "census_acs": {
    "status": "ok",
@@ -303,20 +303,15 @@
      "validationErrors": 0,
      "validationWarnings": 0,
      "published": true,
-     "note": "ACS 5-year estimates for municipios, read without an API key from the public Esri Living Atlas feature layers that republish Census Bureau ACS tables (county layers, GEOID LIKE '72%'): ACS_Median_Income_by_Race_and_Age_Selp_Emp_Boundaries (County, ACS 2018-2022); ACS_Housing_Units_Vacancy_Status_Boundaries (County, ACS 2018-2022); ACS_Housing_Units_by_Year_Built_Boundaries (County, ACS 2018-2022). Mapped by Census variable code: median_income_usd = B19049_001E, median_home_value_usd = B25077_001E, vacant_units = B25002_003E or B25004_001E (vacant housing units), vacancy_pct = vacant_units / B25002_001E, renter_pct = B25003_003E / B25003_001E, built_pre1980_pct = B25034 categories built 1979 or earlier / B25034_001E. Properties present: median_income_usd, vacant_units, vacancy_pct, renter_pct, built_pre1980_pct. Each value's observedAt is the end of the layer's stated ACS period."
+     "note": "ACS 5-year estimates for municipios, read without an API key from the public Esri Living Atlas feature layers that republish Census Bureau ACS tables (county layers, GEOID LIKE '72%'): ACS_Housing_Units_Vacancy_Status_Boundaries (County, ACS 2019-2023, latest of the periods the publisher states (2018-2022, 2019-2023); totals differ from ACS 2018-2022); ACS_Median_Income_by_Race_and_Age_Selp_Emp_Boundaries (County, ACS 2019-2023, latest of the periods the publisher states (2018-2022, 2019-2023); totals differ from ACS 2018-2022); ACS_Housing_Units_by_Year_Built_Boundaries (County, ACS 2019-2023, latest of the periods the publisher states (2018-2022, 2019-2023); totals differ from ACS 2018-2022). Mapped by Census variable code: median_income_usd = B19049_001E, median_home_value_usd = B25077_001E, vacant_units = B25002_003E or B25004_001E (vacant housing units), vacancy_pct = vacant_units / B25002_001E, renter_pct = B25003_003E / B25003_001E, built_pre1980_pct = B25034 categories built 1979 or earlier / B25034_001E. Properties present: vacant_units, vacancy_pct, renter_pct, median_income_usd, built_pre1980_pct. Each value's observedAt is the end of the ACS period given above for its layer."
     }
    ],
    "objects": {
     "municipio": 78
    },
    "links": 0,
-   "problems": [
-    "ACS_Housing_Tenure_by_Education_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]}",
-    "ACS_Housing_Units_Occupancy_Status_Tenure_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]}",
-    "ACS_Median_Home_Value_by_Year_Built_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]}",
-    "ACS_Housing_Costs_Variables_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]}"
-   ],
-   "ms": 2565
+   "problems": [],
+   "ms": 5189
   },
   "nwps": {
    "status": "ok",
@@ -341,7 +336,15 @@
    },
    "links": 117,
    "problems": [],
-   "ms": 6405
+   "ms": 4076
+  },
+  "hurdat2": {
+   "status": "ok",
+   "files": [],
+   "objects": {},
+   "links": 0,
+   "problems": [],
+   "ms": 2490
   },
   "luma": {
    "status": "ok",
@@ -364,7 +367,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 932
+   "ms": 2085
   },
   "cdbg": {
    "status": "ok",
@@ -391,15 +394,7 @@
    "problems": [
     "32 of 977 rows had no usable geography or counts"
    ],
-   "ms": 157
-  },
-  "hurdat2": {
-   "status": "ok",
-   "files": [],
-   "objects": {},
-   "links": 0,
-   "problems": [],
-   "ms": 2624
+   "ms": 238
   },
   "ndbc": {
    "status": "ok",
@@ -422,7 +417,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 163
+   "ms": 272
   }
  },
  "replay": [
@@ -442,7 +437,7 @@
    "bytes": 2471
   }
  ],
- "finishedAt": "2026-10-10T05:10:10.997Z",
- "requests": 274,
- "bytes": 87951686
+ "finishedAt": "2026-10-10T05:12:31.357Z",
+ "requests": 272,
+ "bytes": 88001620
 }
