@@ -3,18 +3,21 @@
 name: relay
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '11,41 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
     paths: [pipeline/relay.mjs, .github/workflows/relay.yml]
 permissions:
   contents: write
-concurrency: relay
+  actions: write
+concurrency:
+  group: relay
+  cancel-in-progress: false
 jobs:
   relay:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,15 +32,24 @@ jobs:
           else
             echo "no relay branch yet"
           fi
-      - name: Fetch
-        run: node pipeline/relay.mjs --out "$RUNNER_TEMP/relay"
-      - name: Publish
+      - name: Fetch and publish, every 5 minutes for half an hour
+        # GitHub's scheduler is late or skips runs on quiet repositories, so one run covers 30 minutes itself and
+        # then starts the next. To stop the relay, disable this workflow in the Actions tab.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd "$RUNNER_TEMP/relay"
-          rm -rf .git
-          git init --quiet --initial-branch=relay
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit --quiet -m "relay $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" HEAD:relay
+          for i in 1 2 3 4 5 6; do
+            node pipeline/relay.mjs --out "$RUNNER_TEMP/relay" || true
+            (
+              cd "$RUNNER_TEMP/relay"
+              rm -rf .git
+              git init --quiet --initial-branch=relay
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add -A
+              git commit --quiet -m "relay $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              git push --quiet -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" HEAD:relay
+            ) || echo "publish failed this round"
+            [ "$i" = 6 ] || sleep 290
+          done
+          gh workflow run relay.yml --repo "${{ github.repository }}" --ref main || echo "could not queue the next run; the schedule will"

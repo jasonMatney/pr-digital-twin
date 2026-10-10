@@ -40,6 +40,18 @@ export function bootApp(opts: BootOptions = {}) {
 
   const g: any = ((globalThis as any).__garita = { ready: false, state: S });
 
+  // ?pump=1 drives frames from a MessageChannel instead of requestAnimationFrame, so the scene keeps rendering in a
+  // hidden or background tab. For automated screenshots only: it spins a core.
+  if (flag('pump')) {
+    const ch = new MessageChannel(); let cb: FrameRequestCallback | null = null, last = 0;
+    ch.port1.onmessage = () => {
+      const now = performance.now();
+      if (now - last < 15.5) { ch.port2.postMessage(0); return; }
+      last = now; const c = cb; cb = null; c?.(now);
+    };
+    (globalThis as any).requestAnimationFrame = (f: FrameRequestCallback) => { cb = f; ch.port2.postMessage(0); return 1; };
+  }
+
   // ---- scene ----
   stage('Raising the island');
   const engine = createEngine(canvas, { terrain: createTerrain, controls: createControls, post: createPost });
@@ -57,6 +69,8 @@ export function bootApp(opts: BootOptions = {}) {
     settled = s.pending === 0 && s.tiles > 0 ? settled + 1 : 0;
     if ((settled > 10 && f.index > 20) || f.now > 40) { off(); g.ready = true; S.booted.value = true; bootEl?.classList.add('gone'); }
   });
+  // A hidden tab gets no frames; do not leave the curtain down forever when it comes back.
+  setTimeout(() => { S.booted.value = true; bootEl?.classList.add('gone'); }, 45000);
 
   // ---- picking and hover: one dispatcher, layers register handlers ----
   const pickers: { p: number; fn: Picker }[] = [], hovers: { p: number; fn: Picker }[] = [];
