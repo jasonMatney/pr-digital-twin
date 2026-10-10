@@ -1,0 +1,365 @@
+{
+ "startedAt": "2026-10-10T04:57:12.166Z",
+ "ontologyVersion": "2026.10.1",
+ "sources": {
+  "census_tiger": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/01-places.batch.json",
+     "source": "census_tiger",
+     "objects": {
+      "municipio": 78,
+      "barrio": 901,
+      "tract": 981
+     },
+     "links": 1882,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "TIGERweb tigerWMS_Current layers 82 (Counties), 22 (County Subdivisions = barrios), 8 (Census Tracts), STATE='72'. lon/lat = internal point (INTPTLON/INTPTLAT). land_km2 = AREALAND / 1e6. population/housing_units only if the layer carries POP100/HU100 (fields seen: MTFCC,OID,GEOID,STATE,COUNTY,TRACT,BASENAME,NAME,LSADC,FUNCSTAT,AREALAND,AREAWATER,STGEOMETRY,CENTLAT,CENTLON,INTPTLAT,INTPTLON,OBJECTID)."
+    }
+   ],
+   "objects": {
+    "municipio": 78,
+    "barrio": 901,
+    "tract": 981
+   },
+   "links": 1882,
+   "problems": [],
+   "ms": 548
+  },
+  "hud": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/10-public-housing.batch.json",
+     "source": "hud_public_housing",
+     "objects": {
+      "public_housing": 304,
+      "municipio": 75
+     },
+     "links": 304,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "HUD Public_Housing_Developments, STD_ST='PR' (304 records). Key = development code. units = TOTAL_DWELLING_UNITS, occupied_units = TOTAL_OCCUPIED, occupancy_pct = PCT_OCCUPIED, residents = PEOPLE_TOTAL, avg_household_income_usd = HH_INCOME, pct_elderly = PCT_AGE62PLUS, pct_disabled = PCT_DISABLED_ALL (HUD negative codes = not available, left out). built_year = year of (no date field found: not set). Municipio from the record's county FIPS. municipio.public_housing_units = sum of units of linked developments."
+    },
+    {
+     "file": "data/seed/11-multifamily-assisted.batch.json",
+     "source": "hud_multifamily",
+     "objects": {
+      "assisted_housing": 196
+     },
+     "links": 196,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "HUD MULTIFAMILY_PROPERTIES_ASSISTED, Puerto Rico (196 records). Key = mf-<PROPERTY_ID>. owner = owner organisation when the layer has it, else the management agent."
+    },
+    {
+     "file": "data/seed/12-lihtc.batch.json",
+     "source": "hud_lihtc",
+     "objects": {
+      "assisted_housing": 231
+     },
+     "links": 68,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "HUD LIHTC database, PROJ_ST='PR' (231 records). Key = lihtc-<HUD_ID>. units = N_UNITS, assisted_units = LI_UNITS (low-income units), placed_in_service = YR_PIS (HUD codes 8888/9999 = unknown, left out)."
+    }
+   ],
+   "objects": {
+    "public_housing": 304,
+    "municipio": 75,
+    "assisted_housing": 427
+   },
+   "links": 568,
+   "problems": [
+    "163 projects without a usable county/tract FIPS: no municipio link"
+   ],
+   "ms": 3753
+  },
+  "openfema": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/30-declarations.batch.json",
+     "source": "openfema_declarations",
+     "objects": {
+      "disaster_declaration": 51,
+      "municipio": 78
+     },
+     "links": 2112,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "OpenFEMA DisasterDeclarationsSummaries v2, state eq 'PR', 2116 rows -> 51 declarations. areas = distinct designated municipios (fipsCountyCode); rows with fipsCountyCode 000 are statewide and add no municipio link. ih_program = ihProgramDeclared or iaProgramDeclared on any row. municipio.fema_declarations = declarations (DR, EM, FM) designating that municipio."
+    },
+    {
+     "file": "data/seed/31-housing-assistance.batch.json",
+     "source": "openfema_housing",
+     "objects": {
+      "disaster_impact": 432,
+      "municipio": 78
+     },
+     "links": 864,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "OpenFEMA HousingAssistanceOwners v2 (15095 rows) + HousingAssistanceRenters v2 (10177 rows), state eq 'PR', summed from disaster x county x city x zip to disaster x municipio (county name normalised and matched to TIGER names). valid_registrations, total_inspected, approved_usd, repair_replace_usd, rental_usd = owners + renters. total_damage_usd = owners totalDamage only (the renters dataset has no dollar damage). major_damage_homes = owners with FEMA-inspected damage > $30,000 + renters with major or substantial damage. ihp_*_maria = DR-4339 row for the municipio."
+    }
+   ],
+   "objects": {
+    "disaster_declaration": 51,
+    "municipio": 156,
+    "disaster_impact": 432
+   },
+   "links": 2976,
+   "problems": [
+    "county \"Statewide\" not matched to a municipio (1 registrations left out)",
+    "disaster numbers in housing data without a declaration row: 1561, 4337"
+   ],
+   "ms": 6271
+  },
+  "coops": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/20-tide-stations.batch.json",
+     "source": "coops_meta",
+     "objects": {
+      "tide_station": 13
+     },
+     "links": 0,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "CO-OPS metadata API, water level stations with state \"PR\" (13). mhhw_m = MHHW - MSL from datums.json (metres on station datum). minor_flood_m = floodlevels.json nos_minor (else nws_minor), given on station datum, minus MSL. slr_2050_int_m / slr_2100_int_m = Intermediate scenario projectionRsl at 2050 / 2100 from slr_projections.json (reported in cm, converted to metres; zero at the first projection year, see data/replay/slr_projections.json baseline). 2 stations have projections."
+    }
+   ],
+   "objects": {
+    "tide_station": 13
+   },
+   "links": 0,
+   "problems": [
+    "9752621 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9752621/floodlevels.json?units=metric",
+    "9752235 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752235&units=metric",
+    "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
+    "9752695 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752695&units=metric",
+    "9754229 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9754229/floodlevels.json?units=metric",
+    "9753216 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9753216/floodlevels.json?units=metric",
+    "9755968 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9755968/floodlevels.json?units=metric",
+    "9754229 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9754229&units=metric",
+    "9753216 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9753216&units=metric",
+    "9757811 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9757811/floodlevels.json?units=metric",
+    "9758066 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9758066/floodlevels.json?units=metric",
+    "9755968 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9755968&units=metric",
+    "9757811 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9757811&units=metric",
+    "9758066 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9758066&units=metric",
+    "9759394 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759394&units=metric",
+    "9759413 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9759413/floodlevels.json?units=metric",
+    "9759938 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759938&units=metric",
+    "9759413 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759413&units=metric"
+   ],
+   "ms": 94067
+  },
+  "usgs": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/21-usgs-sites.batch.json",
+     "source": "usgs_nwis",
+     "objects": {
+      "stream_gauge": 114,
+      "reservoir": 28
+     },
+     "links": 142,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "USGS site service, active sites with instantaneous data in PR (205 sites). Stream types (site_tp_cd ST*) -> stream_gauge; site_tp_cd LK or a name starting \"Lago\"/\"Embalse\" -> reservoir; other site types left out: {\"GW\":40,\"AT\":20,\"FA-STS\":2,\"FA-DV\":1}. drainage_km2 = drain_area_va (sq mi) x 2.58998811. Municipio from county_cd."
+    }
+   ],
+   "objects": {
+    "stream_gauge": 114,
+    "reservoir": 28
+   },
+   "links": 142,
+   "problems": [],
+   "ms": 345
+  },
+  "nws": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/23-nws-zones.batch.json",
+     "source": "nws_alerts",
+     "objects": {
+      "forecast_zone": 13,
+      "municipio": 78
+     },
+     "links": 78,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "api.weather.gov zones for area PR: 13 public forecast zones (PRZ*), 78 county zones (PRC*, one per municipio, stored as identity nws:zone). The zones payloads carry no county-to-forecast-zone relation, so municipio part_of forecast_zone (78 links) comes from the points API evaluated at each municipio's TIGER internal point, confidence 0.8."
+    },
+    {
+     "file": "data/seed/24-weather-stations.batch.json",
+     "source": "nws_obs",
+     "objects": {
+      "weather_station": 149
+     },
+     "links": 0,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "api.weather.gov/stations?state=PR (149 observation stations, all providers; some are NDBC buoys that also appear as buoy objects)."
+    }
+   ],
+   "objects": {
+    "forecast_zone": 13,
+    "municipio": 78,
+    "weather_station": 149
+   },
+   "links": 78,
+   "problems": [],
+   "ms": 12514
+  },
+  "cdc_svi": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/02-svi.batch.json",
+     "source": "cdc_svi",
+     "objects": {
+      "tract": 939,
+      "municipio": 78
+     },
+     "links": 0,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "CDC/ATSDR SVI 2022 (ACS 2018-2022), layer \"SVI2022 PR tract\", 939 tracts; -999 = no data, left out. Tract poverty_pct = EP_POV150 (below 150% of poverty). County layer \"SVI2022 PR municipio\" gives official values for 78 municipios. Where no official county row exists, municipio values are aggregated from tracts: population, housing_units, households = sums of E_TOTPOP, E_HU, E_HH; svi_overall, poverty150_pct, age65_pct, disability_pct, no_health_insurance_pct = E_TOTPOP-weighted means of the tract values; no_vehicle_pct and crowding_pct = E_HH-weighted; mobile_home_pct = E_HU-weighted. svi_basis on each municipio says which applies."
+    }
+   ],
+   "objects": {
+    "tract": 939,
+    "municipio": 78
+   },
+   "links": 0,
+   "problems": [],
+   "ms": 4161
+  },
+  "nwps": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/22-nwps-gauges.batch.json",
+     "source": "nwps",
+     "objects": {
+      "reservoir": 19,
+      "stream_gauge": 99
+     },
+     "links": 0,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "NWPS gauges in the PR bounding box (118); 108 carry a usgsId and are keyed by it (1 of those are not in the USGS active real-time list and are created here); the rest are keyed nws-<lid>. Flood stages from flood.categories.*.stage converted with flood.stageUnits (ft x 0.3048); missing or negative-sentinel stages are left out. Reservoir objects get the NWS identity only (the reservoir type has no stage thresholds)."
+    }
+   ],
+   "objects": {
+    "reservoir": 19,
+    "stream_gauge": 99
+   },
+   "links": 0,
+   "problems": [],
+   "ms": 4619
+  },
+  "hurdat2": {
+   "status": "ok",
+   "files": [],
+   "objects": {},
+   "links": 0,
+   "problems": [],
+   "ms": 3165
+  },
+  "cdbg": {
+   "status": "error",
+   "files": [],
+   "objects": {},
+   "links": 0,
+   "problems": [],
+   "error": "Error: no LOWMOD / LOWMODUNIV fields in LowModTractCDBG-DR: OBJECTID,GEOID,Nombre_Geo,Ingr_Med_H,Ingr_Med_F,Ingr_Med_N,Personas_T,Est_LowMod,Est_LowM_1,Shape__Area,Shape__Length\n    at Module.build (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/sources/cdbg.mjs:11:30)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async runSource (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:39:18)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:87\n    at async Promise.all (index 1)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:1",
+   "ms": 723
+  },
+  "luma": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/26-power-regions.batch.json",
+     "source": "luma",
+     "objects": {
+      "power_region": 7
+     },
+     "links": 0,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "LUMA outage API regionsWithoutService: 7 regions, customers = totalClients. Region names as the API spells them. The towns endpoint returned no municipio lists, so no municipio part_of power_region links are published."
+    }
+   ],
+   "objects": {
+    "power_region": 7
+   },
+   "links": 0,
+   "problems": [],
+   "ms": 457
+  },
+  "ndbc": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/25-buoys.batch.json",
+     "source": "ndbc",
+     "objects": {
+      "buoy": 25
+     },
+     "links": 0,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "NDBC activestations.xml, stations with 16.5 <= lat <= 20 and -69 <= lon <= -63.5 (all station types: buoys, C-MAN, tide and DART stations)."
+    }
+   ],
+   "objects": {
+    "buoy": 25
+   },
+   "links": 0,
+   "problems": [],
+   "ms": 147
+  }
+ },
+ "replay": [
+  {
+   "file": "data/replay/storms.json",
+   "by": "hurdat2",
+   "bytes": 192854
+  },
+  {
+   "file": "data/replay/storms.meta.json",
+   "by": "hurdat2",
+   "bytes": 512
+  },
+  {
+   "file": "data/replay/slr_projections.json",
+   "by": "coops",
+   "bytes": 2471
+  }
+ ],
+ "finishedAt": "2026-10-10T04:58:46.380Z",
+ "requests": 253,
+ "bytes": 34901295
+}
