@@ -33,6 +33,8 @@ export interface OverlaySource {
   minZoom: number;
   maxZoom: number;       // deeper terrain tiles reuse the maxZoom ancestor
   tileSize?: 256 | 512;
+  /** Tiles drawn in the browser instead of fetched (choropleths): return a canvas or bitmap for the tile, or null. When present, url() is not called. */
+  draw?(z: number, x: number, y: number): Promise<TexImageSource | null> | TexImageSource | null;
 }
 
 export interface TerrainApi {
@@ -45,6 +47,8 @@ export interface TerrainApi {
   raycast(origin: THREE.Vector3, dir: THREE.Vector3, maxDist?: number): THREE.Vector3 | null;
   /** One raster overlay draped over the photo, or null to clear. */
   setOverlay(source: OverlaySource | null, opacity: number): void;
+  /** Shader tint computed from the elevation itself: 'elevation' = hypsometric colours over a muted photo. */
+  setTint?(mode: 'none' | 'elevation'): void;
   stats(): { tiles: number; pending: number; maxZoom: number };
   dispose(): void;
 }
