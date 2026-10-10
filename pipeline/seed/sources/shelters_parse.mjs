@@ -60,3 +60,29 @@ export const facilityType = (name) => {
   return null;
 };
 export const shelterKey = (geoid, name) => `${geoid}-${slug(name).slice(0, 60)}`;
+
+// ---- matching a listed shelter to an OpenStreetMap school in the same municipio ----
+const STOP = new Set('esc escuela escuelas su segunda unidad elemental superior intermedia nueva nuevo urbana urbano vocacional de del la las los el y e dr dra prof profesor profesora don dona colegio academia school elementary high middle comunidad especializada bilingue montessori elem int sup'.split(' '));
+export const nameTokens = (s) => new Set(strip(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter((t) => t.length > 1 && !STOP.has(t)));
+/** Returns { osm, name, lon, lat, score } for a confident, unambiguous match, else null. score = mean of Jaccard and containment of name tokens. */
+export function matchSchool(name, geoid, schoolsByMuni) {
+  const a = nameTokens(name);
+  if (a.size < 2) return null;
+  let best = null, second = 0;
+  for (const s of schoolsByMuni.get(geoid) || []) {
+    const b = s.tokens;
+    if (b.size < 2) continue;
+    let shared = 0; for (const t of a) if (b.has(t)) shared++;
+    if (shared < 2) continue;
+    const score = 0.5 * (shared / (a.size + b.size - shared)) + 0.5 * (shared / Math.min(a.size, b.size));
+    if (!best || score > best.score) { second = best ? best.score : second; best = { ...s, score }; } else if (score > second) second = score;
+  }
+  if (!best || best.score < 0.7) return null;
+  if (second >= best.score - 0.05 && second > 0) return null; // two schools fit about equally: not confident
+  return best;
+}
+export function indexSchools(facilities) {
+  const by = new Map();
+  for (const f of facilities) { if (f.type !== 'school' || !f.name || f.lon == null || f.lat == null || !f.municipio) continue; const k = String(f.municipio); if (!by.has(k)) by.set(k, []); by.get(k).push({ osm: f.osm, name: f.name, lon: f.lon, lat: f.lat, tokens: nameTokens(f.name) }); }
+  return by;
+}
