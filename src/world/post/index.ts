@@ -32,7 +32,13 @@ const off = (name: string) => params.get(name) === '0';
 
 class Scale extends Effect {
   constructor(k: number) {
-    super('Scale', 'uniform float k; void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) { outputColor = vec4(min(inputColor.rgb * k, vec3(48.0)), inputColor.a); }',  // (capped: the sun's disc would otherwise bloom into a white blob)
+    // Capped: the sun's disc would otherwise bloom into a white blob. Not-a-number and infinite pixels are zeroed:
+    // one of them (the sky shader makes a few at the horizon under a low sun) spreads through the bloom's blur
+    // pyramid and blacks out the whole frame.
+    super('Scale', `uniform float k; void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+        vec3 c = inputColor.rgb * k;
+        if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0);
+        outputColor = vec4(clamp(c, vec3(0.0), vec3(48.0)), inputColor.a); }`,
       { uniforms: new Map([['k', new THREE.Uniform(k)]]) });
   }
   set k(v: number) { this.uniforms.get('k')!.value = v; }
@@ -250,7 +256,10 @@ ${mask}`);
     sun.intensity = DAY.sun * st.daylight * (0.35 + 0.65 * airmass) + NIGHT.sun * st.moonlight * (0.6 + 0.4 * moonUp);
     cloudNight.value.set(0.55, 0.68, 1.0).multiplyScalar(0.008 * st.dark * st.dark);
     sun.color.copy(DAY.sunColor).lerp(SUNSET, st.warmth * 0.85).lerp(NIGHT.sunColor, st.moonlight);
-    hemi.intensity = lerp(DAY.hemi, NIGHT.hemi, st.dark);
+    // Around sunset the sun gives the ground almost nothing (grazing, through thick air) while the sky is still
+    // bright: without more sky fill the ground is darker at dusk than at night.
+    const duskFill = (1 - sstep(deg, 4, 14)) * (1 - st.dark);
+    hemi.intensity = lerp(DAY.hemi, NIGHT.hemi, st.dark) * (1 + 1.2 * duskFill);
     const lowSun = st.lowSun = (1 - sstep(deg, 2, 35)) * (1 - st.dark);
     st.exposure = lerp(DAY.exposure, NIGHT.exposure, Math.pow(st.dark, LOW.darkPow)) * (1 + LOW.lift * lowSun);
     grade.g.set(lerp(1.1, 1.0, st.dark), LOW.curve * (1 - st.dark), lerp(1.12 + LOW.sat * lowSun, 1.0, st.dark));
