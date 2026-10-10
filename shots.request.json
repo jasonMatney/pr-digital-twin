@@ -1,0 +1,6 @@
+{ "shots": [
+ { "id": "radar", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=radar", "w": 1280, "h": 800, "wait": 12000 },
+ { "id": "goes", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=goes", "w": 1280, "h": 800, "wait": 14000 },
+ { "id": "radar-alpha", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=radar&alpha=1", "w": 1280, "h": 800, "wait": 12000 },
+ { "id": "goes-alpha", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=goes&alpha=1", "w": 1280, "h": 800, "wait": 14000 }
+] }
