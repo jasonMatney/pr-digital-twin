@@ -1,0 +1,355 @@
+{
+ "at": "2026-10-10T20:00:38.724Z",
+ "results": [
+  {
+   "id": "radar",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=radar",
+   "loadMs": 30941,
+   "debug": {
+    "stats": {
+     "fps": 10,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.45,
+     "lat": 18.15,
+     "range": 400000.0000000001,
+     "heading": 0,
+     "pitch": 60,
+     "altitude": 350224.4690235481
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 29.10467542121911,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "lowSun": 0.08434059804325089,
+     "exposure": 0.9620185352211631,
+     "bloom": 0.25,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      -0.826,
+      0.486,
+      0.286
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 1557,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "layers": [
+     {
+      "overlay": "radar",
+      "source": "radar:rainviewer:1791661800",
+      "aboveWater": true,
+      "lastError": "",
+      "legend": {
+       "title": "Rain radar",
+       "note": "Reflectivity, frame of 2026-10-10 15:50 AST. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7).",
+       "stops": 11
+      }
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 0,
+      "lift": 450,
+      "selected": null
+     },
+     {
+      "storm": null,
+      "info": null
+     }
+    ]
+   },
+   "frameMs": 750,
+   "ok": true,
+   "ms": 70549,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "goes",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=goes",
+   "loadMs": 32861,
+   "debug": {
+    "stats": {
+     "fps": 10,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.45,
+     "lat": 18.15,
+     "range": 400000.0000000001,
+     "heading": 0,
+     "pitch": 60,
+     "altitude": 350224.46902381734
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 29.10556971812318,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "lowSun": 0.08431674096182784,
+     "exposure": 0.9620151355870603,
+     "bloom": 0.25,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      -0.825,
+      0.486,
+      0.286
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 1615,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "layers": [
+     {
+      "overlay": "goes",
+      "source": "goes:2026-10-10T19:10:00Z",
+      "aboveWater": true,
+      "lastError": "",
+      "legend": {
+       "title": "Satellite · GOES-East GeoColor",
+       "note": "Image of 2026-10-10 15:10 AST, about 48 min old. Resolution about 1 km (tiles to zoom 7). At night the land under the cloud is a static city-lights picture, not live.",
+       "stops": 3
+      }
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 0,
+      "lift": 450,
+      "selected": null
+     },
+     {
+      "storm": null,
+      "info": null
+     }
+    ]
+   },
+   "frameMs": 1000,
+   "ok": true,
+   "ms": 95214,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "radar-alpha",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=radar&alpha=1",
+   "loadMs": 59967,
+   "debug": {
+    "stats": {
+     "fps": 10,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.45,
+     "lat": 18.15,
+     "range": 400000.0000000001,
+     "heading": 0,
+     "pitch": 60,
+     "altitude": 350224.4690236565
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 28.719026195433386,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "lowSun": 0.09488927261412505,
+     "exposure": 0.9635217213475128,
+     "bloom": 0.25,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      -0.83,
+      0.481,
+      0.284
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 1162,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "layers": [
+     {
+      "overlay": "radar",
+      "source": "radar:rainviewer:1791661800",
+      "aboveWater": true,
+      "lastError": "",
+      "legend": {
+       "title": "Rain radar",
+       "note": "Reflectivity, frame of 2026-10-10 15:50 AST. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7).",
+       "stops": 11
+      }
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 0,
+      "lift": 450,
+      "selected": null
+     },
+     {
+      "storm": null,
+      "info": null
+     }
+    ]
+   },
+   "frameMs": 750,
+   "ok": true,
+   "ms": 93986,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "goes-alpha",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&nofeeds=1&ui=0&cam=-66.45,18.15,400000,0,60&overlay=goes&alpha=1",
+   "loadMs": 37785,
+   "debug": {
+    "stats": {
+     "fps": 10,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.45,
+     "lat": 18.15,
+     "range": 400000.0000000001,
+     "heading": 0,
+     "pitch": 60,
+     "altitude": 350224.46902381716
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 28.71815326287845,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "lowSun": 0.0949137328596743,
+     "exposure": 0.9635252069325035,
+     "bloom": 0.25,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      -0.83,
+      0.481,
+      0.284
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 953,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "layers": [
+     {
+      "overlay": "goes",
+      "source": "goes:2026-10-10T19:10:00Z",
+      "aboveWater": true,
+      "lastError": "",
+      "legend": {
+       "title": "Satellite · GOES-East GeoColor",
+       "note": "Image of 2026-10-10 15:10 AST, about 49 min old. Resolution about 1 km (tiles to zoom 7). At night the land under the cloud is a static city-lights picture, not live.",
+       "stops": 3
+      }
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 0,
+      "lift": 450,
+      "selected": null
+     },
+     {
+      "storm": null,
+      "info": null
+     }
+    ]
+   },
+   "frameMs": 1500,
+   "ok": true,
+   "ms": 93690,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()"
+   ],
+   "failedHosts": {}
+  }
+ ]
+}
