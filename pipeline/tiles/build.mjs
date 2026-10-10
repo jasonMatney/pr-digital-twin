@@ -129,7 +129,7 @@ async function pngBest(rgb, width, height) {
 }
 
 async function buildDem(cov) {
-  const present = {}, z10 = new Map(), noData = {}, range = {};
+  const present = {}, z10 = new Map(), noData = {}, range = {}, spikes = {};
   let rawBytes = 0, outBytes = 0, maxErr = 0, n = 0, hMin = Infinity, hMax = -Infinity;
   const jobs = [];
   for (const z of Object.keys(cov)) for (const [x, y] of cov[z]) jobs.push({ z: +z, x, y });
@@ -143,6 +143,15 @@ async function buildDem(cov) {
     let nd = 0; const rg = (range[z] ||= [Infinity, -Infinity]);
     for (let i = 0; i < q.length; i++) { if (q[i] <= -65536) nd++; else { if (q[i] < rg[0]) rg[0] = q[i]; if (q[i] > rg[1]) rg[1] = q[i]; } }
     if (nd) (noData[z] ||= []).push([x, y, nd]);
+    // garbage pixels upstream: more than 250 m from the median of the 4 neighbours (counted, never corrected)
+    let sp = 0;
+    for (let r = 1; r < 255; r++) for (let c = 1; c < 255; c++) {
+      const i = r * 256 + c; let a = q[i - 1], b = q[i + 1], e = q[i - 256], f = q[i + 256], t;
+      if (a > b) { t = a; a = b; b = t; } if (e > f) { t = e; e = f; f = t; }
+      const med = (Math.max(a, e) + Math.min(b, f)) / 2;
+      if (Math.abs(q[i] - med) > 500) sp++;
+    }
+    if (sp) (spikes[z] ||= []).push([x, y, sp]);
     // round trip through the file we are about to publish, against the raw tile
     const back = await decodeRGB(png);
     for (let i = 0; i < q.length; i++) {
@@ -163,8 +172,9 @@ async function buildDem(cov) {
   log(`dem: ${n} tiles, raw ${mb(rawBytes)} -> re-encoded ${mb(outBytes)} (${(100 * outBytes / rawBytes).toFixed(1)} %), round-trip max abs error ${maxErr.toFixed(4)} m, range ${hMin} .. ${hMax} m`);
   log('dem range per zoom (m, no-data excluded):', Object.entries(range).map(([z, r]) => `z${z} ${r[0] / 2}..${r[1] / 2}`).join('  '));
   log('dem tiles with no-data pixels (-32768 m, RGB 0,0,0 upstream) [x,y,pixels]:', JSON.stringify(noData));
+  log('dem tiles with spike pixels (> 250 m from the median of the 4 neighbours):', Object.entries(spikes).map(([z, t]) => `z${z}: ${t.length} tiles, ${t.reduce((n, v) => n + v[2], 0)} px`).join('; '));
   if (maxErr > 0.25 + 1e-9) throw new Error('dem round trip error above 0.25 m: ' + maxErr);
-  return { present, z10, rawBytes, outBytes, maxErr, hMin, hMax, noData };
+  return { present, z10, rawBytes, outBytes, maxErr, hMin, hMax, noData, spikes };
 }
 
 // ---- photo ----
@@ -399,6 +409,8 @@ const index = {
     imgPartlyTransparentNote: 'these tiles came as PNG with transparent pixels; in the mirrored JPEG those pixels are pure white, the colour upstream itself uses for no imagery (see imgWhiteNoData)',
     imgWhiteNoData: img.white,
     imgWhiteNoDataNote: 'USGS paints areas outside the imagery footprint PURE WHITE in its JPEG tiles (coast and open sea at z11..13, some tiles entirely white). Listed [x, y, percent white] for tiles with >= 0.5 % of pixels >= 248 on all channels (thinner slivers exist in other coastal tiles). JPEG tiles are mirrored byte-for-byte; PNG tiles are re-encoded with their transparent pixels also white. So in every mirrored tile pure white = no imagery: mask it (e.g. fall back to the parent tile or water colour).',
+    demSpikes: dem.spikes,
+    demSpikesNote: 'elevation tiles containing garbage pixels upstream (more than 250 m from the median of their 4 neighbours; values from -22 km to +4 km), [x, y, pixel count]. Kept as served (round trip <= 0.25 m): despike when meshing, e.g. replace by the neighbour median.',
     demNoData: dem.noData,
     demNoDataNote: 'elevation tiles with pixels at -32768 m (RGB 0,0,0 upstream = no data), [x, y, pixel count]; kept as served',
     failed: [...dl1.errors, ...dl2.errors].map((e) => e.split(' ').slice(0, 2).join(' ')),
