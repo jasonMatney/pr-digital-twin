@@ -147,6 +147,19 @@ Each round: render, find what is visibly wrong, fix the cause. Stills are in `do
 | Buildings pasted on, uniform grey roofs | Sun shadow map near the ground; roofs textured from the aerial photo | `r2-19/20`, `w2-07` |
 | The island buried under pins | Density by camera range: dots from orbit, glyphs for what matters, fade with distance | `w1-01…06` |
 | Rain overlay vanishing over the sea | Overlay coverage carried in alpha and mixed back above the water | |
+| Black screen near sunset, and at night close to the ground | Not-a-number pixels from the volumetric cloud pass spread through its temporal filter and the bloom; stopped at the cloud pass's output, with guards after it | `r5-10`, `r5-19` |
+| Ground darker at dusk than at night | The sky fill holds a floor under what flat ground receives between day and night | `r5-17/18` |
+| Procedural clouds drawn over observed radar and satellite | Switched off while either overlay is on | `r5-11`, `r5-15` |
+| Orbit clouds like noise stamps | 2D field rewritten: warped, mixed scales, sun-side shading, a shadow beneath | `r5-12…14` |
+| Sand-coloured blobs on low land, rectangles in the sea | Seabed paint decided by height alone where topo-bathy exists; zoom-11 sea tiles average their zoom-12 depths | `r5-20…25` |
+| A label on every aircraft; "12/15 feeds" | Age label only close up or on hover; the count is of polled feeds, with on-demand map services named apart | `r5-01/02` |
+| Outlines glowing over the town lights at night | Boundaries dim with the scene's night factor | `r5-03/04` |
+| Radar legend colours wrong above 40 dBZ | Stops re-read from RainViewer's published colour table | |
+
+An independent pass then checked 66 numbers and claims against the database and public sources
+(`docs/verification.md`): 38 held, 7 were wrong and 15 imprecise. The storm replay lost its wind field at landfall
+fixes of 2004–2011 storms; 58 census tracts of an older vintage sat in the store; two public housing points were
+in the sea. Those are fixed and the text here corrected.
 
 ## Known limits
 

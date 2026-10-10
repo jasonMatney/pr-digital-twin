@@ -8,12 +8,13 @@ import { paletteOpen, aboutOpen, storeTick, nowTick, useQuery } from './uistate'
 
 export type Fresh = 'ok' | 'stale' | 'error' | 'static' | 'unknown' | 'ondemand';
 /** Live sources that are not polled: map tiles this browser asks for only while their overlay is switched on
- *  (src/world/overlays.ts). They never write a run, so they are not feeds that can be on time or late. */
+ *  (src/world/overlays.ts). They record each request, but are not feeds that can be on time or late. */
 export const ON_DEMAND: Record<string, NonNullable<S.OverlayId>> = { rainviewer: 'radar', nasa_gibs: 'goes', noaa_slr: 'slr' };
 /** ok / stale (older than 3x the expected cadence) / error. Sources without a cadence are static. */
 export function freshness(s: SourceStatus, now: number): Fresh {
   const live = s.source.kind === 'live' || s.source.kind === 'relay';
-  if (!s.lastRun) return live ? (s.source.id in ON_DEMAND ? 'ondemand' : 'unknown') : 'static';
+  if (s.source.id in ON_DEMAND) return 'ondemand';   // (their card still shows the last request and any error)
+  if (!s.lastRun) return live ? 'unknown' : 'static';
   if (s.lastRun.status === 'error') return 'error';
   if (s.lastRun.status === 'stale') return 'stale';
   if (s.source.cadence_s && now - s.lastRun.finishedAt > 3 * s.source.cadence_s * 1000) return 'stale';

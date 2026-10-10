@@ -12,9 +12,10 @@ const tr = (en: string, es: string) => (S.lang.value === 'es' ? es : en);
 const ast = (ms: number) => { const d = new Date(ms + AST_OFFSET_H * 3600000); return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)} AST`; };
 const HALF = 20037508.342789244;
 
-// RainViewer "Universal Blue" (colour scheme 2), as listed at rainviewer.com/api/color-schemes.html.
-const RV_STOPS: [number, string][] = [[15, '#88ddee'], [20, '#0099cc'], [25, '#0077aa'], [30, '#005588'], [35, '#ffee00'], [40, '#ffaa00'], [45, '#ff7700'], [50, '#ff4400'], [55, '#ee0000'], [60, '#990000'], [65, '#ffaaff']];
-// Below the first listed stop RainViewer shades weak echoes from transparent grey to tan (to be checked against the page above).
+// RainViewer "Universal Blue" (colour scheme 2): values read from the published table,
+// rainviewer.com/files/rainviewer_api_colors_table.csv (rain block), at each 5 dBZ step.
+const RV_STOPS: [number, string][] = [[15, '#88ddee'], [20, '#00a3e0'], [25, '#0077aa'], [30, '#005588'], [35, '#ffee00'], [40, '#ffaa00'], [45, '#ff4400'], [50, '#c10000'], [55, '#ffaaff'], [60, '#ff77ff'], [65, '#ffffff']];
+// Below 15 dBZ the scheme shades weak echoes in tan with rising opacity (#cec087 at 10 dBZ).
 const RV_WEAK = '#cec087';
 // NWS base reflectivity colours used by the Iowa Environmental Mesonet N0Q tiles.
 const NWS_STOPS: [number, string][] = [[5, '#04e9e7'], [10, '#019ff4'], [15, '#0300f4'], [20, '#02fd02'], [25, '#01c501'], [30, '#008e00'], [35, '#fdf802'], [40, '#e5bc00'], [45, '#fd9500'], [50, '#fd0000'], [55, '#d40000'], [60, '#bc0000'], [65, '#f800fd']];
@@ -83,8 +84,10 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
         note: tr(`Reflectivity, frame of ${ast(f.time * 1000)}. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7). The pale fringe around the echoes is reflectivity below 15 dBZ as RainViewer draws it (drizzle, or returns that are not rain).`, `Reflectividad, imagen de ${ast(f.time * 1000)}. Se actualiza cada 5 minutos. Resolución del mosaico: cerca de 1 km (teselas hasta zoom 7). El borde pálido alrededor de los ecos es reflectividad menor de 15 dBZ tal como la dibuja RainViewer (llovizna o ecos que no son lluvia).`),
         source: 'RainViewer radar mosaic (rainviewer.com), from NWS NEXRAD TJUA',
       });
+      void store.reportRun('rainviewer', 'ok', `radar frame of ${ast(f.time * 1000)}`).catch(() => {});
     } catch (e) {
       lastError = 'rainviewer: ' + String(e);
+      void store.reportRun('rainviewer', 'error', `${String(e).slice(0, 160)}; showing the NWS San Juan radar instead`).catch(() => {});
       if (my !== gen) return;
       const bust = Math.floor(Date.now() / 300000);
       const iem = (z: number, x: number, y: number) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::JUA-N0Q-0/${z}/${x}/${y}.png?_=${bust}`;
@@ -114,6 +117,7 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
     if (my !== gen) return;
     if (found == null) {
       lastError = 'goes: no image answered in the last 4 hours';
+      void store.reportRun('nasa_gibs', 'error', 'no GOES-East image from the last 4 hours answered').catch(() => {});
       show(null, { title: 'GOES-East GeoColor', stops: [], note: tr('No image from the last 4 hours answered. Trying again in 5 minutes.', 'No respondió ninguna imagen de las últimas 4 horas. Se intentará de nuevo en 5 minutos.'), source: 'NASA GIBS · NOAA GOES-East ABI' });
       again(300000);
       return;
@@ -125,6 +129,7 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
       note: tr(`Image of ${ast(found)}, about ${Math.round((Date.now() - found) / 60000)} min old. Resolution about 1 km (tiles to zoom 7). At night the land under the cloud is a static city-lights picture, not live.`, `Imagen de ${ast(found)}, de hace unos ${Math.round((Date.now() - found) / 60000)} min. Resolución cerca de 1 km (teselas hasta zoom 7). De noche el suelo es una imagen fija de luces urbanas, no en vivo.`),
       source: 'NOAA GOES-East ABI GeoColor (CIRA) via NASA GIBS',
     });
+    void store.reportRun('nasa_gibs', 'ok', `image of ${ast(found)}`).catch(() => {});
     again(600000);
   }
 
