@@ -1,0 +1,9 @@
+{
+  "name": "garita-pipeline-vector",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "polygon-clipping": "^0.15.7"
+  }
+}
