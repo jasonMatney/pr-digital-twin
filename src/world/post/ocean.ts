@@ -22,6 +22,9 @@ export const SKY_GLSL = /* glsl */`
     vec3 c = mix(uHor, uZen, 1.0 - pow(1.0 - y, 4.5));
     float m = max(dot(d, uSunDir), 0.0);
     c += uGlow * (0.55 * pow(m, 48.0) + 0.16 * pow(m, 7.0)) * (0.35 + 0.65 * pow(1.0 - y, 3.0));
+    // low sun: the horizon glows toward the sun's azimuth
+    float az = max(dot(normalize(d.xz + 1e-5), normalize(uSunDir.xz + 1e-5)), 0.0);
+    c += uGlow * 1.6 * az * az * pow(1.0 - y, 5.0) * pow(1.0 - clamp(uSunDir.y, 0.0, 1.0), 8.0);
     return c;
   }
 `;
@@ -39,7 +42,7 @@ const FRAG = /* glsl */`
   uniform sampler2D tDepth;
   uniform float uNear, uFar, uCamH, uTime, uPix, uOcean, uBasic, uMss, uWindMs, uWaveH, uNight, uDeepGain;
   uniform vec2 uTan, uOR, uWrap;
-  uniform float uOrbit;
+  uniform float uOrbit, uDbgAlpha;
   uniform vec4 uCloud2;   // threshold, softness, ground shadow strength, cover bias
   uniform vec3 uCamPos, uRight, uUp, uFwd, uLightDir, uLightE, uEd, uK, uDeepR;
   uniform vec4 uWave[${N_WAVES}];   // kx, kz, phase at the camera, slope amplitude
@@ -98,7 +101,8 @@ const FRAG = /* glsl */`
     vec3 rd = normalize(uFwd + ndc.x * uTan.x * uRight + ndc.y * uTan.y * uUp);
     float cosF = dot(rd, uFwd);
     float d = texture2D(tDepth, vUv).r;
-    vec3 col = texture2D(tColor, vUv).rgb;
+    vec4 sc = texture2D(tColor, vUv);   // alpha < 1 marks what must stay visible over the sea (OverlaySource.aboveWater)
+    vec3 col = sc.rgb;
     bool sky = d >= 0.9999999;
     // linear view depth -> distance along the ray (no inverse projection: exact enough from 2 m to 500 km up)
     float tScene = sky ? 1e12 : (uNear * uFar / (uFar - d * (uFar - uNear))) / cosF;
@@ -195,6 +199,7 @@ const FRAG = /* glsl */`
       float wet = max(smoothstep(eps, eps + 0.06, dV), photoSea);   // the film at the very edge neither mirrors nor glitters
       vec3 sea = Lw * (1.0 - F) / (N_W * N_W) * mix(1.0, N_W * N_W / max(1.0 - F, 0.05), 1.0 - wet) * mix(1.0, N_W * N_W, photoSea) + (Ls * F + glint) * wet;
       col = mix(sea, uEd * 0.82, foam);
+      col = mix(col, sc.rgb, clamp(1.0 - sc.a, 0.0, 1.0));
       float vz = tW * cosF;
       outDepth = clamp(uFar * (1.0 - uNear / vz) / (uFar - uNear), 0.0, 0.999999);
       sky = false;
@@ -214,7 +219,7 @@ const FRAG = /* glsl */`
         }
       }
     }
-    if (sky) col = (skyRad(rd, rd.y + sqrt(max(2.0 * uCamH / R, 0.0))) + vec3(stars(rd)) * smoothstep(-0.02, 0.08, rd.y)) * uNight * uNight;   // night sky and stars: the aerial effect adds its sky to this
+    if (sky) col = (skyRad(rd, rd.y + sqrt(max(2.0 * uCamH / R, 0.0))) + vec3(stars(rd)) * smoothstep(-0.02, 0.08, rd.y) * uNight) * uNight;   // night sky and stars: the aerial effect adds its sky to this
     if (uBasic > 0.5) { // fallback: analytic sky and haze, when the physical atmosphere is not running
       if (sky) {
         col = mix(skyRad(rd, rd.y + sqrt(max(2.0 * uCamH / R, 0.0))), col, uNight * uNight);
@@ -225,6 +230,7 @@ const FRAG = /* glsl */`
         col = mix(col, uHor * 0.8 + uZen * 0.2, f * 0.85);
       }
     }
+    if (uDbgAlpha > 0.5) col = vec3(step(0.004, abs(1.0 - sc.a))) * 3.0;   // ?alpha=1: white wherever the scene wrote alpha != 1
     gl_FragColor = vec4(max(col, vec3(0.0)), 1.0);
     gl_FragDepth = outDepth;
   }
@@ -258,7 +264,7 @@ export class SceneOceanPass extends Pass {
       tColor: { value: this.target.texture }, tDepth: { value: depthTexture },
       uNear: { value: 1 }, uFar: { value: 1e6 }, uCamH: { value: 100 }, uTime: { value: 0 }, uPix: { value: 0.001 },
       uOcean: { value: 1 }, uBasic: { value: 0 }, uMss: { value: 0.03 }, uWindMs: { value: 6 }, uWaveH: { value: 1 }, uNight: { value: 0 }, uDeepGain: { value: 1 },
-      uOrbit: { value: 0 }, uCloud2: { value: new THREE.Vector4(0.60, 0.24, 0.5, 0) },
+      uOrbit: { value: 0 }, uDbgAlpha: { value: 0 }, uCloud2: { value: new THREE.Vector4(0.60, 0.24, 0.5, 0) },
       uTan: { value: new THREE.Vector2(1, 1) }, uOR: { value: new THREE.Vector2() }, uWrap: { value: new THREE.Vector2() },
       uCamPos: { value: v3() }, uRight: { value: v3() }, uUp: { value: v3() }, uFwd: { value: v3() },
       uLightDir: { value: new THREE.Vector3(0, 1, 0) }, uLightE: { value: new THREE.Vector3(3, 3, 3) }, uEd: { value: new THREE.Vector3(1, 1, 1) },

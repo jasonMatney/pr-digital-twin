@@ -9,18 +9,20 @@ export interface TileUniforms {
   uOvXf: { value: THREE.Vector4 };
   uHasPhoto: { value: number };
   uTint: { value: THREE.Color };
+  uDenXf: { value: THREE.Vector4 };      // tile uv -> building-density texture uv
 }
 export interface GlobalUniforms {
   uOvOpacity: { value: number }; uRelief: { value: number }; uLod: { value: number };
   uNight: { value: number }; uTintMode: { value: number }; uLightGain: { value: number };
+  uOvAbove: { value: number }; tDensity: { value: THREE.Texture };
 }
 
 const PARS = /* glsl */`
 uniform sampler2D tPhoto; uniform sampler2D tNorm; uniform sampler2D tOverlay;
 uniform vec4 uOvXf; uniform float uHasPhoto; uniform float uOvOpacity; uniform float uRelief; uniform float uLod; uniform vec3 uTint;
-uniform float uNight; uniform float uTintMode; uniform float uLightGain;
+uniform float uNight; uniform float uTintMode; uniform float uLightGain; uniform float uOvAbove; uniform sampler2D tDensity; uniform vec4 uDenXf;
 varying float vH; varying vec2 vWxz;
-vec3 gEmit;
+vec3 gEmit; float gOvCov;
 vec3 gToLin(vec3 c) { return pow(max(c, 0.0), vec3(2.2)); }
 float gHash(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 vec3 gHypso(float h) {
@@ -90,20 +92,26 @@ const ALBEDO = /* glsl */`
   vec2 ouv = vUv * uOvXf.xy + uOvXf.zw;
   vec4 ov = texture2D(tOverlay, ouv);
   alb = mix(alb, gToLin(pow(ov.rgb, vec3(1.0 / 2.2))), ov.a * uOvOpacity);
+  gOvCov = ov.a * uOvOpacity;
   alb = mix(alb, alb * 0.35 + uTint * 0.65, uLod);
   diffuseColor.rgb = alb;
   // Town lights: built-up surface in the photo emits a sodium/LED mix, as points close up and as a glow from afar.
   gEmit = vec3(0.0);
   if (uNight > 0.01) {
-    float lit = built * smoothstep(1.2, 3.5, h) * (1.0 - under);
+    // Building density (buildings per zoom-14 tile, baked at start) decides where the lights are; the photo decides
+    // their fine pattern. Dense metro glows, the Cordillera is dark with scattered points.
+    float den = texture2D(tDensity, vUv * uDenXf.xy + uDenXf.zw).r;
+    float wd = smoothstep(0.04, 0.60, den);
+    float lit = (built * (0.55 + 0.45 * wd) + 0.04 * wd) * smoothstep(1.2, 3.5, h) * (1.0 - under);
     vec2 cell = vWxz / 30.0, ci = floor(cell), cf = fract(cell) - 0.5;
     float r1 = gHash(ci), r2 = gHash(ci + 71.7);
     vec2 off = (vec2(r2, fract(r2 * 7.31)) - 0.5) * 0.55;
-    float pt = step(0.60, r1) * smoothstep(0.42, 0.04, length(cf - off)) * 5.0;
+    float p = mix(0.025, 0.46, wd);
+    float pt = step(1.0 - p, r1) * smoothstep(0.42, 0.04, length(cf - off)) * 5.0;
     float fw = max(length(dFdx(vWxz)), length(dFdy(vWxz)));
     float far = smoothstep(7.0, 40.0, fw);
     vec3 col = mix(mix(vec3(1.0, 0.56, 0.22), vec3(0.92, 0.90, 0.80), step(0.68, r2)), vec3(1.0, 0.68, 0.38), far);
-    gEmit = col * lit * mix(pt, 0.55, far) * uNight * uLightGain * (1.0 - ov.a * uOvOpacity * 0.7);
+    gEmit = col * lit * mix(pt * (0.30 + 0.70 * wd), 0.12 + 1.7 * wd, far) * uNight * uLightGain * (1.0 - ov.a * uOvOpacity * 0.7);
   }
 }
 `;
@@ -126,6 +134,7 @@ export function makeTileMaterial(g: GlobalUniforms, photo: THREE.Texture, norm: 
     tPhoto: { value: photo }, tNorm: { value: norm }, tOverlay: { value: overlay },
     uOvXf: { value: new THREE.Vector4(1, 1, 0, 0) }, uHasPhoto: { value: hasPhoto ? 1 : 0 },
     uTint: { value: new THREE.Color(LOD_COLORS[z % LOD_COLORS.length]) },
+    uDenXf: { value: new THREE.Vector4(1, 1, 0, 0) },
   };
   const material = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, color: 0xffffff });
   material.defines = { USE_UV: '' };
@@ -139,8 +148,10 @@ export function makeTileMaterial(g: GlobalUniforms, photo: THREE.Texture, norm: 
       .replace('#include <common>', '#include <common>\n' + PARS)
       .replace('#include <map_fragment>', ALBEDO)
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += gEmit;')
+      // Overlays in the air (radar, cloud) mark their coverage in alpha so the ocean pass keeps them above the water.
+      .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  gl_FragColor.a = 1.0 - gOvCov * uOvAbove;')
       .replace('#include <normal_fragment_maps>', NORMAL);
   };
-  material.customProgramCacheKey = () => 'garita-tile-9';
+  material.customProgramCacheKey = () => 'garita-tile-13';
   return { material, uniforms };
 }

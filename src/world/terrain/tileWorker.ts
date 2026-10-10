@@ -8,8 +8,8 @@ export interface TileJob {
   dem: DemSrc[];                 // candidates in order of preference (exact tile, then an ancestor to upsample)
   img: string[][];               // candidates: four z+1 urls (nw, ne, sw, se) or one url; empty = no photo wanted
   crop?: DemSrc | null;          // nearest ancestor photo, cropped, when the tile adds elevation detail but has no photo of its own
-  bathy?: DemSrc[];              // seabed candidates for cells the elevation holds at about 0 m (bathymetry layer, then a coarse elevation ancestor)
-  bathyTrusted?: boolean;        // the first candidate is the real bathymetry layer
+  cudem?: DemSrc | null;         // topo-bathy layer (NOAA CUDEM): one continuous surface through the waterline; no-data = -32768
+  bathy?: DemSrc[];              // coarse stand-in where there is no topo-bathy: an elevation ancestor that carries bathymetry
   root: boolean;                 // roots never fail: flat sea level and no photo instead
 }
 export interface TileResult {
@@ -26,7 +26,9 @@ let dcv: OffscreenCanvas | null = null;
 let pcv: OffscreenCanvas | null = null;
 
 async function fetchBitmap(url: string, signal: AbortSignal): Promise<ImageBitmap> {
-  const r = await fetch(url, { signal, mode: 'cors', credentials: 'omit' });
+  // A request that hangs counts as a network failure after 20 s, so the tile is retried instead of waiting for ever.
+  const to = (AbortSignal as any).timeout ? (AbortSignal as any).any?.([signal, (AbortSignal as any).timeout(20000)]) ?? signal : signal;
+  const r = await fetch(url, { signal: to, mode: 'cors', credentials: 'omit' });
   if (!r.ok) throw new Error('http ' + r.status);
   const ct = r.headers.get('content-type') || '';
   if (ct.startsWith('text/') || ct.includes('json')) throw new Error('not an image');   // a dev server answers a missing file with its HTML page
@@ -126,15 +128,16 @@ function pixels(bmp: ImageBitmap, w: number, sx = 0, sy = 0, sw = bmp.width, sh 
   return g.getImageData(0, 0, w, w, { colorSpace: 'srgb' }).data;
 }
 
-async function loadDem(url: string, signal: AbortSignal) {
+async function loadDem(url: string, signal: AbortSignal, topoBathy = false) {
   const hit = demCache.get(url);
   if (hit) { demCache.delete(url); demCache.set(url, hit); return hit; }
   const bmp = await fetchBitmap(url, signal);
   const dem = decodeTerrarium(bmp);
   bmp.close();
-  sanitize(dem.h, dem.w);
+  // Topo-bathy tiles mark no-data as -32768: keep it as NaN so every interpolated sample that touches it is NaN too.
+  if (topoBathy) { const h = dem.h; for (let i = 0; i < h.length; i++) if (h[i] < -12000) h[i] = NaN; } else sanitize(dem.h, dem.w);
   demCache.set(url, dem);
-  if (demCache.size > 20) demCache.delete(demCache.keys().next().value!);
+  if (demCache.size > 28) demCache.delete(demCache.keys().next().value!);
   return dem;
 }
 
@@ -187,15 +190,27 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
   const hRaw = (u: number, v: number) => sample(H, W, (u0 + u / s) * W - 0.5, (v0 + v / s) * W - 0.5);
 
   // ---- seabed for cells the elevation holds at about 0 m (lidar tiles have no bathymetry) ----
-  let bath: { w: number; h: Float32Array } | null = null, bsrc: DemSrc | null = null, trusted = false;
-  if (job.bathy?.length) {
+  // Topo-bathy first: where it has data it is the surface for the whole nearshore zone.
+  let cAt: ((u: number, v: number) => number) | null = null, cudemFull = false;
+  if (job.cudem) {
+    try {
+      const c = job.cudem, cd = await loadDem(c.url, signal, true);
+      okUrls.push(c.url);
+      const CW = cd.w, CH = cd.h, cs = 2 ** (z - c.z), cu0 = (x - c.x * cs) / cs, cv0 = (y - c.y * cs) / cs;
+      cAt = (u, v) => sample(CH, CW, (cu0 + u / cs) * CW - 0.5, (cv0 + v / cs) * CW - 0.5);
+      cudemFull = true;
+      for (let j = 0; j <= 16 && cudemFull; j++) for (let i = 0; i <= 16; i++) { const v = cAt(i / 16, j / 16); if (v !== v) { cudemFull = false; break; } }
+    } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, job.cudem.url)); }
+  }
+  let bath: { w: number; h: Float32Array } | null = null, bsrc: DemSrc | null = null;
+  if (job.bathy?.length && !cudemFull) {
     let band = false;
     const a0 = Math.max(0, Math.floor(u0 * W) - 1), a1 = Math.min(W - 1, Math.ceil((u0 + 1 / s) * W)), b0 = Math.max(0, Math.floor(v0 * W) - 1), b1 = Math.min(W - 1, Math.ceil((v0 + 1 / s) * W));
     for (let j = b0; j <= b1 && !band; j++) for (let i = a0; i <= a1; i++) { const h = H[j * W + i]; if (h > -0.6 && h < 0.6) { band = true; break; } }
     if (band) for (let ci = 0; ci < job.bathy.length; ci++) {
       const c = job.bathy[ci];
       if (c.url === src!.url) break;
-      try { bath = await loadDem(c.url, signal); bsrc = c; trusted = !!job.bathyTrusted && ci === 0; okUrls.push(c.url); break; } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, c.url)); }
+      try { bath = await loadDem(c.url, signal); bsrc = c; okUrls.push(c.url); break; } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, c.url)); }
     }
   }
   let bAt: ((u: number, v: number) => number) | null = null;
@@ -305,13 +320,25 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
     }
   }
   const WD = wd;
+  const CAT = cAt;
   const hAt = (u: number, v: number) => {
     let h = hRaw(u, v);
+    if (CAT) {
+      // One continuous surface through the waterline: topo-bathy below +1 m, eased into the base elevation by +3 m.
+      const c = CAT(u, v);
+      if (c === c) {
+        if (c >= 3) return h;
+        if (c <= 1) return c;
+        const t = (c - 1) / 2, w = 1 - t * t * (3 - 2 * t);
+        return h + (c - h) * w;
+      }
+    }
+    // No topo-bathy here: the coarse stand-in, then the depth guessed from the water's colour.
     if (h > -0.6 && h < 0.6) {
       if (bAt) { const b = bAt(u, v); if (b < -0.3) h = b; }
       // Still at sea level where the photo shows water: take the depth read off the water's colour (the real
       // bathymetry layer is trusted, so there only the minimum is applied).
-      if (WD && h > (trusted ? -0.3 : -3)) { const w = sample(WD, T, u * T - 0.5, v * T - 0.5); if (w > 0.05) h = Math.min(h, -(trusted ? Math.min(w, 0.4) : w)); }
+      if (WD && h > -3) { const w = sample(WD, T, u * T - 0.5, v * T - 0.5); if (w > 0.05) h = Math.min(h, -w); }
     }
     return h;
   };

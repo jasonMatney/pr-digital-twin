@@ -5,6 +5,7 @@
 //         ->  bloom + tone mapping  ->  SMAA + dither.
 // If the physical atmosphere cannot run (set-up throws, a shader fails, ?post=basic) the ocean pass draws an
 // analytic sky and haze instead and the rest of the chain is unchanged; if even that fails, a plain render.
+import './idle';   // first: see the file
 import * as THREE from 'three';
 import { EffectComposer, EffectPass, Effect, BloomEffect, ToneMappingEffect, ToneMappingMode, SMAAEffect, SMAAPreset } from 'postprocessing';
 import { AerialPerspectiveEffect, PrecomputedTexturesGenerator, getSunDirectionECEF, getMoonDirectionECEF } from '@takram/three-atmosphere';
@@ -20,6 +21,8 @@ import { SceneOceanPass, SKY_GLSL, OVER_WATER_LAYER } from './ocean';
 const DAY = { hemi: 0.45, sun: 3.4, sunColor: new THREE.Color(0xfff0dc), exposure: 0.95, bloom: 0.25 };
 const NIGHT = { hemi: 0.22, sun: 0.5, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.2, bloom: 0.5 };   // a readable night: moonlight even at new moon
 const SUNSET = new THREE.Color(0xff9a52);
+// Low sun: expose for the sky (a small lift only), more from orbit where the frame is all ground; richer colour.
+const LOW = { lift: 0.15, orbit: 1.1, sat: 0.22, curve: 0.3, darkPow: 2.0 };
 // Scene radiance -> the atmosphere's units. The takram sun delivers solarIrradiance (1.47, 1.85, 1.91) x transmittance
 // (about 0.8 at noon) on the ground, so its sunlit white wall is ~1.43 / pi; ours is DAY.sun / pi.
 const UNITS = +(params.get('units') ?? 0) || 1.43 / DAY.sun;
@@ -66,7 +69,13 @@ export function createPost(world: World): PostApi {
   const hemi = new THREE.HemisphereLight(0xcfe2ff, 0x6b6456, DAY.hemi);
   scene.add(sun, sun.target, hemi);
   const lightDir = new THREE.Vector3(0, 1, 0);
-  const st = { elevation: 45, dark: 0, daylight: 1, moonlight: 0, warmth: 0, exposure: DAY.exposure, bloom: DAY.bloom };
+  const sRight = new THREE.Vector3(), sUp = new THREE.Vector3(), Y_UP = new THREE.Vector3(0, 1, 0);
+  renderer.shadowMap.enabled = true;            // (costs nothing until the sun light casts: see render)
+  renderer.shadowMap.type = THREE.PCFShadowMap;   // (soft in this three version)
+  sun.shadow.radius = 2;
+  sun.shadow.bias = -0.0002;
+  sun.shadow.mapSize.set(2048, 2048);
+  const st = { elevation: 45, dark: 0, daylight: 1, moonlight: 0, warmth: 0, lowSun: 0, exposure: DAY.exposure, bloom: DAY.bloom, shadows: false, shadowExtent: 0 };
 
   // ---- where the scene sits on the globe: world (east, up, south) -> ECEF
   const ecef = new Geodetic(radians(ORIGIN.lon), radians(ORIGIN.lat), 0).toECEF();
@@ -80,6 +89,7 @@ export function createPost(world: World): PostApi {
   const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType, multisampling: 0 });
   const ocean = new SceneOceanPass(scene, camera);
   ocean.uniforms.uOcean.value = off('ocean') ? 0 : 1;
+  ocean.uniforms.uDbgAlpha.value = params.get('alpha') === '1' ? 1 : 0;
   ocean.uniforms.uDeepGain.value = +(params.get('deep') ?? 2.0);
   composer.addPass(ocean);
   const scaleIn = new Scale(UNITS), scaleOut = new Scale(1);
@@ -239,11 +249,11 @@ ${mask}`);
     const airmass = sstep(deg, -2, 30);
     sun.intensity = DAY.sun * st.daylight * (0.35 + 0.65 * airmass) + NIGHT.sun * st.moonlight * (0.6 + 0.4 * moonUp);
     cloudNight.value.set(0.55, 0.68, 1.0).multiplyScalar(0.008 * st.dark * st.dark);
-    grade.g.set(lerp(1.1, 1.0, st.dark), 0.3 * (1 - st.dark) * sstep(deg, 0, 30), lerp(1.12, 1.0, st.dark));   // (no shadow-crushing curve in low light)
     sun.color.copy(DAY.sunColor).lerp(SUNSET, st.warmth * 0.85).lerp(NIGHT.sunColor, st.moonlight);
     hemi.intensity = lerp(DAY.hemi, NIGHT.hemi, st.dark);
-    const lowSun = (1 - sstep(deg, 2, 35)) * (1 - st.dark);   // the ground gets a fraction of the noon light: open up
-    st.exposure = lerp(DAY.exposure, NIGHT.exposure, st.dark) * (1 + 1.5 * lowSun);
+    const lowSun = st.lowSun = (1 - sstep(deg, 2, 35)) * (1 - st.dark);
+    st.exposure = lerp(DAY.exposure, NIGHT.exposure, Math.pow(st.dark, LOW.darkPow)) * (1 + LOW.lift * lowSun);
+    grade.g.set(lerp(1.1, 1.0, st.dark), LOW.curve * (1 - st.dark), lerp(1.12 + LOW.sat * lowSun, 1.0, st.dark));
     st.bloom = lerp(DAY.bloom, NIGHT.bloom, st.dark);
     bloom.intensity = st.bloom;
 
@@ -251,6 +261,10 @@ ${mask}`);
     const u = ocean.uniforms, dusk = st.warmth * (1 - sstep(deg, 8, 24) * 0.6), day = 0.25 + 0.75 * sstep(deg, -4, 20);
     (u.uZen.value as THREE.Vector3).copy(cDayZen).lerp(cDuskZen, dusk).multiplyScalar(day).lerp(cNightZen, st.dark);
     (u.uHor.value as THREE.Vector3).copy(cDayHor).lerp(cDuskHor, dusk * 0.8).multiplyScalar(day).lerp(cNightHor, st.dark);
+    // civil and nautical twilight: the physical sky has little left, but the eye still sees a deep blue dome
+    const tw = sstep(-deg, -2, 5) * (1 - sstep(-deg, 7, 15));
+    (u.uZen.value as THREE.Vector3).x += 0.010 * tw; (u.uZen.value as THREE.Vector3).y += 0.022 * tw; (u.uZen.value as THREE.Vector3).z += 0.058 * tw;
+    (u.uHor.value as THREE.Vector3).x += 0.022 * tw; (u.uHor.value as THREE.Vector3).y += 0.024 * tw; (u.uHor.value as THREE.Vector3).z += 0.042 * tw;
     tmpC.copy(sun.color).multiplyScalar(sun.intensity);
     (u.uGlow.value as THREE.Vector3).set(tmpC.r, tmpC.g, tmpC.b).multiplyScalar(0.22 * st.daylight);
     (u.uSunDir.value as THREE.Vector3).copy(world.sunDir);
@@ -293,9 +307,32 @@ ${mask}`);
       applyMode(want);
     }
 
-    scaleOut.k = mode === 'takram' ? st.exposure / UNITS : st.exposure;
-    sun.target.position.copy(world.controls?.target ?? sun.target.position);
-    sun.position.copy(sun.target.position).addScaledVector(lightDir, 1e5);
+    const tgt = world.controls?.target ?? sun.target.position, range = camera.position.distanceTo(tgt);
+    // ---- sun (or moon) shadows near the ground: an orthographic map centred on the target, snapped to its texels
+    const wantShadow = q !== 'low' && !off('shadows') && range < 8000 && (st.elevation > 4 || (st.elevation < -5.5 && world.moonDir.y > 0.15));
+    if (wantShadow !== sun.castShadow) { sun.castShadow = wantShadow; st.shadows = wantShadow; }
+    if (wantShadow) {
+      const size = q === 'high' ? 4096 : 2048;
+      if (sun.shadow.mapSize.x !== size) { sun.shadow.mapSize.set(size, size); sun.shadow.map?.dispose(); (sun.shadow as any).map = null; }
+      const ext = 150 * Math.pow(1.3, Math.ceil(Math.log(THREE.MathUtils.clamp(range * 0.75, 150, 3000) / 150) / Math.log(1.3)));   // half-width, in coarse steps
+      const dist = ext * 2.5 + 600, sc = sun.shadow.camera;
+      if (ext !== st.shadowExtent) {
+        st.shadowExtent = ext;
+        sc.left = sc.bottom = -ext; sc.right = sc.top = ext; sc.near = 5; sc.far = dist * 2; sc.updateProjectionMatrix();
+        sun.shadow.normalBias = 0.25 + ext / 900;
+      }
+      const texel = (2 * ext) / size;
+      sRight.crossVectors(Y_UP, lightDir); if (sRight.lengthSq() < 1e-8) sRight.set(1, 0, 0); sRight.normalize();
+      sUp.crossVectors(lightDir, sRight);
+      const rx = tgt.dot(sRight), ry = tgt.dot(sUp);
+      sun.target.position.copy(tgt).addScaledVector(sRight, Math.round(rx / texel) * texel - rx).addScaledVector(sUp, Math.round(ry / texel) * texel - ry);
+      sun.position.copy(sun.target.position).addScaledVector(lightDir, dist);
+    } else {
+      sun.target.position.copy(tgt);
+      sun.position.copy(tgt).addScaledVector(lightDir, 1e5);
+    }
+    const expo = st.exposure * (1 + LOW.orbit * st.lowSun * sstep(ocean.uniforms.uCamH.value, 30000, 150000));
+    scaleOut.k = mode === 'takram' ? expo / UNITS : expo;
     const w = S.weather.value;
     oin.seaLevel = world.seaLevel; oin.time = frame.now; oin.windMs = w.windMs; oin.windDirDeg = w.windDirDeg;
     oin.waveH = w.waveHeightM; oin.wavePeriod = w.wavePeriodS; oin.waveDirDeg = w.waveDirDeg;
@@ -330,7 +367,7 @@ ${mask}`);
     overWaterLayer: OVER_WATER_LAYER,
     set overWater(v: boolean) { ocean.overWater = v; },
     get overWater() { return ocean.overWater; },
-    tune: { DAY, NIGHT, clouds: () => clouds, aerial: () => aerial, ocean, grade, bloom, cloudGain, field, apply: () => setTime(date.getTime()) },
+    tune: { DAY, NIGHT, LOW, sun, hemi, clouds: () => clouds, aerial: () => aerial, ocean, grade, bloom, cloudGain, field, apply: () => setTime(date.getTime()) },
     ...({ debug: () => ({ mode, lutsReady, clouds: !!cloudPass?.enabled, units: UNITS, ...st, sun: world.sunDir.toArray().map((v) => +v.toFixed(3)) }) } as object),
   };
   return api as PostApi;

@@ -2,24 +2,28 @@
 // orbit target when the camera is low, meshed in a Worker into one geometry per tile, drawn with one material.
 //
 // REAL (from the tiles): footprints, the heights OpenStreetMap carries (13.8 %), ground elevation at the centroid,
-// FEMA flood class. PROCEDURAL: all other heights (flagged; the tooltip says "estimated"), wall and roof colours,
-// windows, lit rooms. The sea-level tint is a bathtub screen: ground elevation against the scenario level.
+// FEMA flood class; the roof albedo is the aerial photo itself (the imagery the terrain drapes: zoom 16 near the
+// target, zoom 15 beyond), lifted to the roof. PROCEDURAL: all other heights (flagged; the tooltip says
+// "estimated"), wall colours, windows, lit rooms, the parapet rim, and roofs where the photo has no data. The sea-level tint is a bathtub screen: ground elevation against the scenario level.
 import * as THREE from 'three';
 import * as S from '../../core/state';
-import { dataUrl } from '../../core/config';
-import { curveDrop, lonToTileX, latToTileY, xzToLonLat, AST_OFFSET_H } from '../../core/geo.ts';
+import { dataUrl, UPSTREAM } from '../../core/config';
+import { curveDrop, lonToTileX, latToTileY, xzToLonLat, lonLatToXZ, tileLon, tileLat, AST_OFFSET_H } from '../../core/geo.ts';
 import type { LayerFactory, PickEvent } from '../layers';
 import type { Frame } from '../types';
-import { createBuildingMaterial } from './material';
+import { createBuildingMaterial, createSharedUniforms, type TileUniforms } from './material';
 import type { MeshJob, MeshResult } from './worker';
 
-const Z = 14, MAX_RANGE = 14000, FADE_S = 0.45, MAX_FETCH = 4, SINK = 3;
+const Z = 14, MAX_RANGE = 14000, FADE_S = 0.45, MAX_FETCH = 4, SINK = 3, SHADOW_TILES = 2.2;
 
 interface Tile {
   key: string; x: number; y: number; id: number;
   state: 'queued' | 'loading' | 'ready' | 'failed';
   used: number; d: number; born: number; fading: boolean;
   mesh: THREE.Mesh | null; pick: MeshResult | null; count: number; tris: number; yRef: number;
+  material: THREE.MeshStandardMaterial | null; uni: TileUniforms | null;
+  // roof photo: zoom loaded (0 = none), loading flag, when it arrived, when to try again after a failure
+  tex: THREE.Texture | null; photoZ: number; photoBusy: boolean; photoBorn: number; photoRetry: number; texBytes: number;
 }
 
 export const createBuildings: LayerFactory = async (ctx) => {
@@ -27,7 +31,26 @@ export const createBuildings: LayerFactory = async (ctx) => {
   const group = new THREE.Group();
   group.name = 'buildings';
   world.scene.add(group);
-  const { material, uniforms } = createBuildingMaterial();
+  const uniforms = createSharedUniforms();
+  const maxAniso = Math.min(4, world.renderer.capabilities.getMaxAnisotropy());
+
+  // which aerial photo tiles are mirrored on our own origin (the rest come from the upstream service)
+  let imgIndex: Map<number, Set<number>> | null = null;
+  fetch(dataUrl('tiles/index.json')).then((r) => (r.ok && !(r.headers.get('content-type') || '').startsWith('text/html') ? r.json() : null)).then((j) => {
+    if (j && j.img) { const m = new Map<number, Set<number>>(); for (const z in j.img) m.set(+z, new Set((j.img[z] as [number, number][]).map(([x, y]) => x * 65536 + y))); imgIndex = m; }
+  }).catch(() => {});
+  const imgUrl = (z: number, x: number, y: number) => (imgIndex?.get(z)?.has(x * 65536 + y) ? dataUrl(`tiles/img/${z}/${x}/${y}.jpg`) : UPSTREAM.img(z, x, y));
+  // at most 6 photo requests in flight
+  let imgActive = 0;
+  const imgQueue: (() => void)[] = [];
+  const loadImage = (url: string) => new Promise<ImageBitmap | null>((res) => {
+    const run = () => {
+      imgActive++;
+      fetch(url, { mode: 'cors' }).then((r) => (r.ok ? r.blob() : null)).then((b) => (b ? createImageBitmap(b) : null)).catch(() => null)
+        .then((bm) => { imgActive--; imgQueue.shift()?.(); res(bm); });
+    };
+    if (imgActive < 6) run(); else imgQueue.push(run);
+  });
 
   // which tiles exist (so the sea and the forest never cost a 404)
   const have = new Set<string>();
@@ -41,11 +64,13 @@ export const createBuildings: LayerFactory = async (ctx) => {
   const byId = new Map<number, Tile>();
   const wanted: Tile[] = [], ready: Tile[] = [];
   let nextId = 1, loading = 0, stamp = 0, disposed = false, lastScan = -1, now = 0;
-  let nBuildings = 0, nTris = 0, nReady = 0;
+  let nBuildings = 0, nTris = 0, nReady = 0, photoTiles = 0, texBytes = 0, nPhotos = 0;
 
   const dropTile = (t: Tile) => {
     if (t.mesh) { group.remove(t.mesh); t.mesh.geometry.dispose(); nBuildings -= t.count; nTris -= t.tris; nReady--; }
-    t.mesh = null; t.pick = null;
+    if (t.tex) { t.tex.dispose(); texBytes -= t.texBytes; nPhotos--; t.tex = null; }
+    t.material?.dispose();
+    t.mesh = null; t.pick = null; t.material = null; t.uni = null;
     tiles.delete(t.key); byId.delete(t.id);
   };
 
@@ -61,12 +86,19 @@ export const createBuildings: LayerFactory = async (ctx) => {
     g.setAttribute('normal', new THREE.BufferAttribute(r.normal, 3, true));
     g.setAttribute('aFac', new THREE.BufferAttribute(r.fac, 4));
     g.setAttribute('aBld', new THREE.BufferAttribute(r.bld, 3));
+    g.setAttribute('aEdge', new THREE.BufferAttribute(r.edge, 3));
     g.setIndex(new THREE.BufferAttribute(r.index, 1));
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(r.sphere[0], r.sphere[1], r.sphere[2]), r.sphere[3]);
+    const { material, uniforms: uni } = createBuildingMaterial(uniforms);
+    // roof photo lookup: tile-local metres -> 0..1 across the tile (u east, v south; the canvas is drawn north up)
+    const xW = lonLatToXZ(tileLon(t.x, Z), 0)[0] - r.cx, xE = lonLatToXZ(tileLon(t.x + 1, Z), 0)[0] - r.cx;
+    const zN = lonLatToXZ(0, tileLat(t.y, Z))[1] - r.cz, zS = lonLatToXZ(0, tileLat(t.y + 1, Z))[1] - r.cz;
+    uni.uBPhotoXf.value.set(1 / (xE - xW), 1 / (zS - zN), -xW / (xE - xW), -zN / (zS - zN));
     const m = new THREE.Mesh(g, material);
     m.matrixAutoUpdate = false;
-    m.position.set(r.cx, r.yRef, r.cz); m.scale.set(1, 0.02, 1); m.updateMatrix();
-    t.mesh = m; t.born = now; t.fading = true;
+    m.position.set(r.cx, 0, r.cz); m.updateMatrix();
+    m.receiveShadow = true; m.castShadow = false;      // casts once it has risen (the depth pass does not know the fade)
+    t.mesh = m; t.material = material; t.uni = uni; t.born = now; t.fading = true;
     group.add(m);
     nBuildings += t.count; nTris += t.tris; nReady++;
   };
@@ -81,6 +113,31 @@ export const createBuildings: LayerFactory = async (ctx) => {
         worker.postMessage(job, [buf]);
       })
       .catch((err) => { loading--; t.state = 'failed'; if (!disposed) console.warn('[garita/buildings] tile failed', t.key, String(err)); });
+  };
+
+  /** Roof photo for a tile: the aerial imagery of its extent at zoom z (15: 2 x 2 tiles, 16: 4 x 4), drawn into one texture. */
+  const startPhoto = (t: Tile, z: number) => {
+    t.photoBusy = true; photoTiles++;
+    const n = 1 << (z - Z), px = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = n * px;
+    const c2 = canvas.getContext('2d')!;
+    c2.fillStyle = '#000'; c2.fillRect(0, 0, n * px, n * px);        // black = no data (the shader falls back)
+    let got = 0;
+    const jobs: Promise<void>[] = [];
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++)
+      jobs.push(loadImage(imgUrl(z, t.x * n + i, t.y * n + j)).then((bm) => { if (bm) { c2.drawImage(bm, i * px, j * px, px, px); bm.close(); got++; } }));
+    Promise.all(jobs).then(() => {
+      t.photoBusy = false; photoTiles--;
+      if (disposed || tiles.get(t.key) !== t || !t.uni || !got) { canvas.width = canvas.height = 0; t.photoRetry = now + 30; return; }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false; tex.generateMipmaps = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter; tex.anisotropy = maxAniso;
+      tex.onUpdate = () => { canvas.width = canvas.height = 0; };     // uploaded: drop the CPU copy
+      if (t.tex) { t.tex.dispose(); texBytes -= t.texBytes; nPhotos--; } else t.photoBorn = now;
+      t.tex = tex; t.uni.tBPhoto.value = tex; t.photoZ = z;
+      t.texBytes = Math.round(n * px * n * px * 4 * 4 / 3); texBytes += t.texBytes; nPhotos++;
+    });
   };
 
   const byDist = (a: Tile, b: Tile) => a.d - b.d;
@@ -102,14 +159,26 @@ export const createBuildings: LayerFactory = async (ctx) => {
       const dx = Math.max(x - tx, 0, tx - x - 1), dy = Math.max(y - ty, 0, ty - y - 1);
       if (dx * dx + dy * dy > rT * rT) continue;
       let t = tiles.get(key);
-      if (!t) { t = { key, x, y, id: nextId++, state: 'queued', used: 0, d: 0, born: 0, fading: false, mesh: null, pick: null, count: 0, tris: 0, yRef: 0 }; tiles.set(key, t); byId.set(t.id, t); }
+      if (!t) { t = { key, x, y, id: nextId++, state: 'queued', used: 0, d: 0, born: 0, fading: false, mesh: null, pick: null, count: 0, tris: 0, yRef: 0, material: null, uni: null, tex: null, photoZ: 0, photoBusy: false, photoBorn: 0, photoRetry: 0, texBytes: 0 }; tiles.set(key, t); byId.set(t.id, t); }
       t.d = Math.hypot(x + 0.5 - tx, y + 0.5 - ty);
       wanted.push(t);
     }
     wanted.sort(byDist);
     if (wanted.length > maxTiles) wanted.length = maxTiles;
-    for (const t of wanted) t.used = stamp;
+    // only tiles within about 5 km of the target go through the sun shadow pass (and none while it is still rising:
+    // the depth pass does not know the fade)
+    for (const t of wanted) { t.used = stamp; if (t.mesh && !t.fading) t.mesh.castShadow = t.d < SHADOW_TILES; }
     for (const t of wanted) { if (loading >= MAX_FETCH) break; if (t.state === 'queued') startLoad(t); }
+    // roof photos after the geometry, nearest first: zoom 16 within about 3 km of the target, zoom 15 beyond
+    // (one tile at a time while the terrain is still fetching its own tiles from the same imagery host)
+    const photoSlots = world.terrain.stats().pending > 10 ? 1 : 2;
+    for (const t of wanted) {
+      if (photoTiles >= photoSlots) break;
+      if (!t.mesh || t.photoBusy || now < t.photoRetry) continue;
+      const z = !low && t.d < 1.35 ? 16 : 15;
+      if (t.photoZ < z) startPhoto(t, z);
+      else if (t.photoZ === 16 && t.d > 3.2 && texBytes > 150e6) startPhoto(t, 15);   // far again and memory is tight: back to zoom 15
+    }
     // evict: queued tiles no longer wanted go at once; meshes beyond the budget go oldest first
     ready.length = 0;
     for (const t of tiles.values()) {
@@ -170,7 +239,11 @@ export const createBuildings: LayerFactory = async (ctx) => {
     const kind = (es ? KIND.es : KIND.en)[m & 7], flood = (es ? FLOOD.es : FLOOD.en)[(m >> 3) & 3], est = (m & 32) !== 0;
     const parts = [(es ? 'Edificio' : 'Building') + (kind ? ` (${kind})` : '')];
     parts.push(`${p.height[bi].toFixed(1)} m ` + (est ? (es ? '(altura estimada)' : '(height estimated)') : (es ? '(altura de OpenStreetMap)' : '(height from OpenStreetMap)')));
-    if (p.ground[bi] !== -32768) parts.push((es ? 'terreno ' : 'ground ') + (p.ground[bi] / 10).toFixed(1) + ' m');
+    if (p.ground[bi] !== -32768) {
+      const gm = p.ground[bi] / 10, sea = world.seaLevel;
+      parts.push((es ? 'terreno ' : 'ground ') + gm.toFixed(1) + ' m' + (sea > 0.05 && gm <= sea
+        ? (es ? `: en o bajo el nivel del escenario de +${sea.toFixed(1)} m` : `: at or below the +${sea.toFixed(1)} m scenario level`) : ''));
+    }
     if (flood) parts.push(flood);
     const text = parts.join(' · ');
     if (S.hoverText.value !== text) S.hoverText.value = text;
@@ -198,19 +271,22 @@ export const createBuildings: LayerFactory = async (ctx) => {
     for (const t of tiles.values()) {
       if (!t.fading || !t.mesh) continue;
       let s = (now - t.born) / FADE_S;
-      if (s >= 1) { s = 1; t.fading = false; }
-      s = s * s * (3 - 2 * s);
-      t.mesh.scale.y = Math.max(0.02, s); t.mesh.position.y = (1 - s) * t.yRef; t.mesh.updateMatrix();
+      if (s >= 1) { s = 1; t.fading = false; t.mesh.castShadow = t.d < SHADOW_TILES; }
+      t.uni!.uBFade.value = s * s * (3 - 2 * s);
+    }
+    if (nPhotos) for (const t of tiles.values()) {
+      const u = t.uni;
+      if (u && t.tex && u.uBPhotoOn.value < 1) u.uBPhotoOn.value = Math.min(1, (now - t.photoBorn) / 0.6);
     }
   };
 
   const layer = {
     update,
-    debug: () => ({ tiles: nReady, buildings: nBuildings, triangles: nTris, pending: loading + [...tiles.values()].filter((t) => t.state === 'queued').length }),
+    debug: () => ({ tiles: nReady, buildings: nBuildings, triangles: nTris, pending: loading + [...tiles.values()].filter((t) => t.state === 'queued').length, photos: nPhotos, photoPending: photoTiles, textureMB: +(texBytes / 1048576).toFixed(1) }),
     dispose() {
       disposed = true; offHover(); worker.terminate();
       for (const t of [...tiles.values()]) dropTile(t);
-      world.scene.remove(group); material.dispose();
+      world.scene.remove(group);
     },
   };
   return layer;

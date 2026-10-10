@@ -12,13 +12,15 @@ if (q === 'low' || q === 'medium' || q === 'high') S.quality.value = q;
 // ?pump=1: drive frames from a MessageChannel instead of requestAnimationFrame, so the page keeps rendering in a
 // hidden or background tab (testing only: it spins the CPU).
 if (flag('pump')) {
-  const ch = new MessageChannel(); let cb: FrameRequestCallback | null = null, last = 0;
+  const ch = new MessageChannel(); let queue: FrameRequestCallback[] = [], last = 0, armed = false;
   ch.port1.onmessage = () => {
     const now = performance.now();
     if (now - last < 15.5) { ch.port2.postMessage(0); return; }
-    last = now; const c = cb; cb = null; c?.(now);
+    last = now; armed = false;
+    const run = queue; queue = [];
+    for (const f of run) { try { f(now); } catch (e) { console.error(e); } }
   };
-  (globalThis as any).requestAnimationFrame = (f: FrameRequestCallback) => { cb = f; ch.port2.postMessage(0); return 1; };
+  (globalThis as any).requestAnimationFrame = (f: FrameRequestCallback) => { queue.push(f); if (!armed) { armed = true; ch.port2.postMessage(0); } return 1; };
 }
 const tParam = params.get('t');
 if (tParam && !Number.isNaN(Date.parse(tParam))) { S.clockMode.value = 'manual'; S.sceneTime.value = Date.parse(tParam); }
@@ -38,6 +40,17 @@ const g: any = ((globalThis as any).__garita = {
 });
 if (params.has('night')) engine.onFrame(() => { world.night = +params.get('night')!; });
 if (params.get('tint') === 'elevation') world.terrain.setTint?.('elevation');
+// ?ov=test: a drawn, above-water overlay (magenta discs) to check OverlaySource.draw and the alpha contract.
+if (params.get('ov') === 'test') world.terrain.setOverlay({
+  id: 'test', url: () => null, minZoom: 3, maxZoom: 9, aboveWater: true,
+  draw: (z, x, y) => {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const k = c.getContext('2d')!;
+    k.fillStyle = 'rgba(255,0,200,0.7)'; k.beginPath(); k.arc(128, 128, 90, 0, 7); k.fill();
+    k.fillStyle = '#fff'; k.font = '28px sans-serif'; k.fillText(`${z}/${x}/${y}`, 60, 136);
+    return c;
+  },
+}, 0.8);
 const fly = params.get('fly')?.split(',').map(Number);
 if (fly && fly.length >= 2) setTimeout(() => { S.flyTo.value = { lon: fly[0], lat: fly[1], range: fly[2] || undefined, heading: fly[3], pitch: fly[4], seconds: fly[5] || undefined }; }, 1500);
 const sun = params.get('sun');

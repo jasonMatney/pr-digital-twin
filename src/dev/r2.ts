@@ -3,7 +3,7 @@
 //   ?cam=lon,lat,range,heading,pitch   ?t=<ISO time>   ?sea=<m>   ?wind=<m/s>   ?cloud=<0..1>   ?q=low|medium|high
 //   ?post=basic  ?clouds=0  ?ocean=0  ?aerial=0  ?tm=aces|neutral  ?units=<k>  ?deep=<gain>
 import * as S from '../core/state';
-import { params } from '../core/config';
+import { params, flag } from '../core/config';
 import { lonLatToXZ, curveDrop } from '../core/geo.ts';
 import { createEngine, type EngineParts } from '../world/engine';
 import { createPost } from '../world/post/index';
@@ -35,6 +35,29 @@ async function main() {
   S.weather.value = wx;
   if (params.has('sea')) S.scenario.value = { ...S.scenario.value, seaLevelM: +params.get('sea')!, label: 'manual' };
 
+  if (flag('layers')) {   // the integrated scene (real terrain, controls, store) with the buildings layer: ?pump, ?t, ?cam, ?q are the app's
+    canvas.id = 'scene';
+    const [{ bootApp }, { createBuildings }, { createOverlays }] = await Promise.all([import('../app'), import('../world/buildings/index'), import('../world/overlays')]);
+    const booted = bootApp({ layers: params.has('overlay') ? [createOverlays, createBuildings] : [createBuildings] });   // ?overlay=radar|goes|... as in the app
+    let n = 0, a = 0, m = 0;
+    booted.engine.onFrame((f) => {
+      n++; a += f.dt; if (a > 1) { m = (a / n) * 1000; a = 0; n = 0; }
+      const d = (booted.world.post as any).debug?.();
+      if (f.index % 30 === 0) document.getElementById('hud')!.textContent = `${d?.mode ?? '?'}  ${m.toFixed(1)} ms  sun ${d?.elevation?.toFixed(1)} deg  exp ${d?.exposure?.toFixed(2)}  shadows ${d?.shadows ? d.shadowExtent.toFixed(0) : 'off'}`;
+    });
+    return;
+  }
+  if (flag('pump')) {   // frames from a MessageChannel: the scene keeps rendering in a hidden tab (as in app.ts)
+    const ch = new MessageChannel(); let queue: FrameRequestCallback[] = [], last = 0, armed = false;
+    ch.port1.onmessage = () => {
+      const now = performance.now();
+      if (now - last < 15.5) { ch.port2.postMessage(0); return; }
+      last = now; armed = false;
+      const run = queue; queue = [];
+      for (const f of run) { try { f(now); } catch (e) { console.error(e); } }
+    };
+    (globalThis as any).requestAnimationFrame = (f: FrameRequestCallback) => { queue.push(f); if (!armed) { armed = true; ch.port2.postMessage(0); } return 1; };
+  }
   const engine = createEngine(canvas, parts);
   const world = engine.world;
   const cam = params.get('cam')?.split(',').map(Number);

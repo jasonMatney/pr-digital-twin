@@ -1,5 +1,5 @@
 // Building tile -> one merged mesh. Runs in a Worker: decodes GBL1 (see tiles/bld/index.json), extrudes every
-// footprint into walls and a flat roof recessed behind a parapet, and returns typed arrays (transferred).
+// footprint into walls and a flat roof (its parapet rim is drawn by the shader), and returns typed arrays (transferred).
 //
 // REAL: footprints, the 13.8 % of heights that OpenStreetMap carries, ground elevation, FEMA flood class.
 // PROCEDURAL: every other height (estHeight below, flagged per building), and everything the shader paints.
@@ -10,7 +10,7 @@ export interface MeshJob { id: number; x: number; y: number; buf: ArrayBuffer }
 export interface MeshResult {
   id: number; count: number; triangles: number;
   cx: number; cz: number; yRef: number;
-  position: Float32Array; normal: Int8Array; fac: Float32Array; bld: Int16Array; index: Uint32Array;
+  position: Float32Array; normal: Int8Array; fac: Float32Array; bld: Int16Array; edge: Uint16Array; index: Uint32Array;
   sphere: [number, number, number, number];
   // picking: per building
   bbox: Float32Array;        // minx, minz, maxx, maxz (tile-local metres)
@@ -59,7 +59,7 @@ function build(job: MeshJob): MeshResult {
     off[i] = o;
     const nv = dv.getUint16(o, true), gd = dv.getInt16(o + 4, true);
     if (nv >= 3) {
-      V += nv * 5; I += nv * 6 + (nv - 2) * 3; RV += nv; kept++;
+      V += nv * 4 + (nv - 2) * 3; I += nv * 6 + (nv - 2) * 3; RV += nv; kept++;
       if (gd !== -32768) {
         const u = dv.getUint16(o + 8, true), v = dv.getUint16(o + 10, true);
         cells[Math.min(G - 1, (u * G) >> 16) + G * Math.min(G - 1, (v * G) >> 16)].push(gd); all.push(gd);
@@ -70,7 +70,7 @@ function build(job: MeshJob): MeshResult {
   const tileMed = all.length ? median(all) : 0;
   const cellMed = cells.map((c) => (c.length ? median(c) : tileMed));
 
-  const position = new Float32Array(V * 3), normal = new Int8Array(V * 3), fac = new Float32Array(V * 4), bld = new Int16Array(V * 3), index = new Uint32Array(I);
+  const position = new Float32Array(V * 3), normal = new Int8Array(V * 3), fac = new Float32Array(V * 4), bld = new Int16Array(V * 3), edge = new Uint16Array(V * 3).fill(65535), index = new Uint32Array(I);
   const bbox = new Float32Array(kept * 4), ringStart = new Uint32Array(kept + 1), ring = new Float32Array(RV * 2);
   const base = new Float32Array(kept), height = new Float32Array(kept), ground = new Int16Array(kept), meta = new Uint8Array(kept);
   let vi = 0, ii = 0, bi = 0, ri = 0;
@@ -117,10 +117,10 @@ function build(job: MeshJob): MeshResult {
     const b = (gd !== -32768 ? gd : cellMed[gCell]) * 0.1;
     const drop = curveDrop(cx + mx, cz + mz);
     const yb = b - drop, yTop = yb + H, yLow = yb - SINK;
-    // what the shader paints it as: 0 house 1 apartments 2 commercial 3 industrial 4 civic / religious
+    // what the shader paints it as: 0 house 1 apartments 2 commercial 3 industrial 4 civic / religious 5 glass tower
     let look = kind === 6 ? (area < 450 ? 0 : 2) : kind >= 4 ? 4 : kind;
     if (look === 0 && H > 12.5) look = 1;
-    const parapet = H < 3 ? 0.18 : look === 0 ? 0.32 : H > 25 ? 0.9 : 0.55;
+    if ((look === 2 && H > 28 && seed < 0.7) || (look === 1 && H > 55 && seed < 0.3)) look = 5;
     const hdm = Math.round(H * 10), gdm = gd !== -32768 ? Math.max(-32000, Math.min(32000, gd)) : 32767;
     const codeW = look + 32 * flood, codeR = look + 8 + 32 * flood;
 
@@ -137,17 +137,27 @@ function build(job: MeshJob): MeshResult {
       const D = vtx(ax, yTop, az, nx, 0, nz, 0, H, seed, bayW, hdm, gdm, codeW);
       index[ii++] = A; index[ii++] = C; index[ii++] = B; index[ii++] = A; index[ii++] = D; index[ii++] = C;
     }
-    // roof, recessed behind the parapet
+    // roof: one vertex per triangle corner, each carrying its distance (dm) to the footprint edges of its own
+    // triangle (65535 = that edge is a diagonal), so the shader can draw a rim along the real outline
     flat.length = nv * 2;
     for (let k = 0; k < nv; k++) { flat[k * 2] = rx[k]; flat[k * 2 + 1] = rz[k]; }
     const tris = earcut(flat);
-    const r0 = vi, yRoof = yTop - parapet;
-    for (let k = 0; k < nv; k++) vtx(rx[k], yRoof, rz[k], 0, 127, 0, 0, H - parapet, seed, 0, hdm, gdm, codeR);
+    const adj = (i: number, j: number) => { const d = Math.abs(i - j); return d === 1 || d === nv - 1; };
     for (let t = 0; t < tris.length; t += 3) {
       const a = tris[t]; let p = tris[t + 1], q = tris[t + 2];
       // face up: ((p - a) x (q - a)).y > 0
-      if ((rz[p] - rz[a]) * (rx[q] - rx[a]) - (rx[p] - rx[a]) * (rz[q] - rz[a]) < 0) { const s = p; p = q; q = s; }
-      index[ii++] = r0 + a; index[ii++] = r0 + p; index[ii++] = r0 + q;
+      const cr = (rz[p] - rz[a]) * (rx[q] - rx[a]) - (rx[p] - rx[a]) * (rz[q] - rz[a]);
+      if (cr < 0) { const sw = p; p = q; q = sw; }
+      const area2 = Math.abs(cr);
+      const e0 = adj(p, q), e1 = adj(q, a), e2 = adj(a, p);
+      const dm = (len: number) => Math.min(65000, Math.round(area2 / Math.max(len, 0.01) * 10));
+      const va = vtx(rx[a], yTop, rz[a], 0, 127, 0, 0, H, seed, 0, hdm, gdm, codeR);
+      const vp = vtx(rx[p], yTop, rz[p], 0, 127, 0, 0, H, seed, 0, hdm, gdm, codeR);
+      const vq = vtx(rx[q], yTop, rz[q], 0, 127, 0, 0, H, seed, 0, hdm, gdm, codeR);
+      if (e0) { edge[va * 3] = dm(Math.hypot(rx[q] - rx[p], rz[q] - rz[p])); edge[vp * 3] = 0; edge[vq * 3] = 0; }
+      if (e1) { edge[vp * 3 + 1] = dm(Math.hypot(rx[a] - rx[q], rz[a] - rz[q])); edge[va * 3 + 1] = 0; edge[vq * 3 + 1] = 0; }
+      if (e2) { edge[vq * 3 + 2] = dm(Math.hypot(rx[p] - rx[a], rz[p] - rz[a])); edge[va * 3 + 2] = 0; edge[vp * 3 + 2] = 0; }
+      index[ii++] = va; index[ii++] = vp; index[ii++] = vq;
     }
 
     // picking record
@@ -163,7 +173,7 @@ function build(job: MeshJob): MeshResult {
   const sphere: [number, number, number, number] = kept ? [sx, sy, sz, Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + 1] : [0, 0, 0, 1];
   return {
     id: job.id, count: bi, triangles: ii / 3, cx, cz, yRef: refs.length ? median(refs) : 0,
-    position: position.subarray(0, vi * 3), normal: normal.subarray(0, vi * 3), fac: fac.subarray(0, vi * 4), bld: bld.subarray(0, vi * 3), index: index.subarray(0, ii),
+    position: position.subarray(0, vi * 3), normal: normal.subarray(0, vi * 3), fac: fac.subarray(0, vi * 4), bld: bld.subarray(0, vi * 3), edge: edge.subarray(0, vi * 3), index: index.subarray(0, ii),
     sphere, bbox, ringStart, ring, base, height, ground, meta,
   };
 }
@@ -174,7 +184,7 @@ self.onmessage = (e: MessageEvent<MeshJob>) => {
   const t: Transferable[] = [];
   if ('position' in r) {
     const seen = new Set<ArrayBufferLike>();
-    for (const a of [r.position, r.normal, r.fac, r.bld, r.index, r.bbox, r.ringStart, r.ring, r.base, r.height, r.ground, r.meta]) if (!seen.has(a.buffer)) { seen.add(a.buffer); t.push(a.buffer as ArrayBuffer); }
+    for (const a of [r.position, r.normal, r.fac, r.bld, r.edge, r.index, r.bbox, r.ringStart, r.ring, r.base, r.height, r.ground, r.meta]) if (!seen.has(a.buffer)) { seen.add(a.buffer); t.push(a.buffer as ArrayBuffer); }
   }
   (self as unknown as Worker).postMessage(r, t);
 };
