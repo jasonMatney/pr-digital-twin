@@ -1,0 +1,791 @@
+{
+ "at": "2026-10-10T18:30:35.732Z",
+ "results": [
+  {
+   "id": "island-takram",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&t=2026-10-10T15:30:00Z&cam=-66.45,18.1,330000,0,50",
+   "debug": {
+    "stats": {
+     "fps": 23,
+     "tiles": 13,
+     "pending": 26,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.45,
+     "lat": 18.1,
+     "range": 330000.0000000001,
+     "heading": 0,
+     "pitch": 50,
+     "altitude": 257007.43246721654
+    },
+    "terrain": {
+     "tiles": 15,
+     "pending": 19,
+     "maxZoom": 10
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 62.83335416488195,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "exposure": 0.95,
+     "bloom": 0.25,
+     "sun": [
+      0.184,
+      0.89,
+      0.418
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 877,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "feeds": {
+     "nws_alerts": {
+      "state": "ok",
+      "nextAt": 1791656998264.9612,
+      "lastOkAt": 1791656869617,
+      "lastObjects": 0,
+      "lastMs": 222
+     },
+     "nhc": {
+      "state": "ok",
+      "nextAt": 1791657500525.3982,
+      "lastOkAt": 1791656879433,
+      "lastObjects": 1,
+      "lastMs": 9586
+     },
+     "usgs_quakes": {
+      "state": "ok",
+      "nextAt": 1791657189227.9922,
+      "lastOkAt": 1791656882559,
+      "lastObjects": 265,
+      "lastMs": 3095
+     },
+     "usgs_nwis": {
+      "state": "ok",
+      "nextAt": 1791657834121.4504,
+      "lastOkAt": 1791656881400,
+      "lastObjects": 139,
+      "lastMs": 1935
+     },
+     "nwps": {
+      "state": "ok",
+      "nextAt": 1791657867119.9463,
+      "lastOkAt": 1791656882011,
+      "lastObjects": 118,
+      "lastMs": 2546
+     },
+     "coops": {
+      "state": "ok",
+      "nextAt": 1791657269631.2603,
+      "lastOkAt": 1791656880647,
+      "lastObjects": 6,
+      "lastMs": 1181
+     },
+     "open_meteo": {
+      "state": "ok",
+      "nextAt": 1791657748747.004,
+      "lastOkAt": 1791656880796,
+      "lastObjects": 8,
+      "lastMs": 1329
+     },
+     "nws_obs": {
+      "state": "ok",
+      "nextAt": 1791657428032.22,
+      "lastOkAt": 1791656880275,
+      "lastObjects": 5,
+      "lastMs": 808
+     },
+     "luma": {
+      "state": "ok",
+      "nextAt": 1791657486407.1619,
+      "lastOkAt": 1791656879910,
+      "lastObjects": 7,
+      "lastMs": 435
+     },
+     "ndbc": {
+      "state": "ok",
+      "nextAt": 1791657505858.2026,
+      "lastOkAt": 1791656879742,
+      "lastObjects": 15,
+      "lastMs": 266
+     },
+     "adsb": {
+      "state": "ok",
+      "nextAt": 1791657468878.2063,
+      "lastOkAt": 1791656880159,
+      "lastObjects": 17,
+      "lastMs": 683
+     }
+    },
+    "layers": [
+     {
+      "overlay": null,
+      "source": null,
+      "lastError": ""
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 30,
+      "lift": 450,
+      "selected": null
+     },
+     {
+      "tiles": 0,
+      "buildings": 0,
+      "triangles": 0,
+      "pending": 0
+     },
+     {
+      "storm": null,
+      "info": null
+     },
+     {
+      "layer": "markers",
+      "types": {
+       "shelter": 336,
+       "public_housing": 304,
+       "assisted_housing": 264,
+       "hospital": 87,
+       "clinic": 430,
+       "school": 1802,
+       "fire_station": 70,
+       "police_station": 127,
+       "power_plant": 67,
+       "substation": 401,
+       "water_plant": 61,
+       "airport": 24,
+       "seaport": 14,
+       "reservoir": 36,
+       "stream_gauge": 152,
+       "tide_station": 13,
+       "buoy": 25,
+       "weather_station": 157,
+       "weather_alert": 0,
+       "earthquake": 265,
+       "tropical_cyclone": 1,
+       "aircraft": 17
+      },
+      "drawn": 353,
+      "clustered": 385,
+      "hidden": 652,
+      "labels": 4,
+      "ms": 4.54
+     }
+    ]
+   },
+   "ok": true,
+   "ms": 83775,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "island-low",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=low&t=2026-10-10T15:30:00Z&cam=-66.45,18.1,330000,0,50",
+   "debug": {
+    "stats": {
+     "fps": 11,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.45,
+     "lat": 18.1,
+     "range": 330000.0000000001,
+     "heading": 0,
+     "pitch": 50,
+     "altitude": 257009.53509729332
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 62.83335416488195,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "exposure": 0.95,
+     "bloom": 0.25,
+     "sun": [
+      0.184,
+      0.89,
+      0.418
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 759,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "feeds": {
+     "nws_alerts": {
+      "state": "ok",
+      "nextAt": 1791656979897.688,
+      "lastOkAt": 1791656858384,
+      "lastObjects": 0,
+      "lastMs": 290
+     },
+     "nhc": {
+      "state": "ok",
+      "nextAt": 1791657488107.2922,
+      "lastOkAt": 1791656859053,
+      "lastObjects": 1,
+      "lastMs": 510
+     },
+     "usgs_quakes": {
+      "state": "ok",
+      "nextAt": 1791657188996.649,
+      "lastOkAt": 1791656860603,
+      "lastObjects": 265,
+      "lastMs": 1610
+     },
+     "usgs_nwis": {
+      "state": "ok",
+      "nextAt": 1791657786990.1062,
+      "lastOkAt": 1791656876266,
+      "lastObjects": 139,
+      "lastMs": 16823
+     },
+     "nwps": {
+      "state": "ok",
+      "nextAt": 1791657721866.888,
+      "lastOkAt": 1791656861336,
+      "lastObjects": 118,
+      "lastMs": 1443
+     },
+     "coops": {
+      "state": "ok",
+      "nextAt": 1791657226044.4075,
+      "lastOkAt": 1791656876265,
+      "lastObjects": 6,
+      "lastMs": 15920
+     },
+     "open_meteo": {
+      "state": "ok",
+      "nextAt": 1791657702702.134,
+      "lastOkAt": 1791656876267,
+      "lastObjects": 8,
+      "lastMs": 15474
+     },
+     "nws_obs": {
+      "state": "ok",
+      "nextAt": 1791657513095.022,
+      "lastOkAt": 1791656876267,
+      "lastObjects": 5,
+      "lastMs": 15023
+     },
+     "luma": {
+      "state": "ok",
+      "nextAt": 1791657420670.5837,
+      "lastOkAt": 1791656876267,
+      "lastObjects": 7,
+      "lastMs": 14574
+     },
+     "ndbc": {
+      "state": "ok",
+      "nextAt": 1791657521603.3997,
+      "lastOkAt": 1791656876677,
+      "lastObjects": 15,
+      "lastMs": 394
+     },
+     "adsb": {
+      "state": "ok",
+      "nextAt": 1791657456015.5203,
+      "lastOkAt": 1791656877427,
+      "lastObjects": 17,
+      "lastMs": 1141
+     }
+    },
+    "layers": [
+     {
+      "overlay": null,
+      "source": null,
+      "lastError": ""
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 34,
+      "lift": 450,
+      "selected": null
+     },
+     {
+      "tiles": 0,
+      "buildings": 0,
+      "triangles": 0,
+      "pending": 0
+     },
+     {
+      "storm": null,
+      "info": null
+     },
+     {
+      "layer": "markers",
+      "types": {
+       "shelter": 336,
+       "public_housing": 304,
+       "assisted_housing": 264,
+       "hospital": 87,
+       "clinic": 430,
+       "school": 1802,
+       "fire_station": 70,
+       "police_station": 127,
+       "power_plant": 67,
+       "substation": 401,
+       "water_plant": 61,
+       "airport": 24,
+       "seaport": 14,
+       "reservoir": 36,
+       "stream_gauge": 152,
+       "tide_station": 13,
+       "buoy": 25,
+       "weather_station": 157,
+       "weather_alert": 0,
+       "earthquake": 265,
+       "tropical_cyclone": 1,
+       "aircraft": 17
+      },
+      "drawn": 353,
+      "clustered": 372,
+      "hidden": 665,
+      "labels": 4,
+      "ms": 3.75
+     }
+    ]
+   },
+   "ok": true,
+   "ms": 83776,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 404 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "app-wide",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?q=low&t=2026-10-10T15:30:00Z",
+   "debug": {
+    "stats": {
+     "fps": 11,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.26,
+     "lat": 18.2,
+     "range": 265030.586851694,
+     "heading": 0,
+     "pitch": 50,
+     "altitude": 208993.65855914255
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 62.83335416488195,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "exposure": 0.95,
+     "bloom": 0.25,
+     "sun": [
+      0.184,
+      0.89,
+      0.418
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 694,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "feeds": {
+     "nws_alerts": {
+      "state": "ok",
+      "nextAt": 1791657107998.2244,
+      "lastOkAt": 1791656986038,
+      "lastObjects": 0,
+      "lastMs": 5082
+     },
+     "nhc": {
+      "state": "ok",
+      "nextAt": 1791657605354.7732,
+      "lastOkAt": 1791656986276,
+      "lastObjects": 1,
+      "lastMs": 382
+     },
+     "usgs_quakes": {
+      "state": "ok",
+      "nextAt": 1791657268817.5325,
+      "lastOkAt": 1791656988562,
+      "lastObjects": 265,
+      "lastMs": 2666
+     },
+     "usgs_nwis": {
+      "state": "ok",
+      "nextAt": 1791657813306.5613,
+      "lastOkAt": 1791656989328,
+      "lastObjects": 139,
+      "lastMs": 3432
+     },
+     "nwps": {
+      "state": "ok",
+      "nextAt": 1791657891308.5476,
+      "lastOkAt": 1791656990242,
+      "lastObjects": 118,
+      "lastMs": 4345
+     },
+     "coops": {
+      "state": "ok",
+      "nextAt": 1791657317143.6013,
+      "lastOkAt": 1791656987687,
+      "lastObjects": 6,
+      "lastMs": 1790
+     },
+     "open_meteo": {
+      "state": "ok",
+      "nextAt": 1791657842265.6057,
+      "lastOkAt": 1791657011247,
+      "lastObjects": 8,
+      "lastMs": 25325
+     },
+     "nws_obs": {
+      "state": "ok",
+      "nextAt": 1791657574148.1484,
+      "lastOkAt": 1791656987041,
+      "lastObjects": 5,
+      "lastMs": 1118
+     },
+     "luma": {
+      "state": "ok",
+      "nextAt": 1791657576484.839,
+      "lastOkAt": 1791656986879,
+      "lastObjects": 7,
+      "lastMs": 948
+     },
+     "ndbc": {
+      "state": "ok",
+      "nextAt": 1791657575657.4502,
+      "lastOkAt": 1791656986421,
+      "lastObjects": 15,
+      "lastMs": 490
+     },
+     "adsb": {
+      "state": "ok",
+      "nextAt": 1791657585581.8052,
+      "lastOkAt": 1791656986776,
+      "lastObjects": 17,
+      "lastMs": 845
+     }
+    },
+    "layers": [
+     {
+      "overlay": null,
+      "source": null,
+      "lastError": ""
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 71,
+      "lift": 376,
+      "selected": null
+     },
+     {
+      "tiles": 0,
+      "buildings": 0,
+      "triangles": 0,
+      "pending": 0
+     },
+     {
+      "storm": null,
+      "info": null
+     },
+     {
+      "layer": "markers",
+      "types": {
+       "shelter": 336,
+       "public_housing": 304,
+       "assisted_housing": 264,
+       "hospital": 87,
+       "clinic": 430,
+       "school": 1802,
+       "fire_station": 70,
+       "police_station": 127,
+       "power_plant": 67,
+       "substation": 401,
+       "water_plant": 61,
+       "airport": 24,
+       "seaport": 14,
+       "reservoir": 36,
+       "stream_gauge": 152,
+       "tide_station": 13,
+       "buoy": 25,
+       "weather_station": 157,
+       "weather_alert": 0,
+       "earthquake": 265,
+       "tropical_cyclone": 1,
+       "aircraft": 17
+      },
+      "drawn": 381,
+      "clustered": 393,
+      "hidden": 629,
+      "labels": 6,
+      "ms": 3.84
+     }
+    ]
+   },
+   "ok": true,
+   "ms": 72612,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Access to fetch at 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=20261007%2018%3A29&range=96&station=9753216&product=predictions&interval=6&datum=MSL&time_zone=gmt&units=metric&format=json&application=garita' from or",
+    "[error] Failed to load resource: net::ERR_FAILED",
+    "[error] Failed to load resource: the server responded with a status of 404 ()"
+   ],
+   "failedHosts": {
+    "api.tidesandcurrents.noaa.gov": 1,
+    "marine-api.open-meteo.com": 1,
+    "air-quality-api.open-meteo.com": 1
+   }
+  },
+  {
+   "id": "osj-low",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=low&t=2026-10-10T15:30:00Z&cam=-66.116,18.466,1600,20,32",
+   "debug": {
+    "stats": {
+     "fps": 13,
+     "tiles": 5,
+     "pending": 17,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.116,
+     "lat": 18.466,
+     "range": 1599.9999999999998,
+     "heading": 20,
+     "pitch": 32,
+     "altitude": 866.485193435423
+    },
+    "terrain": {
+     "tiles": 5,
+     "pending": 21,
+     "maxZoom": 10
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 62.83335416488195,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "exposure": 0.95,
+     "bloom": 0.25,
+     "sun": [
+      0.184,
+      0.89,
+      0.418
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 745,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "feeds": {
+     "nws_alerts": {
+      "state": "ok",
+      "nextAt": 1791657089118.0835,
+      "lastOkAt": 1791656962342,
+      "lastObjects": 0,
+      "lastMs": 295
+     },
+     "nhc": {
+      "state": "ok",
+      "nextAt": 1791657548659.094,
+      "lastOkAt": 1791656963060,
+      "lastObjects": 1,
+      "lastMs": 562
+     },
+     "usgs_quakes": {
+      "state": "ok",
+      "nextAt": 1791657241378.5156,
+      "lastOkAt": 1791656964759,
+      "lastObjects": 265,
+      "lastMs": 1814
+     },
+     "usgs_nwis": {
+      "state": "ok",
+      "nextAt": 1791657944447.4924,
+      "lastOkAt": 1791656966269,
+      "lastObjects": 139,
+      "lastMs": 2874
+     },
+     "nwps": {
+      "state": "ok",
+      "nextAt": 1791657933460.3743,
+      "lastOkAt": 1791656966277,
+      "lastObjects": 118,
+      "lastMs": 2432
+     },
+     "coops": {
+      "state": "ok",
+      "nextAt": 1791657331832.8352,
+      "lastOkAt": 1791656973621,
+      "lastObjects": 6,
+      "lastMs": 9326
+     },
+     "open_meteo": {
+      "state": "ok",
+      "nextAt": 1791657800471.2136,
+      "lastOkAt": 1791656966277,
+      "lastObjects": 8,
+      "lastMs": 1530
+     },
+     "nws_obs": {
+      "state": "ok",
+      "nextAt": 1791657551401.1765,
+      "lastOkAt": 1791656966520,
+      "lastObjects": 5,
+      "lastMs": 1325
+     },
+     "luma": {
+      "state": "ok",
+      "nextAt": 1791657536240.2397,
+      "lastOkAt": 1791656966877,
+      "lastObjects": 7,
+      "lastMs": 591
+     },
+     "ndbc": {
+      "state": "ok",
+      "nextAt": 1791657524150.4126,
+      "lastOkAt": 1791656967073,
+      "lastObjects": 15,
+      "lastMs": 786
+     },
+     "adsb": {
+      "state": "ok",
+      "nextAt": 1791657585053.3152,
+      "lastOkAt": 1791656973620,
+      "lastObjects": 17,
+      "lastMs": 7074
+     }
+    },
+    "layers": [
+     {
+      "overlay": null,
+      "source": null,
+      "lastError": ""
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 38,
+      "lift": 7.2,
+      "selected": null
+     },
+     {
+      "tiles": 4,
+      "buildings": 3719,
+      "triangles": 64136,
+      "pending": 0
+     },
+     {
+      "storm": null,
+      "info": null
+     },
+     {
+      "layer": "markers",
+      "types": {
+       "shelter": 336,
+       "public_housing": 304,
+       "assisted_housing": 264,
+       "hospital": 87,
+       "clinic": 430,
+       "school": 1802,
+       "fire_station": 70,
+       "police_station": 127,
+       "power_plant": 67,
+       "substation": 401,
+       "water_plant": 61,
+       "airport": 24,
+       "seaport": 14,
+       "reservoir": 36,
+       "stream_gauge": 152,
+       "tide_station": 13,
+       "buoy": 25,
+       "weather_station": 157,
+       "weather_alert": 0,
+       "earthquake": 265,
+       "tropical_cyclone": 1,
+       "aircraft": 17
+      },
+      "drawn": 8,
+      "clustered": 0,
+      "hidden": 0,
+      "labels": 0,
+      "ms": 0.77
+     }
+    ]
+   },
+   "ok": true,
+   "ms": 90310,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+   ],
+   "failedHosts": {}
+  }
+ ]
+}
