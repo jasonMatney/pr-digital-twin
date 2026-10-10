@@ -10,6 +10,8 @@ permissions:
   contents: write
 jobs:
   shots:
+    # Free on a public repository; private repositories are billed by the minute. Never run there.
+    if: github.event.repository.private == false
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:

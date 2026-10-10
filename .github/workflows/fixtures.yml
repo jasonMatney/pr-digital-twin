@@ -9,6 +9,8 @@ permissions:
   contents: write
 jobs:
   record:
+    # Free on a public repository; private repositories are billed by the minute. Never run there.
+    if: github.event.repository.private == false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
