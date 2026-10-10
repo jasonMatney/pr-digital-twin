@@ -1,0 +1,67 @@
+name: tiles
+# Mirrors base map tiles (AWS Terrarium elevation, USGS imagery) onto gh-pages and builds the z10 island mosaics.
+# Owns on gh-pages: tiles/dem/**, tiles/img/**, tiles/index.json, data/island/**
+on:
+  push:
+    branches: [pipe-tiles]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: tiles
+  cancel-in-progress: false
+env:
+  TILES_STAGE: '1'        # 1 = zooms 8..10 only; 2 = + land tiles and the San Juan detail box
+jobs:
+  tiles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Raw tile cache (one file per tile, keyed z/x/y)
+        uses: actions/cache@v4
+        with:
+          path: tile-cache
+          key: tiles-raw-v1-${{ github.run_id }}
+          restore-keys: |
+            tiles-raw-v1-
+      - name: Install
+        working-directory: pipeline/tiles
+        run: npm install --no-audit --no-fund
+      - name: Build
+        run: |
+          set -o pipefail
+          mkdir -p tile-cache
+          TILES_OUT="$PWD/out" TILES_CACHE="$PWD/tile-cache" node --experimental-strip-types pipeline/tiles/build.mjs 2>&1 | tee build.log
+          cp build.log out/data/island/build.log
+          du -sh out/tiles/dem out/tiles/img out/data/island
+      - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git clone --quiet --filter=blob:none --no-checkout --single-branch --branch gh-pages \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ghp
+          cd ghp
+          git sparse-checkout set --no-cone '/tiles/dem/' '/tiles/img/' '/tiles/index.json' '/data/island/'
+          git checkout --quiet gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # only our own paths are ever touched
+          rm -rf tiles/dem tiles/img tiles/index.json data/island
+          mkdir -p tiles data
+          cp -r ../out/tiles/dem ../out/tiles/img ../out/tiles/index.json tiles/
+          cp -r ../out/data/island data/
+          git add -A --sparse -- tiles/dem tiles/img tiles/index.json data/island
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit --quiet -m "tiles: stage ${TILES_STAGE} mirror + island mosaics (${GITHUB_SHA::7}, run ${GITHUB_RUN_ID})"
+          for i in 1 2 3 4 5 6 7 8; do
+            if git push --quiet origin HEAD:gh-pages; then echo "pushed on attempt $i"; git log --oneline -1; exit 0; fi
+            sleep $((i * 4))
+            git fetch --quiet origin gh-pages
+            git rebase --quiet origin/gh-pages
+          done
+          echo "could not push to gh-pages" >&2; exit 1
