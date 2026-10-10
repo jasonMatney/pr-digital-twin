@@ -151,7 +151,8 @@ function facilityType(t) {
   if (a === 'ferry_terminal' || t.harbour === 'yes' || t.landuse === 'port' || t.industrial === 'port') return name ? ['seaport', name] : null;
   return null;
 }
-const facByRef = new Map();
+const facByRef = new Map(); let facOutside = 0;
+const PR_BOX = { west: -68.0, east: -65.15, south: 17.6, north: 18.6 };
 const GRANK = { Point: 0, LineString: 1, MultiLineString: 1, Polygon: 2, MultiPolygon: 2 };
 if (fs.existsSync(path.join(OSM, 'facilities.geojsonl'))) for await (const l of lines(path.join(OSM, 'facilities.geojsonl'))) {
   let f; try { f = JSON.parse(l); } catch { continue; }
@@ -166,6 +167,8 @@ if (fs.existsSync(path.join(OSM, 'facilities.geojsonl'))) for await (const l of 
   else if (rank === 2) { let ring = null, best = -1; for (const p of polygonsOf(g)) { const a = Math.abs(ringArea(p[0])); if (a > best) { best = a; ring = p[0]; } } [lon, lat] = ringCentroid(ring); }
   else { const pts = g.type === 'LineString' ? g.coordinates : g.coordinates.flat(); let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); } lon = (x0 + x1) / 2; lat = (y0 + y1) / 2; }
   if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+  // The extract carries a few objects far outside Puerto Rico (members of ferry routes to Santo Domingo, for example).
+  if (lon < PR_BOX.west || lon > PR_BOX.east || lat < PR_BOX.south || lat > PR_BOX.north) { facOutside++; continue; }
   const tags = {};
   for (const k of KEEP_TAGS) if (t[k] !== undefined) tags[k] = t[k];
   for (const k of Object.keys(t)) if (k.startsWith('addr:')) tags[k] = t[k];
@@ -310,12 +313,16 @@ for (let i = 0; i < NB; i++) {
     if (!Number.isFinite(e)) r.elev_unknown++; else if (e < 0) r.below_0++; else if (e >= 10) r.above_10++; else r.elev_hist[Math.floor(e * 4)]++;
   }
 }
+// Integer-metre plateaus: parts of the Terrain Tiles source are quantised to whole metres (see method).
+const plateau = {}; let plateauN = 0, low15 = 0;
+for (let i = 0; i < NB; i++) { const e = B.elev[i]; if (!Number.isFinite(e) || e < 0.5 || e > 15.5) continue; low15++; const r = Math.round(e); if (Math.abs(e - r) < 0.005) { plateau[r] = (plateau[r] || 0) + 1; plateauN++; } }
 const below = (r, m) => r.below_0 + r.elev_hist.slice(0, m * 4).reduce((a, b) => a + b, 0);
 const method = [
   'Buildings: every way or multipolygon relation tagged building=* in the Geofabrik Puerto Rico extract of OpenStreetMap; one record per OSM object, outer ring only.',
   'Ground elevation: bilinear sample of the AWS Terrain Tiles Terrarium zoom-14 tile (USGS 3DEP 1/3 arc-second, about 10 m, on land) at the centroid of the outer ring; samples are clamped at the tile edge. It is the ground at one point, not the floor height.',
   floodAttached ? 'Flood class: FEMA National Flood Hazard Layer flood hazard zones (NFHL MapServer layer 28, DFIRM_ID LIKE \'72%\'), point-in-polygon at the building centroid; highest class wins where polygons overlap. 3 = V/VE, 2 = A/AE/AH/AO/A99/AR, 1 = X with 0.2 PCT subtype, 0 = anything else or no polygon.' : 'Flood class: NOT ATTACHED YET in this build (zone_counts are all class 0).',
   'elev_hist: counts of buildings by ground elevation in 0.25 m bins from 0 to 10 m, bin i = [i*0.25, (i+1)*0.25); below_0 and above_10 hold the rest; elev_unknown where no elevation tile was available.',
+  'CAVEAT on the elevation source: in the low coastal plains (San Juan metro, Ponce and others) the Terrain Tiles surface has flat terraces at whole metres (most at exactly 3.0, 7.0, 10.0 and 13.0 m), so it is not lidar-grade there and counts near those levels are lumpy; qa.json elevation.integer_plateaus gives the numbers. Treat "at or below 1 m / 2 m" as an order of magnitude until a lidar DEM replaces it.',
   '"At or below X m" from these bins is a bathtub screen: it is not a hydrodynamic model and does not test hydrological connection to the sea.',
   'OpenStreetMap completeness varies by municipio; counts are of mapped footprints, not of housing units or parcels.',
   'Kinds: 0 house/residential (including building=yes under 400 m2), 1 apartments, 2 commercial, 3 industrial, 4 civic, 5 religious, 6 other (including building=yes of 400 m2 or more).',
@@ -344,12 +351,14 @@ writeOut('data/derived/qa.json', JSON.stringify({
     height_from_height_tag: stats.height_tag, height_from_levels: stats.height_levels, height_unknown: stats.height_none, share_with_height: +((stats.height_tag + stats.height_levels) / Math.max(1, NB)).toFixed(4),
     by_kind: island.by_kind, top_building_tags: topTags, outside_municipios: noMuni },
   tiles: { count: index.length, bytes, vertices_clamped: clampedVerts, max_per_tile: index.reduce((m, t) => Math.max(m, t[2]), 0) },
-  elevation: { ...elevStats, unknown: island.elev_unknown, below_0: island.below_0, at_or_below_1m: below(island, 1), at_or_below_2m: below(island, 2), at_or_below_3m: below(island, 3), above_10: island.above_10 },
+  elevation: { ...elevStats, unknown: island.elev_unknown, below_0: island.below_0, at_or_below_1m: below(island, 1), at_or_below_2m: below(island, 2), at_or_below_3m: below(island, 3), above_10: island.above_10,
+    integer_plateaus: { note: 'buildings whose sampled ground elevation is a whole metre to within 5 mm, by metre, among buildings between 0.5 and 15.5 m', by_metre: plateau, total: plateauN, buildings_0p5_to_15p5m: low15, share: +(plateauN / Math.max(1, low15)).toFixed(4) } },
   flood: { nfhl: nfhlStats, island_zone_counts: island.zone_counts,
     top5_zone2: [...rank].sort((a, b) => b.zone2 - a.zone2).slice(0, 5), top5_sfha: [...rank].sort((a, b) => b.sfha - a.sfha).slice(0, 5),
     reference: { note: 'An earlier study by the same owner (OSM building tiles, same FEMA layer) found 6,862 of 33,461 buildings in the 1 % zones in Toa Baja and 3,806 of 9,915 in Catano.', toa_baja: { in_1pct: 6862, buildings: 33461 }, catano: { in_1pct: 3806, buildings: 9915 } },
     toa_baja: pick('72137'), catano: pick('72033'), san_juan: pick('72127') },
-  facilities: { total: facilities.length, counts: facCounts, without_municipio: facilities.filter((f) => !f.municipio).length },
+  facilities: { total: facilities.length, counts: facCounts, without_municipio: facilities.filter((f) => !f.municipio).length, dropped_outside_puerto_rico: facOutside,
+    in_sfha: facilities.filter((f) => f.flood_zone && f.flood_zone.class >= 2).length, in_sfha_by_type: facilities.reduce((m, f) => { if (f.flood_zone && f.flood_zone.class >= 2) m[f.type] = (m[f.type] || 0) + 1; return m; }, {}) },
   top5_buildings: [...rank].sort((a, b) => b.buildings - a.buildings).slice(0, 5), bottom5_buildings: [...rank].sort((a, b) => a.buildings - b.buildings).slice(0, 5),
 }, null, 1));
 log('done', JSON.stringify({ buildings: NB, tiles: index.length, bytes, facilities: facilities.length, floodAttached, below_1m: below(island, 1), zone_counts: island.zone_counts }));

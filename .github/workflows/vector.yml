@@ -50,10 +50,15 @@ jobs:
         run: bash pipeline/vector/stage2_osm.sh 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Stage 2-3 - buildings, facilities, elevation
         if: ${{ !cancelled() && hashFiles('pipeline/vector/build.mjs') != '' }}
-        run: NO_FLOOD=1 node --max-old-space-size=10000 pipeline/vector/build.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
+        run: |
+          # First publication without flood zones only when the FEMA download is not cached yet; otherwise the
+          # single full build below is published (so live tiles never lose their flood classes during a re-run).
+          if [ -f "$WORK_DIR/cache/nfhl/complete.json" ]; then echo "NFHL cached - skipping the interim build" | tee -a "$OUT_DIR/vector_log.txt"
+          else NO_FLOOD=1 node --max-old-space-size=10000 pipeline/vector/build.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"; fi
       - name: Publish stage 2-3
         if: ${{ !cancelled() && hashFiles('pipeline/vector/build.mjs') != '' }}
-        run: bash pipeline/vector/publish.sh "vector - OSM buildings + facilities with elevation $(date -u +%FT%TZ)" --replace-tiles
+        run: |
+          if [ -d "$OUT_DIR/tiles/bld" ]; then bash pipeline/vector/publish.sh "vector - OSM buildings + facilities with elevation $(date -u +%FT%TZ)" --replace-tiles; fi
       - name: Land-clipped municipios
         if: ${{ !cancelled() && hashFiles('pipeline/vector/land.mjs') != '' }}
         run: node --max-old-space-size=8000 pipeline/vector/land.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
