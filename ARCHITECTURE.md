@@ -91,3 +91,17 @@ Feeds never touch the scene or the UI. A feed returns an `IngestBatch`; the stor
 - Times are epoch milliseconds UTC in data; the UI shows AST (UTC-4, no daylight saving).
 - UI strings go through `t()` in `src/i18n/` with English and Spanish.
 - Do not run `git` in the main working tree unless you were told you own a branch. One owner per directory.
+
+## Working on one part
+
+- `createEngine(canvas, { terrain, controls, post })` (`src/world/engine.ts`) takes a factory per part and falls
+  back to `src/world/placeholder.ts` (a synthetic island, a plain render, a fixed camera) for the rest.
+- A part gets its own root-level test page (`r1.html`, `store.html`, ...) that imports only what it needs. The
+  shared dev server at `http://127.0.0.1:5280/` serves every root-level page; do not start another on that port.
+- `node tools/shot.mjs <url> out.png --w 1600 --h 900 --wait 4000` takes a headless screenshot (software GL, slow).
+  The page must set `globalThis.__garita = { ready: true, debug() {...} }`.
+- `ENTRY=r1.html tools/deploy.sh dev/r1` publishes a test page to
+  `https://jasonmatney.github.io/pr-digital-twin/dev/r1/r1.html` (about a minute to go live) where it can be
+  opened on a real GPU with live network. `tools/sync-site.sh` refreshes the local copy of `gh-pages`.
+- Files that Node tests import use explicit `.ts` extensions on relative imports and erasable TypeScript only
+  (no enums, no parameter properties): Node 22 runs them directly (`node --test tests/*.test.ts`).
