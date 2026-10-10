@@ -1,0 +1,40 @@
+# Renders pages of the deployed site on a GitHub runner (software GL, live network) and publishes the screenshots.
+# The development sandbox has no route to the data hosts, so this is how the scene is looked at with real tiles
+# and live feeds without using anyone's own machine. Triggered by pushing a branch named shots/<name> that carries
+# shots.request.json; results land on the branch shots-out/<name>. See tools/cloudshot.sh.
+name: shots
+on:
+  push:
+    branches: ['shots/**']
+permissions:
+  contents: write
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            /tmp/pw
+          key: playwright-1.56-chromium
+      - name: Install the browser
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw
+          [ -d node_modules/playwright ] || npm install --no-audit --no-fund playwright@1.56.0
+          npx playwright install --with-deps chromium
+      - name: Render
+        run: NODE_PATH=/tmp/pw/node_modules node tools/cloudshot-runner.mjs shots.request.json out
+      - name: Publish
+        if: always()
+        run: |
+          NAME="${GITHUB_REF_NAME#shots/}"
+          mkdir -p out && cd out
+          git init -q -b "shots-out/$NAME" && git config user.name "garita-shots" && git config user.email "actions@users.noreply.github.com"
+          git add -A && git commit -q -m "shots $NAME $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" "HEAD:shots-out/$NAME"
