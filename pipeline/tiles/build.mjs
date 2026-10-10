@@ -17,7 +17,8 @@ const UA = 'garita-pr-digital-twin (github.com/jasonMatney/pr-digital-twin)';
 const DEM_URL = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
 const IMG_URL = (z, x, y) => `https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/${z}/${y}/${x}`;
 const SAN_JUAN = { west: -66.17, east: -65.97, south: 18.36, north: 18.48 };
-const DEEP_BLUE = { r: 11, g: 42, b: 74 };                    // neutral fill, only where stated in meta.json
+const DEEP_BLUE = { r: 11, g: 42, b: 74 };                    // mosaic only: pixels with no imagery at any zoom
+const NODATA_WHITE = { r: 255, g: 255, b: 255 };              // upstream's own no-data colour in its JPEG tiles
 const JPEG_Q = 85;
 const MOSAIC_Z = 10;
 
@@ -176,7 +177,7 @@ function whiteMask(d, ch) {
   for (let i = 0; i < n; i++) if (d[i * ch] >= WHITE && d[i * ch + 1] >= WHITE && d[i * ch + 2] >= WHITE && (ch < 4 || d[i * ch + 3] > 0)) { m[i] = 1; c++; }
   return { m, c };
 }
-const flatRGB = (buf) => sharp(buf).flatten({ background: DEEP_BLUE }).toColourspace('srgb').removeAlpha().raw().toBuffer({ resolveWithObject: true });
+const flatRGB = (buf) => sharp(buf).flatten({ background: NODATA_WHITE }).toColourspace('srgb').removeAlpha().raw().toBuffer({ resolveWithObject: true });
 
 async function buildImg(cov) {
   const present = {}, partial = {}, white = {}, stats = {};
@@ -198,7 +199,7 @@ async function buildImg(cov) {
       else if (isPng(raw) || isJpeg(raw)) {
         if (!sized) odd.push(`${z}/${x}/${y} ${meta.format} ${meta.width}x${meta.height} resized`);
         if (meta.hasAlpha) { const st = await sharp(raw).stats(); if (st.channels[3] && st.channels[3].min < 255) { s.pngAlpha++; (partial[z] ||= []).push([x, y]); } }
-        let p = sharp(raw).flatten({ background: DEEP_BLUE });
+        let p = sharp(raw).flatten({ background: NODATA_WHITE });   // same convention as upstream JPEG tiles: white = no imagery
         if (!sized) p = p.resize(256, 256, { fit: 'fill' });
         jpg = await p.jpeg({ quality: JPEG_Q, mozjpeg: true }).toBuffer();
         s.png++;
@@ -386,9 +387,9 @@ const index = {
     img: 'tiles/img/{z}/{x}/{y}.jpg, 256 px JPEG. A tile absent from this list was HTTP 404 upstream or failed; do not request it. See imgUpstream404: whole zooms can be absent.',
     imgUpstream404: Object.fromEntries(Object.entries(img.stats).map(([z, t]) => [z, `${t.missing404} of ${t.want}`])),
     imgPartlyTransparentUpstream: img.partial,
-    imgPartlyTransparentNote: 'these tiles came as PNG with transparent pixels; in the mirrored JPEG those pixels are neutral deep blue rgb(11,42,74), not imagery',
+    imgPartlyTransparentNote: 'these tiles came as PNG with transparent pixels; in the mirrored JPEG those pixels are pure white, the colour upstream itself uses for no imagery (see imgWhiteNoData)',
     imgWhiteNoData: img.white,
-    imgWhiteNoDataNote: 'USGS paints areas outside the imagery footprint PURE WHITE in its JPEG tiles (coast and open sea at z11..13, some tiles entirely white). Listed [x, y, percent white] for tiles with >= 2 % of pixels >= 248 on all channels. Mirrored byte-for-byte; mask white when texturing the sea.',
+    imgWhiteNoDataNote: 'USGS paints areas outside the imagery footprint PURE WHITE in its JPEG tiles (coast and open sea at z11..13, some tiles entirely white). Listed [x, y, percent white] for tiles with >= 2 % of pixels >= 248 on all channels. JPEG tiles are mirrored byte-for-byte; PNG tiles are re-encoded with their transparent pixels also white. So in every mirrored tile pure white = no imagery: mask it (e.g. fall back to the parent tile or water colour).',
     demNoData: dem.noData,
     demNoDataNote: 'elevation tiles with pixels at -32768 m (RGB 0,0,0 upstream = no data), [x, y, pixel count]; kept as served',
     failed: [...dl1.errors, ...dl2.errors].map((e) => e.split(' ').slice(0, 2).join(' ')),
