@@ -1,0 +1,30 @@
+name: probe
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch a few public sources
+        run: |
+          mkdir -p out && cd out
+          date -u > when.txt
+          curl -sS -m 60 -o census.json "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01003_001E,B25001_001E&for=county:*&in=state:72" -w '%{http_code} census\n' >> status.txt || true
+          curl -sS -m 60 -o nhc.json "https://www.nhc.noaa.gov/CurrentStorms.json" -w '%{http_code} nhc\n' >> status.txt || true
+          curl -sS -m 60 -o ndbc.txt "https://www.ndbc.noaa.gov/data/realtime2/41053.txt" -w '%{http_code} ndbc\n' >> status.txt || true
+          curl -sS -m 60 -o t.png "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/9/162/228.png" -w '%{http_code} terrarium\n' >> status.txt || true
+          curl -sS -m 60 -o luma.json "https://api.miluma.lumapr.com/miluma-outage-api/outage/regionsWithoutService" -w '%{http_code} luma\n' >> status.txt || true
+          curl -sSI -m 60 "https://download.geofabrik.de/north-america/us/puerto-rico-latest.osm.pbf" | head -12 >> status.txt || true
+          nproc >> status.txt; free -g | head -2 >> status.txt; df -h . | tail -1 >> status.txt
+          cat status.txt
+      - name: Publish to the data branch
+        run: |
+          cd out && git init -q -b data && git config user.name "pr-twin-pipeline" && git config user.email "actions@users.noreply.github.com"
+          git add -A && git commit -q -m "probe $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" data
