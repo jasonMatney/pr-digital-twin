@@ -1,0 +1,6 @@
+{ "shots": [
+ { "id": "live-island", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&cam=-66.45,18.15,400000,0,60", "w": 1280, "h": 800, "wait": 15000 },
+ { "id": "radar-close", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&nofeeds=1&overlay=radar&cam=-66.1,18.75,110000,0,50", "w": 1280, "h": 800, "wait": 12000 },
+ { "id": "maria", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&nofeeds=1&storm=AL152017&t=2017-09-20T10:15:00Z&cam=-66.2,18.15,420000,0,62", "w": 1280, "h": 800, "wait": 6000 },
+ { "id": "fiona-day", "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&nofeeds=1&storm=AL072022&t=2022-09-18T19:20:00Z&overlay=choropleth&prop=derived:sfha_per_1000&cam=-66.6,18.1,420000,0,62", "w": 1280, "h": 800, "wait": 6000 }
+] }
