@@ -1,0 +1,21 @@
+name: fixtures
+# Records real payloads from every live source so mappers can be tested where the network is closed.
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fixtures.yml', 'pipeline/fixtures.sh']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash pipeline/fixtures.sh
+      - name: Publish to the fixtures branch
+        if: always()
+        run: |
+          cd out && git init -q -b fixtures && git config user.name "garita-pipeline" && git config user.email "actions@users.noreply.github.com"
+          git add -A && git commit -q -m "fixtures $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" fixtures
