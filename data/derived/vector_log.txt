@@ -1,99 +1,25 @@
-04:57:34 municipios offset 0 got 78 total 78
-04:57:34 municipios {"count":78,"server_count":78,"bytes":619019,"extra_simplify_deg":0}
-04:57:34 barrios offset 0 got 100 total 100
-04:57:34 barrios offset 100 got 100 total 200
-04:57:34 barrios offset 200 got 100 total 300
-04:57:35 barrios offset 300 got 100 total 400
-04:57:35 barrios offset 400 got 100 total 500
-04:57:35 barrios offset 500 got 100 total 600
-04:57:35 barrios offset 600 got 100 total 700
-04:57:36 barrios offset 700 got 100 total 800
-04:57:36 barrios offset 800 got 100 total 900
-04:57:36 barrios offset 900 got 39 total 939
-04:57:36 barrios {"count":939,"server_count":939,"bytes":2306987,"extra_simplify_deg":0}
-04:57:36 tracts offset 0 got 100 total 100
-04:57:37 tracts offset 100 got 100 total 200
-04:57:37 tracts offset 200 got 100 total 300
-04:57:37 tracts offset 300 got 100 total 400
-04:57:37 tracts offset 400 got 100 total 500
-04:57:37 tracts offset 500 got 100 total 600
-04:57:38 tracts offset 600 got 100 total 700
-04:57:38 tracts offset 700 got 100 total 800
-04:57:38 tracts offset 800 got 100 total 900
-04:57:38 tracts offset 900 got 81 total 981
-04:57:38 tracts {"count":981,"server_count":981,"bytes":2177408,"extra_simplify_deg":0}
-04:57:38 sample names: Añasco, Bayamón, Canóvanas, Cataño, Comerío, Guánica, Juana Díaz, Las Marías, Loíza, Manatí, Mayagüez, Peñuelas, Rincón, Río Grande, San Germán, San Sebastián
--rw-r--r-- 1 runner runner 74018096 Oct 10 04:55 /home/runner/work/pr-digital-twin/pr-digital-twin/work/cache/puerto-rico-latest.osm.pbf
-
-Running kernel seems to be up-to-date.
-
-No services need to be restarted.
-
-No containers need to be restarted.
-
-No user sessions are running outdated binaries.
-
-No VM guests are running outdated hypervisor (qemu) binaries on this host.
-osmium version 1.16.0
-File:
-  Name: /home/runner/work/pr-digital-twin/pr-digital-twin/work/cache/puerto-rico-latest.osm.pbf
-  Format: PBF
-  Compression: none
-  Size: 74018096
-Header:
-  Bounding boxes:
-    (-68.310244,17.515728,-65.092622,18.81272)
-  With history: no
-  Options:
-    generator=osmium/1.16.0
-    osmosis_replication_base_url=https://download.geofabrik.de/north-america/us/puerto-rico-updates
-    osmosis_replication_sequence_number=3273
-    osmosis_replication_timestamp=2026-10-09T20:21:04Z
-    pbf_dense_nodes=true
-    pbf_optional_feature_0=Sort.Type_then_ID
-    sorting=Type_then_ID
-    timestamp=2026-10-09T20:21:04Z
-  1500584 /home/runner/work/pr-digital-twin/pr-digital-twin/work/osm/buildings.geojsonl
-     1135 /home/runner/work/pr-digital-twin/pr-digital-twin/work/osm/coast.geojsonl
-     5685 /home/runner/work/pr-digital-twin/pr-digital-twin/work/osm/facilities.geojsonl
-  1507404 total
-total 551080
--rw-r--r-- 1 runner runner        91 Oct 10 04:57 all.json
--rw-r--r-- 1 runner runner        92 Oct 10 04:57 areas.json
--rw-r--r-- 1 runner runner         0 Oct 10 04:57 buildings.err
--rw-r--r-- 1 runner runner 508563790 Oct 10 04:57 buildings.geojsonl
--rw-r--r-- 1 runner runner  50147014 Oct 10 04:57 buildings.osm.pbf
--rw-r--r-- 1 runner runner         0 Oct 10 04:58 coast.err
--rw-r--r-- 1 runner runner   1774131 Oct 10 04:58 coast.geojsonl
--rw-r--r-- 1 runner runner    388286 Oct 10 04:58 coast.osm.pbf
--rw-r--r-- 1 runner runner         0 Oct 10 04:58 facilities.err
--rw-r--r-- 1 runner runner   3075428 Oct 10 04:58 facilities.geojsonl
--rw-r--r-- 1 runner runner    328457 Oct 10 04:58 facilities.osm.pbf
--rw-r--r-- 1 runner runner       614 Oct 10 04:57 fileinfo.txt
--rw-r--r-- 1 runner runner        92 Oct 10 04:57 lines.json
-{"type":"Feature","id":"a41771464","geometry":{"type":"MultiPolygon","coordinates":[[[[-66.0445718,18.402646],[-66.0445454,18.402325],[-66.0445363,18.4022138],[-66.0445281,18.4021147],[-66.043692,18.4021822],[-66.0437361,18.4027132],[-66.0445718,18.402646]]]]},"properties":{"@type":"way","@id":20885732,"access":"yes","addr:postcode":"00925","amenity":"parking","building":"yes","fee":"yes","name":"Multipisos UPRRP","operator":"UPR Parking System","parking":"multi-storey"}}
-{"type":"Feature","id":"a41774008","geometry":{"type":"MultiPolygon","coordinates":[[[[-66.0463973,18.4021623],[-66.0460674
-{"type":"Feature","id":"a41771464","geometry":{"type":"MultiPolygon","coordinates":[[[[-66.0445718,18.402646],[-66.0445454,18.402325],[-66.0445363,18.4022138],[-66.0445281,18.4021147],[-66.043692,18.4021822],[-66.0437361,18.4027132],[-66.0445718,18.402646]]]]},"properties":{"@type":"way","@id":20885732,"access":"yes","addr:postcode":"00925","amenity":"parking","building":"yes","fee":"yes","name":"
-{"type":"Feature","id":"n238054139","geometry":{"type":"Point","coordinates":[-66.0473769,18.2401997]},"properties":{"@type":"node","@id":238054139,"addr:full":"Urb. Valle Tolima Calle Milagros Carrillo, Blq. Q","addr:postcode":"00726","amenity":"school","contact:fax":"+1-787-7453120","contact:phone":"+1-787-7464262","isced:level":"1","name":"Escuela Pepita Arenas","operator":"Departamento de Educ
-04:58:02 municipios 78
-04:58:09 buildings {"features":1500584,"kept":1500471,"degenerate":29,"multi":43,"simplified":279,"height_tag":203069,"height_levels":3419,"height_none":1293983,"vertices":8451048}
-04:58:09 facilities 3085 {"airport":24,"clinic":430,"fire_station":70,"hospital":87,"police_station":127,"power_plant":67,"school":1802,"seaport":15,"substation":401,"water_plant":62}
-04:58:09 zoom-14 tiles with buildings or facilities 1773
-04:58:16 elevation tiles 400 / 1773
-04:58:24 elevation tiles 800 / 1773
-04:58:31 elevation tiles 1200 / 1773
-04:58:39 elevation tiles 1600 / 1773
-04:58:42 elevation {"tiles":1773,"fetched":1773,"cached":0,"failed":0}
-04:58:44 tiles written 1771 bytes 45822128 vertices clamped 0
-04:58:44 done {"buildings":1500471,"tiles":1771,"bytes":45822128,"facilities":3085,"floodAttached":false,"below_1m":8757,"zone_counts":{"0":1500471,"1":0,"2":0,"3":0}}
-04:59:08 municipios 78
-04:59:15 buildings {"features":1500584,"kept":1500471,"degenerate":29,"multi":43,"simplified":279,"height_tag":203069,"height_levels":3419,"height_none":1293983,"vertices":8451048}
-04:59:15 facilities 3085 {"airport":24,"clinic":430,"fire_station":70,"hospital":87,"police_station":127,"power_plant":67,"school":1802,"seaport":15,"substation":401,"water_plant":62}
-04:59:15 zoom-14 tiles with buildings or facilities 1773
-04:59:17 elevation tiles 400 / 1773
-04:59:18 elevation tiles 800 / 1773
-04:59:20 elevation tiles 1200 / 1773
-04:59:21 elevation tiles 1600 / 1773
-04:59:22 elevation {"tiles":1773,"fetched":0,"cached":1773,"failed":0}
-04:59:24 tiles written 1771 bytes 45822128 vertices clamped 0
-04:59:25 done {"buildings":1500471,"tiles":1771,"bytes":45822128,"facilities":3085,"floodAttached":false,"below_1m":8757,"zone_counts":{"0":1500471,"1":0,"2":0,"3":0}}
+04:59:51 municipios offset 0 got 78 total 78
+04:59:51 municipios {"count":78,"server_count":78,"bytes":619019,"extra_simplify_deg":0}
+04:59:51 barrios offset 0 got 100 total 100
+04:59:52 barrios offset 100 got 100 total 200
+04:59:53 barrios offset 200 got 100 total 300
+04:59:53 barrios offset 300 got 100 total 400
+04:59:54 barrios offset 400 got 100 total 500
+04:59:54 barrios offset 500 got 100 total 600
+04:59:54 barrios offset 600 got 100 total 700
+04:59:55 barrios offset 700 got 100 total 800
+04:59:55 barrios offset 800 got 100 total 900
+04:59:56 barrios offset 900 got 39 total 939
+04:59:56 barrios {"count":939,"server_count":939,"bytes":2306987,"extra_simplify_deg":0}
+04:59:56 tracts offset 0 got 100 total 100
+04:59:56 tracts offset 100 got 100 total 200
+04:59:57 tracts offset 200 got 100 total 300
+04:59:57 tracts offset 300 got 100 total 400
+04:59:58 tracts offset 400 got 100 total 500
+04:59:58 tracts offset 500 got 100 total 600
+04:59:58 tracts offset 600 got 100 total 700
+04:59:59 tracts offset 700 got 100 total 800
+04:59:59 tracts offset 800 got 100 total 900
+05:00:00 tracts offset 900 got 81 total 981
+05:00:00 tracts {"count":981,"server_count":981,"bytes":2177408,"extra_simplify_deg":0}
+05:00:00 sample names: Añasco, Bayamón, Canóvanas, Cataño, Comerío, Guánica, Juana Díaz, Las Marías, Loíza, Manatí, Mayagüez, Peñuelas, Rincón, Río Grande, San Germán, San Sebastián
