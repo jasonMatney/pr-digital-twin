@@ -1,0 +1,138 @@
+// Boot shared by the site (main.ts) and by per-part test pages: scene first (something to look at), then the
+// store, then layers, UI and feeds.
+import * as THREE from 'three';
+import * as S from './core/state';
+import { effect } from '@preact/signals';
+import { dataUrl, flag, params } from './core/config';
+import { createEngine } from './world/engine';
+import { createTerrain } from './world/terrain/index';
+import { createControls } from './world/controls';
+import { createPost } from './world/post/index';
+import { createStore } from './ontology/index.ts';
+import type { Ontology, TwinStore } from './ontology/types';
+import ontologyJson from './ontology/ontology.json';
+import { startFeeds } from './feeds/index';
+import type { Layer, LayerContext, LayerFactory, PickEvent, Picker } from './world/layers';
+
+export interface BootOptions {
+  layers?: LayerFactory[];
+  /** Mounts the UI; left out by scene-only test pages. */
+  ui?: (root: HTMLElement, deps: { store: TwinStore }) => unknown;
+}
+
+export function bootApp(opts: BootOptions = {}) {
+  const canvas = document.getElementById('scene') as HTMLCanvasElement;
+  const bootEl = document.getElementById('boot');
+  const stageEl = document.getElementById('boot-stage');
+  const stage = (s: string) => { S.bootStage.value = s; if (stageEl) stageEl.textContent = s; };
+  const ontology = ontologyJson as unknown as Ontology;
+
+  // URL flags: ?fixtures=1 ?q=low|medium|high ?t=<ISO> ?sea=<m> ?lang=es ?ui=0 ?nofeeds=1 ?cam=lon,lat,range,heading,pitch
+  S.fixturesMode.value = flag('fixtures');
+  const q = params.get('q');
+  if (q === 'low' || q === 'medium' || q === 'high') S.quality.value = q;
+  const t = params.get('t');
+  if (t && !Number.isNaN(Date.parse(t))) { S.clockMode.value = 'manual'; S.sceneTime.value = Date.parse(t); }
+  if (params.has('sea')) S.scenario.value = { ...S.scenario.value, seaLevelM: +params.get('sea')!, label: 'manual' };
+  if (params.get('lang') === 'es') S.lang.value = 'es';
+  const ov = params.get('overlay');
+  if (ov) S.overlay.value = ov as S.OverlayId;
+
+  const g: any = ((globalThis as any).__garita = { ready: false, state: S });
+
+  // ---- scene ----
+  stage('Raising the island');
+  const engine = createEngine(canvas, { terrain: createTerrain, controls: createControls, post: createPost });
+  const world = engine.world;
+  g.world = world; g.engine = engine;
+  const layers: Layer[] = [];
+  g.debug = () => ({ stats: S.stats.value, view: S.cameraView.value, terrain: world.terrain.stats(), post: (world.post as any).debug?.(), store: g.dbInfo, feeds: g.feeds?.status.value, layers: layers.map((l: any) => l.debug?.() ?? null) });
+  const cam = params.get('cam')?.split(',').map(Number);
+  if (cam && cam.length >= 2 && cam.every(Number.isFinite)) S.flyTo.value = { lon: cam[0], lat: cam[1], range: cam[2], heading: cam[3], pitch: cam[4], seconds: 0 };
+  engine.start();
+
+  let settled = 0;
+  const off = engine.onFrame((f) => {
+    const s = world.terrain.stats();
+    settled = s.pending === 0 && s.tiles > 0 ? settled + 1 : 0;
+    if ((settled > 10 && f.index > 20) || f.now > 40) { off(); g.ready = true; S.booted.value = true; bootEl?.classList.add('gone'); }
+  });
+
+  // ---- picking and hover: one dispatcher, layers register handlers ----
+  const pickers: { p: number; fn: Picker }[] = [], hovers: { p: number; fn: Picker }[] = [];
+  const reg = (list: typeof pickers) => (p: number, fn: Picker) => { const e = { p, fn }; list.push(e); list.sort((a, b) => b.p - a.p); return () => { const i = list.indexOf(e); if (i >= 0) list.splice(i, 1); }; };
+  const raycaster = new THREE.Raycaster();
+  const makeEvent = (ev: PointerEvent | MouseEvent): PickEvent => {
+    const r = canvas.getBoundingClientRect();
+    const x = ev.clientX - r.left, y = ev.clientY - r.top;
+    const ndc = new THREE.Vector2((x / r.width) * 2 - 1, -(y / r.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, world.camera);
+    const origin = raycaster.ray.origin.clone(), dir = raycaster.ray.direction.clone();
+    let hit: THREE.Vector3 | null | undefined;
+    return { x, y, ndc, origin, dir, shift: ev.shiftKey, ground: () => (hit === undefined ? (hit = world.terrain.raycast(origin, dir)) : hit) };
+  };
+  let down: { x: number; y: number; t: number } | null = null;
+  canvas.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  canvas.addEventListener('pointerup', (e) => {
+    if (!down || e.button !== 0) return;
+    const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), held = performance.now() - down.t;
+    down = null;
+    if (moved > 5 || held > 600) return;
+    const pe = makeEvent(e);
+    for (const h of pickers) { try { if (h.fn(pe)) return; } catch (err) { console.error('[garita] picker failed', err); } }
+    S.select(null);
+  });
+  let lastHover = 0;
+  canvas.addEventListener('pointermove', (e) => {
+    const r = canvas.getBoundingClientRect();
+    S.pointerPx.value = { x: e.clientX - r.left, y: e.clientY - r.top };
+    const now = performance.now();
+    if (now - lastHover < 90 || e.buttons) return;
+    lastHover = now;
+    const pe = makeEvent(e);
+    let over = false;
+    for (const h of hovers) { try { if (h.fn(pe)) { over = true; break; } } catch (err) { console.error('[garita] hover handler failed', err); } }
+    if (!over) { if (S.hoveredId.value) S.hoveredId.value = null; if (S.hoverText.value) S.hoverText.value = null; }
+    canvas.style.cursor = over ? 'pointer' : '';
+  });
+  canvas.addEventListener('pointerleave', () => { S.pointerPx.value = null; S.hoveredId.value = null; S.hoverText.value = null; });
+
+  // ---- store, layers, UI, feeds ----
+  (async () => {
+    stage('Opening the database');
+    const manifest = await fetch(dataUrl('data/manifest.json'), { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const store = createStore({ ontology, seedUrl: dataUrl('data/twin.db'), seedVersion: manifest?.seedVersion ?? ontology.version });
+    S.store.value = store;
+    g.store = store;
+    if (opts.ui && params.get('ui') !== '0') opts.ui(document.getElementById('ui')!, { store });
+    try {
+      g.dbInfo = await store.ready;
+    } catch (e) {
+      console.error('[garita] the store failed to open', e);
+      stage('Database unavailable');
+      return;
+    }
+    const ctx: LayerContext = { world, engine, store, onPick: reg(pickers), onHover: reg(hovers) };
+    for (const make of opts.layers ?? []) {
+      try {
+        const layer = await make(ctx);
+        layers.push(layer);
+        if (layer.update) engine.onFrame((f) => layer.update!(f));
+      } catch (e) { console.error('[garita] a scene layer failed to start', e); }
+    }
+    if (!flag('nofeeds')) g.feeds = startFeeds(store, { fixtures: S.fixturesMode.value });
+
+    // "Fly to this object": resolve its position through the store.
+    effect(() => {
+      const id = S.pendingFlyToObject.value;
+      if (!id) return;
+      S.pendingFlyToObject.value = null;
+      store.getObject(id).then((o) => {
+        if (!o || o.lon == null || o.lat == null) return;
+        const range = ({ municipio: 38000, barrio: 9000, tract: 6000, power_region: 90000, forecast_zone: 70000, tropical_cyclone: 600000, earthquake: 60000, weather_alert: 80000 } as Record<string, number>)[o.type] ?? 3500;
+        S.flyTo.value = { lon: o.lon, lat: o.lat, range, pitch: 48 };
+      });
+    });
+  })();
+  return { engine, world };
+}

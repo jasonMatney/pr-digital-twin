@@ -92,3 +92,16 @@ export function select(id: string | null, opts: { fly?: boolean } = {}) {
 }
 /** The scene or main resolves this to coordinates through the store, then clears it. */
 export const pendingFlyToObject = signal<string | null>(null);
+
+// ---- added for the scene layers ----
+/** Pointer position over the canvas in CSS pixels, or null when outside. Written by the app, read by tooltips. */
+export const pointerPx = signal<{ x: number; y: number } | null>(null);
+/** Screen area covered by panels, CSS pixels. Written by the UI; the camera centres its target in what is left. */
+export const viewPadding = signal<{ left: number; right: number; top: number; bottom: number }>({ left: 0, right: 0, top: 0, bottom: 0 });
+/** Legend for the active overlay, written by whichever layer draws it. */
+export interface Legend { title: string; unit?: string; note?: string; stops: { color: string; label: string }[]; source?: string }
+export const overlayLegend = signal<Legend | null>(null);
+/** Historical storm being replayed (id from data/replay/storms.json), or null. The scene clock drives it. */
+export const replayStormId = signal<string | null>(null);
+/** Short text for the hovered thing that is not a store object (e.g. "Bayamón · municipio"). */
+export const hoverText = signal<string | null>(null);
