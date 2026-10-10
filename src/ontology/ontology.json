@@ -258,6 +258,249 @@
       "es": "Región LUMA"
      },
      "type": "string"
+    },
+    {
+     "id": "svi_overall",
+     "label": {
+      "en": "Social vulnerability (percentile in PR)",
+      "es": "Vulnerabilidad social (percentil en PR)"
+     },
+     "type": "number",
+     "format": "fixed2",
+     "primary": true
+    },
+    {
+     "id": "disability_pct",
+     "label": {
+      "en": "With a disability",
+      "es": "Con discapacidad"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "mobile_home_pct",
+     "label": {
+      "en": "Mobile homes",
+      "es": "Casas móviles"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "crowding_pct",
+     "label": {
+      "en": "Crowded housing units",
+      "es": "Viviendas hacinadas"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "no_health_insurance_pct",
+     "label": {
+      "en": "Without health insurance",
+      "es": "Sin seguro médico"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "cdbg_dr_lmi_pct",
+     "label": {
+      "en": "Low and moderate income (CDBG-DR)",
+      "es": "Ingresos bajos y moderados (CDBG-DR)"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "elev_hist",
+     "label": {
+      "en": "Buildings by ground elevation, 0.25 m bins from 0 to 10 m",
+      "es": "Edificios por elevación del terreno"
+     },
+     "type": "json"
+    },
+    {
+     "id": "zone_counts",
+     "label": {
+      "en": "Buildings by FEMA flood zone",
+      "es": "Edificios por zona FEMA"
+     },
+     "type": "json"
+    }
+   ]
+  },
+  {
+   "id": "tract",
+   "kind": "place",
+   "group": "boundaries",
+   "label": {
+    "en": "Census tract",
+    "es": "Sector censal"
+   },
+   "plural": {
+    "en": "Census tracts",
+    "es": "Sectores censales"
+   },
+   "keyScheme": "census:geoid",
+   "icon": "boundary",
+   "color": "#6f93b3",
+   "properties": [
+    {
+     "id": "municipio_name",
+     "label": {
+      "en": "Municipality",
+      "es": "Municipio"
+     },
+     "type": "string",
+     "primary": true
+    },
+    {
+     "id": "population",
+     "label": {
+      "en": "Population",
+      "es": "Población"
+     },
+     "type": "number",
+     "unit": "people",
+     "format": "int",
+     "primary": true
+    },
+    {
+     "id": "housing_units",
+     "label": {
+      "en": "Housing units",
+      "es": "Unidades de vivienda"
+     },
+     "type": "number",
+     "unit": "units",
+     "format": "int",
+     "primary": true
+    },
+    {
+     "id": "svi_overall",
+     "label": {
+      "en": "Social vulnerability (percentile in PR)",
+      "es": "Vulnerabilidad social (percentil en PR)"
+     },
+     "type": "number",
+     "format": "fixed2",
+     "primary": true
+    },
+    {
+     "id": "svi_socioeconomic",
+     "label": {
+      "en": "SVI: socioeconomic status",
+      "es": "SVI: nivel socioeconómico"
+     },
+     "type": "number",
+     "format": "fixed2"
+    },
+    {
+     "id": "svi_household",
+     "label": {
+      "en": "SVI: household characteristics",
+      "es": "SVI: características del hogar"
+     },
+     "type": "number",
+     "format": "fixed2"
+    },
+    {
+     "id": "svi_housing_transport",
+     "label": {
+      "en": "SVI: housing type and transportation",
+      "es": "SVI: tipo de vivienda y transporte"
+     },
+     "type": "number",
+     "format": "fixed2"
+    },
+    {
+     "id": "poverty_pct",
+     "label": {
+      "en": "Below 150% of poverty level",
+      "es": "Bajo 150% del nivel de pobreza"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct",
+     "primary": true
+    },
+    {
+     "id": "age65_pct",
+     "label": {
+      "en": "Age 65 and over",
+      "es": "65 años o más"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "no_vehicle_pct",
+     "label": {
+      "en": "Households without a vehicle",
+      "es": "Hogares sin vehículo"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "disability_pct",
+     "label": {
+      "en": "With a disability",
+      "es": "Con discapacidad"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "mobile_home_pct",
+     "label": {
+      "en": "Mobile homes",
+      "es": "Casas móviles"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "crowding_pct",
+     "label": {
+      "en": "Crowded housing units",
+      "es": "Viviendas hacinadas"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "cdbg_dr_lmi_pct",
+     "label": {
+      "en": "Low and moderate income (CDBG-DR)",
+      "es": "Ingresos bajos y moderados (CDBG-DR)"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "land_km2",
+     "label": {
+      "en": "Land area",
+      "es": "Área de tierra"
+     },
+     "type": "number",
+     "unit": "km2",
+     "format": "fixed2"
     }
    ]
   },
@@ -3062,7 +3305,8 @@
    },
    "from": [
     "municipio",
-    "barrio"
+    "barrio",
+    "tract"
    ],
    "to": [
     "municipio",
@@ -3220,6 +3464,22 @@
    "name": "TIGER/Line boundaries (TIGERweb)",
    "org": "US Census Bureau",
    "url": "https://tigerweb.geo.census.gov/",
+   "license": "Public domain",
+   "kind": "baked"
+  },
+  {
+   "id": "cdc_svi",
+   "name": "Social Vulnerability Index 2022, Puerto Rico (ACS 2018-2022)",
+   "org": "CDC / ATSDR",
+   "url": "https://www.atsdr.cdc.gov/place-health/php/svi/",
+   "license": "Public domain",
+   "kind": "baked"
+  },
+  {
+   "id": "hud_cdbg_dr",
+   "name": "Puerto Rico CDBG-DR low and moderate income areas",
+   "org": "HUD",
+   "url": "https://hudgis-hud.opendata.arcgis.com/",
    "license": "Public domain",
    "kind": "baked"
   },

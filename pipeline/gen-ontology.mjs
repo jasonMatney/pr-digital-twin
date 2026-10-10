@@ -36,6 +36,24 @@ const objectTypes = [
     P('ihp_approved_usd_maria', 'FEMA housing aid approved, María', 'Asistencia de vivienda aprobada, María', 'number', 'USD', 'usd'),
     P('nws_zone', 'NWS forecast zone', 'Zona de pronóstico NWS', 'string'),
     P('power_region', 'LUMA region', 'Región LUMA', 'string'),
+    P('svi_overall', 'Social vulnerability (percentile in PR)', 'Vulnerabilidad social (percentil en PR)', 'number', null, 'fixed2', true),
+    P('disability_pct', 'With a disability', 'Con discapacidad', 'number', '%', 'pct'),
+    P('mobile_home_pct', 'Mobile homes', 'Casas móviles', 'number', '%', 'pct'),
+    P('crowding_pct', 'Crowded housing units', 'Viviendas hacinadas', 'number', '%', 'pct'),
+    P('no_health_insurance_pct', 'Without health insurance', 'Sin seguro médico', 'number', '%', 'pct'),
+    P('cdbg_dr_lmi_pct', 'Low and moderate income (CDBG-DR)', 'Ingresos bajos y moderados (CDBG-DR)', 'number', '%', 'pct'),
+    P('elev_hist', 'Buildings by ground elevation, 0.25 m bins from 0 to 10 m', 'Edificios por elevación del terreno', 'json'),
+    P('zone_counts', 'Buildings by FEMA flood zone', 'Edificios por zona FEMA', 'json'),
+  ]),
+  T('tract', 'place', 'boundaries', 'Census tract', 'Sector censal', 'Census tracts', 'Sectores censales', 'census:geoid', 'boundary', '#6f93b3', [
+    P('municipio_name', 'Municipality', 'Municipio', 'string', null, null, true), P('population', 'Population', 'Población', 'number', 'people', 'int', true),
+    P('housing_units', 'Housing units', 'Unidades de vivienda', 'number', 'units', 'int', true), P('svi_overall', 'Social vulnerability (percentile in PR)', 'Vulnerabilidad social (percentil en PR)', 'number', null, 'fixed2', true),
+    P('svi_socioeconomic', 'SVI: socioeconomic status', 'SVI: nivel socioeconómico', 'number', null, 'fixed2'), P('svi_household', 'SVI: household characteristics', 'SVI: características del hogar', 'number', null, 'fixed2'),
+    P('svi_housing_transport', 'SVI: housing type and transportation', 'SVI: tipo de vivienda y transporte', 'number', null, 'fixed2'),
+    P('poverty_pct', 'Below 150% of poverty level', 'Bajo 150% del nivel de pobreza', 'number', '%', 'pct', true), P('age65_pct', 'Age 65 and over', '65 años o más', 'number', '%', 'pct'),
+    P('no_vehicle_pct', 'Households without a vehicle', 'Hogares sin vehículo', 'number', '%', 'pct'), P('disability_pct', 'With a disability', 'Con discapacidad', 'number', '%', 'pct'),
+    P('mobile_home_pct', 'Mobile homes', 'Casas móviles', 'number', '%', 'pct'), P('crowding_pct', 'Crowded housing units', 'Viviendas hacinadas', 'number', '%', 'pct'),
+    P('cdbg_dr_lmi_pct', 'Low and moderate income (CDBG-DR)', 'Ingresos bajos y moderados (CDBG-DR)', 'number', '%', 'pct'), P('land_km2', 'Land area', 'Área de tierra', 'number', 'km2', 'fixed2'),
   ]),
   T('barrio', 'place', 'boundaries', 'Barrio', 'Barrio', 'Barrios', 'Barrios', 'census:geoid', 'boundary', '#7fa6c9', [
     P('municipio_name', 'Municipality', 'Municipio', 'string', null, null, true), P('population', 'Population', 'Población', 'number', 'people', 'int', true),
@@ -157,7 +175,7 @@ const objectTypes = [
 const LT = (id, en, es, ien, ies, from, to) => ({ id, label: L(en, es), inverse: L(ien, ies), from, to });
 const linkTypes = [
   LT('located_in', 'is located in', 'está en', 'contains', 'contiene', ['*'], ['municipio', 'barrio']),
-  LT('part_of', 'is part of', 'es parte de', 'includes', 'incluye', ['municipio', 'barrio'], ['municipio', 'power_region', 'forecast_zone']),
+  LT('part_of', 'is part of', 'es parte de', 'includes', 'incluye', ['municipio', 'barrio', 'tract'], ['municipio', 'power_region', 'forecast_zone']),
   LT('affects', 'affects', 'afecta a', 'is affected by', 'afectado por', ['weather_alert', 'earthquake', 'tropical_cyclone', 'disaster_declaration'], ['municipio', 'forecast_zone', 'shelter', 'public_housing', 'hospital']),
   LT('monitors', 'monitors', 'monitorea', 'is monitored by', 'monitoreado por', ['stream_gauge', 'tide_station', 'buoy', 'weather_station', 'reservoir'], ['municipio', 'reservoir']),
   LT('nearest', 'nearest sensor is', 'sensor más cercano', 'is nearest sensor to', 'es el sensor más cercano a', ['shelter', 'public_housing', 'assisted_housing', 'hospital', 'municipio'], ['stream_gauge', 'tide_station', 'weather_station', 'buoy']),
@@ -170,6 +188,8 @@ const linkTypes = [
 const S = (id, name, org, url, license, kind, cadence_s, note) => ({ id, name, org, url, license, kind, ...(cadence_s ? { cadence_s } : {}), ...(note ? { note } : {}) });
 const sources = [
   S('census_tiger', 'TIGER/Line boundaries (TIGERweb)', 'US Census Bureau', 'https://tigerweb.geo.census.gov/', 'Public domain', 'baked'),
+  S('cdc_svi', 'Social Vulnerability Index 2022, Puerto Rico (ACS 2018-2022)', 'CDC / ATSDR', 'https://www.atsdr.cdc.gov/place-health/php/svi/', 'Public domain', 'baked'),
+  S('hud_cdbg_dr', 'Puerto Rico CDBG-DR low and moderate income areas', 'HUD', 'https://hudgis-hud.opendata.arcgis.com/', 'Public domain', 'baked'),
   S('census_acs5', 'American Community Survey 5-year', 'US Census Bureau', 'https://www.census.gov/programs-surveys/acs', 'Public domain', 'baked'),
   S('osm', 'OpenStreetMap (Geofabrik Puerto Rico extract)', 'OpenStreetMap contributors', 'https://www.openstreetmap.org/copyright', 'ODbL 1.0', 'baked'),
   S('usgs_3dep', 'USGS 3DEP elevation via AWS Terrain Tiles', 'USGS / Mapzen', 'https://registry.opendata.aws/terrain-tiles/', 'Public domain; attribution per Terrain Tiles', 'baked'),
