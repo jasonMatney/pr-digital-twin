@@ -1,5 +1,5 @@
 {
- "startedAt": "2026-10-10T05:07:04.589Z",
+ "startedAt": "2026-10-10T05:07:57.208Z",
  "ontologyVersion": "2026.10.1",
  "sources": {
   "census_tiger": {
@@ -27,7 +27,7 @@
    },
    "links": 1882,
    "problems": [],
-   "ms": 836
+   "ms": 2313
   },
   "hud": {
    "status": "ok",
@@ -80,7 +80,7 @@
     "159 projects had no county FIPS (not geocoded by HUD): municipio taken from the project city where it equals a municipio name, confidence 0.7",
     "4 projects without a usable county/tract FIPS: no municipio link"
    ],
-   "ms": 4149
+   "ms": 2604
   },
   "openfema": {
    "status": "ok",
@@ -122,7 +122,7 @@
     "county \"Statewide\" not matched to a municipio (1 registrations left out)",
     "disaster numbers in the PR housing data that have no PR declaration row (impact objects kept, no link to a declaration): 1561, 4337"
    ],
-   "ms": 6981
+   "ms": 2009
   },
   "coops": {
    "status": "ok",
@@ -146,25 +146,25 @@
    "links": 0,
    "problems": [
     "9752621 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9752621/floodlevels.json?units=metric",
+    "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
     "9752235 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752235&units=metric",
     "9753216 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9753216/floodlevels.json?units=metric",
-    "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
-    "9752695 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752695&units=metric",
     "9754229 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9754229/floodlevels.json?units=metric",
+    "9752695 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752695&units=metric",
     "9755968 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9755968/floodlevels.json?units=metric",
     "9753216 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9753216&units=metric",
-    "9757811 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9757811/floodlevels.json?units=metric",
     "9754229 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9754229&units=metric",
-    "9755968 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9755968&units=metric",
     "9758066 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9758066/floodlevels.json?units=metric",
+    "9757811 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9757811/floodlevels.json?units=metric",
+    "9755968 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9755968&units=metric",
+    "9758066 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9758066&units=metric",
     "9757811 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9757811&units=metric",
     "9759413 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9759413/floodlevels.json?units=metric",
-    "9758066 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9758066&units=metric",
     "9759394 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759394&units=metric",
     "9759413 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759413&units=metric",
     "9759938 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759938&units=metric"
    ],
-   "ms": 21490
+   "ms": 21080
   },
   "usgs": {
    "status": "ok",
@@ -189,7 +189,7 @@
    },
    "links": 142,
    "problems": [],
-   "ms": 364
+   "ms": 961
   },
   "nws": {
    "status": "ok",
@@ -227,7 +227,7 @@
    },
    "links": 78,
    "problems": [],
-   "ms": 5511
+   "ms": 3067
   },
   "cdc_svi": {
    "status": "ok",
@@ -252,7 +252,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 4290
+   "ms": 1959
   },
   "shelters": {
    "status": "ok",
@@ -268,7 +268,7 @@
      "validationErrors": 0,
      "validationWarnings": 0,
      "published": true,
-     "note": "Departamento de la Vivienda, \"Refugios Temporada de Huracanes 2026\" (PDF, 19 pages, text via pdftotext -layout). Columns in the document: municipio, facility, address, Google Maps link; it gives no capacities, so capacity is absent. 343 shelters. facility_type is read from the name's first words (Esc. = school, Centro Comunal = community centre, ...). Coordinates, where present (332 of 343), come from the Google Maps link printed in the list: the short link is followed and the coordinates are read from the resolved URL; a point more than 25 km from the municipio's internal point is discarded. Listed schools are also matched by name to OpenStreetMap schools in the same municipio (data/osm/facilities.json generated 2026-10-10T05:04:11.850Z): names are normalised (case, accents, Esc./Escuela/S.U./level words dropped), score = mean of Jaccard and containment of the remaining name tokens, accepted at score >= 0.7 with at least two shared tokens, a clear lead over the next candidate and, where the list's map link gave a point, within 2 km of it: 229 housed_at links with the score as confidence. A shelter without a usable map link takes the matched school's coordinates (4). Shelters located neither way have no coordinates (location_basis \"not located\"). municipio.shelters = shelters listed per municipio."
+     "note": "Departamento de la Vivienda, \"Refugios Temporada de Huracanes 2026\" (PDF, 19 pages, text via pdftotext -layout). Columns in the document: municipio, facility, address, Google Maps link; it gives no capacities, so capacity is absent. 343 shelters. facility_type is read from the name's first words (Esc. = school, Centro Comunal = community centre, ...). Coordinates, where present (332 of 343), come from the Google Maps link printed in the list: the short link is followed and the coordinates are read from the resolved URL; a point more than 25 km from the municipio's internal point is discarded. Listed schools are also matched by name to OpenStreetMap schools in the same municipio (data/osm/facilities.json generated 2026-10-10T05:07:03.000Z): names are normalised (case, accents, Esc./Escuela/S.U./level words dropped), score = mean of Jaccard and containment of the remaining name tokens, accepted at score >= 0.7 with at least two shared tokens, a clear lead over the next candidate and, where the list's map link gave a point, within 2 km of it: 229 housed_at links with the score as confidence. A shelter without a usable map link takes the matched school's coordinates (4). Shelters located neither way have no coordinates (location_basis \"not located\"). municipio.shelters = shelters listed per municipio."
     }
    ],
    "objects": {
@@ -288,7 +288,16 @@
     "Ponce / Centro Comunal Ernesto Ramos Antonini: link resolves 76.4 km from the municipio internal point; coordinates not used",
     "Vieques / Esc. María M. Simmons de Rivera: name matches OpenStreetMap node/4306469326 \"Escuela María M. Simmons De Rivera\" (score 1.00) but it is 2.3 km from the list's map link; match not used"
    ],
-   "ms": 10155
+   "ms": 14099
+  },
+  "census_acs": {
+   "status": "error",
+   "files": [],
+   "objects": {},
+   "links": 0,
+   "problems": [],
+   "error": "Error: no ACS layer usable: ACS_Median_Income_by_Race_and_Age_Selp_Emp_Boundaries: vintage not stated in the layer description | ACS_Housing_Units_Vacancy_Status_Boundaries: vintage not stated in the layer description | ACS_Housing_Units_by_Year_Built_Boundaries: vintage not stated in the layer description | ACS_Housing_Tenure_by_Education_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]} | ACS_Housing_Units_Occupancy_Status_Tenure_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]} | ACS_Median_Home_Value_by_Year_Built_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]} | ACS_Housing_Costs_Variables_Boundaries: {\"code\":400,\"message\":\"Invalid URL\",\"details\":[\"Invalid URL\"]}\n    at Module.build (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/sources/census_acs.mjs:40:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async runSource (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:39:18)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:64:87\n    at async Promise.all (index 8)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:64:1",
+   "ms": 6995
   },
   "nwps": {
    "status": "ok",
@@ -313,7 +322,7 @@
    },
    "links": 117,
    "problems": [],
-   "ms": 5709
+   "ms": 7182
   },
   "hurdat2": {
    "status": "ok",
@@ -321,7 +330,7 @@
    "objects": {},
    "links": 0,
    "problems": [],
-   "ms": 3272
+   "ms": 3553
   },
   "cdbg": {
    "status": "ok",
@@ -348,7 +357,7 @@
    "problems": [
     "32 of 977 rows had no usable geography or counts"
    ],
-   "ms": 297
+   "ms": 3285
   },
   "luma": {
    "status": "ok",
@@ -371,7 +380,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 203
+   "ms": 3439
   },
   "ndbc": {
    "status": "ok",
@@ -394,7 +403,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 402
+   "ms": 228
   }
  },
  "replay": [
@@ -414,7 +423,7 @@
    "bytes": 2471
   }
  ],
- "finishedAt": "2026-10-10T05:07:26.482Z",
- "requests": 255,
- "bytes": 87138924
+ "finishedAt": "2026-10-10T05:08:18.517Z",
+ "requests": 271,
+ "bytes": 87913859
 }
