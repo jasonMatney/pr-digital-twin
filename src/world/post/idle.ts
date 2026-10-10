@@ -8,7 +8,8 @@ if (native) {
   const queue: IdleRequestCallback[] = [];
   ch.port1.onmessage = () => { const cb = queue.shift(); if (cb) { try { cb({ didTimeout: true, timeRemaining: () => 0 }); } catch (e) { console.error(e); } } };
   window.requestIdleCallback = (cb: IdleRequestCallback, opts?: IdleRequestOptions) => {
-    if (!document.hidden) return native(cb, opts);
+    // ?shot=1 / ?pump=1: automated screenshots render so slowly that idle time never comes; run the work now.
+    if (!document.hidden && !/[?&](shot|pump)=1/.test(location.search)) return native(cb, opts);
     queue.push(cb); ch.port2.postMessage(0);
     return 0;
   };

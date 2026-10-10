@@ -35,6 +35,10 @@ export function bootApp(opts: BootOptions = {}) {
   if (t && !Number.isNaN(Date.parse(t))) { S.clockMode.value = 'manual'; S.sceneTime.value = Date.parse(t); }
   if (params.has('sea')) S.scenario.value = { ...S.scenario.value, seaLevelM: +params.get('sea')!, label: 'manual' };
   if (params.get('lang') === 'es') S.lang.value = 'es';
+  // ?shot=1&scale=0.3: automated screenshots under software GL. Low resolution while tiles stream, patience instead
+  // of the 40 s cap, and the sky's tables computed without waiting for idle time.
+  const shot = flag('shot');
+  if (params.has('scale') && Number.isFinite(+params.get('scale')!)) S.renderScale.value = Math.min(1, Math.max(0.1, +params.get('scale')!));
   const ov = params.get('overlay');
   if (ov) S.overlay.value = ov as S.OverlayId;
 
@@ -72,7 +76,7 @@ export function bootApp(opts: BootOptions = {}) {
     const s = world.terrain.stats();
     if (!S.booted.value && s.tiles >= 6 && f.now > 1.0) { S.booted.value = true; bootEl?.classList.add('gone'); }
     settled = s.pending === 0 && s.tiles > 0 ? settled + 1 : 0;
-    if ((settled > 10 && f.index > 20) || f.now > 40) { off(); g.ready = true; S.booted.value = true; bootEl?.classList.add('gone'); }
+    if ((settled > (shot ? 4 : 10) && f.index > (shot ? 8 : 20)) || f.now > (shot ? 420 : 40)) { off(); g.ready = true; S.booted.value = true; bootEl?.classList.add('gone'); }
   });
   // A hidden tab gets no frames; do not leave the curtain down forever when it comes back.
   setTimeout(() => { S.booted.value = true; bootEl?.classList.add('gone'); }, 45000);

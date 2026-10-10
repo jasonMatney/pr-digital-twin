@@ -32,7 +32,7 @@ for i in $(seq 1 60); do
     retry git fetch -q --depth 1 origin "refs/heads/shots-out/$NAME"
     git archive FETCH_HEAD | tar -x -C "$OUT"
     echo "cloudshot: done -> $OUT"; ls "$OUT"
-    node -e "const r=JSON.parse(require('fs').readFileSync('$OUT/results.json','utf8'));for(const x of r.results)console.log(x.id,x.ok?'ok':'FAILED '+x.error,x.ms+' ms',JSON.stringify(x.logs.filter(l=>!/status of 40[04]|SharedArrayBuffer|GroupMarkerNotSet|GPU stall/.test(l)).slice(0,6)),JSON.stringify(x.failedHosts))" 2>/dev/null || true
+    node -e "const r=JSON.parse(require('fs').readFileSync('$OUT/results.json','utf8'));for(const x of r.results)console.log(x.id,x.ok?'ok':'FAILED '+String(x.error).slice(0,90),x.ms+' ms','frame '+x.frameMs+' ms',JSON.stringify(x.logs.filter(l=>!/status of 40[04]|SharedArrayBuffer|GroupMarkerNotSet|GPU stall/.test(l)).slice(0,6)),JSON.stringify(x.failedHosts))" 2>/dev/null || true
     exit 0
   fi
 done

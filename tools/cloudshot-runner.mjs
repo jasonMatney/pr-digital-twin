@@ -21,12 +21,25 @@ async function one(s) {
   page.on('requestfailed', (r) => { try { const h = new URL(r.url()).host; failed[h] = (failed[h] ?? 0) + 1; } catch {} });
   const r = { id: s.id, url: s.url };
   try {
-    await page.goto(s.url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await page.waitForFunction(() => globalThis.__garita && globalThis.__garita.ready, null, { timeout: s.ready ?? 180000 }).catch(() => logs.push('[shot] ready flag never set'));
+    // Software GL draws a full-size frame in seconds, so the page loads at a fraction of the resolution (tiles stream
+    // per frame) and is switched to full size for the final frames.
+    const sep = s.url.includes('?') ? '&' : '?';
+    const url = /[?&]scale=/.test(s.url) ? s.url : `${s.url}${sep}shot=1&scale=${s.loadScale ?? 0.3}`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await page.waitForFunction(() => globalThis.__garita && globalThis.__garita.ready, null, { timeout: s.ready ?? 400000 }).catch(() => logs.push('[shot] ready flag never set'));
     if (s.eval) await page.evaluate(s.eval).catch((e) => logs.push('[eval] ' + String(e).slice(0, 200)));
     await page.waitForTimeout(s.wait ?? 4000);
-    await page.screenshot({ path: `${outDir}/${s.id}.jpg`, type: 'jpeg', quality: s.quality ?? 86 });
+    r.loadMs = Date.now() - t0;
+    await page.evaluate(() => new Promise((res) => {
+      const g = globalThis.__garita; if (!g?.engine || !g.state?.renderScale) return res(0);
+      g.state.renderScale.value = 1;
+      let n = 0; const off = g.engine.onFrame(() => { if (++n >= 3) { off(); res(n); } });
+      setTimeout(() => { off(); res(n); }, 150000);
+    })).catch(() => {});
+    // Debug first: under software GL a heavy frame can outlast the screenshot's own timeout, and then this is the evidence.
     r.debug = await page.evaluate(() => globalThis.__garita?.debug?.() ?? null).catch(() => null);
+    r.frameMs = await page.evaluate(() => new Promise((res) => { const e = globalThis.__garita?.engine; if (!e) return res(null); let n = 0; const t0 = performance.now(); const off = e.onFrame(() => { n++; }); setTimeout(() => { off(); res(n ? Math.round((performance.now() - t0) / n) : -1); }, 6000); })).catch(() => null);
+    await page.screenshot({ path: `${outDir}/${s.id}.jpg`, type: 'jpeg', quality: s.quality ?? 86, timeout: 180000 });
     r.ok = true;
   } catch (e) { r.ok = false; r.error = String(e).slice(0, 400); }
   r.ms = Date.now() - t0; r.logs = [...new Set(logs)].slice(0, 30); r.failedHosts = failed;

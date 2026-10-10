@@ -30,7 +30,7 @@ export function createEngine(canvas: HTMLCanvasElement, parts: EngineParts = {})
   const maxDpr = () => ({ low: 1, medium: 1.5, high: 2 }[S.quality.value]);
   const resize = () => {
     const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
-    const dpr = Math.min(devicePixelRatio || 1, maxDpr());
+    const dpr = Math.min(devicePixelRatio || 1, maxDpr()) * S.renderScale.value;
     renderer.setPixelRatio(dpr);
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
@@ -38,7 +38,7 @@ export function createEngine(canvas: HTMLCanvasElement, parts: EngineParts = {})
     world.post.resize(w, h, dpr);
   };
   addEventListener('resize', resize);
-  const disposers = [effect(() => { S.quality.value; resize(); })];
+  const disposers = [effect(() => { S.quality.value; S.renderScale.value; resize(); })];
 
   // state -> scene
   disposers.push(effect(() => { const v = S.flyTo.value; if (v) { world.controls.flyTo(v); S.flyTo.value = null; } }));

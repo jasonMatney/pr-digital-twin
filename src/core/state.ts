@@ -105,3 +105,7 @@ export const overlayLegend = signal<Legend | null>(null);
 export const replayStormId = signal<string | null>(null);
 /** Short text for the hovered thing that is not a store object (e.g. "Bayamón · municipio"). */
 export const hoverText = signal<string | null>(null);
+
+/** Multiplies the render resolution. 1 normally; automated screenshots load at a fraction (software GL is slow) and
+ *  switch to 1 for the final frame. */
+export const renderScale = signal(1);
