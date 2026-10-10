@@ -1,0 +1,624 @@
+{
+ "at": "2026-10-10T20:10:51.468Z",
+ "results": [
+  {
+   "id": "live-island",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&cam=-66.45,18.15,400000,0,60",
+   "loadMs": 29232,
+   "debug": {
+    "stats": {
+     "fps": 22,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.45,
+     "lat": 18.15,
+     "range": 400000.0000000001,
+     "heading": 0,
+     "pitch": 60,
+     "altitude": 350224.46901526104
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 26.81214264208129,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "lowSun": 0.15413683335052708,
+     "exposure": 0.97196449875245,
+     "bloom": 0.25,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      -0.849,
+      0.451,
+      0.275
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 985,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "feeds": {
+     "nws_alerts": {
+      "state": "ok",
+      "nextAt": 1791662967737.6096,
+      "lastOkAt": 1791662856823,
+      "lastObjects": 0,
+      "lastMs": 203
+     },
+     "nhc": {
+      "state": "ok",
+      "nextAt": 1791663513130.748,
+      "lastOkAt": 1791662857504,
+      "lastObjects": 1,
+      "lastMs": 434
+     },
+     "usgs_quakes": {
+      "state": "ok",
+      "nextAt": 1791663154345.0022,
+      "lastOkAt": 1791662858507,
+      "lastObjects": 265,
+      "lastMs": 985
+     },
+     "usgs_nwis": {
+      "state": "ok",
+      "nextAt": 1791663805380.7617,
+      "lastOkAt": 1791662864361,
+      "lastObjects": 139,
+      "lastMs": 6390
+     },
+     "nwps": {
+      "state": "ok",
+      "nextAt": 1791663752033.059,
+      "lastOkAt": 1791662865300,
+      "lastObjects": 118,
+      "lastMs": 6880
+     },
+     "coops": {
+      "state": "ok",
+      "nextAt": 1791663198277.6892,
+      "lastOkAt": 1791662866242,
+      "lastObjects": 6,
+      "lastMs": 7372
+     },
+     "open_meteo": {
+      "state": "ok",
+      "nextAt": 1791663733668.7632,
+      "lastOkAt": 1791662865927,
+      "lastObjects": 8,
+      "lastMs": 1556
+     },
+     "nws_obs": {
+      "state": "ok",
+      "nextAt": 1791663516395.8176,
+      "lastOkAt": 1791662865798,
+      "lastObjects": 5,
+      "lastMs": 1426
+     },
+     "luma": {
+      "state": "ok",
+      "nextAt": 1791663523244.0474,
+      "lastOkAt": 1791662865375,
+      "lastObjects": 7,
+      "lastMs": 998
+     },
+     "ndbc": {
+      "state": "ok",
+      "nextAt": 1791663472126.8833,
+      "lastOkAt": 1791662865732,
+      "lastObjects": 15,
+      "lastMs": 1354
+     },
+     "adsb": {
+      "state": "ok",
+      "nextAt": 1791663491036.5066,
+      "lastOkAt": 1791662865573,
+      "lastObjects": 16,
+      "lastMs": 1195
+     }
+    },
+    "layers": [
+     {
+      "overlay": null,
+      "source": null,
+      "aboveWater": false,
+      "lastError": "",
+      "legend": null
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 0,
+      "lift": 450,
+      "selected": null,
+      "footprint": 0,
+      "highlights": 0,
+      "selectedId": null
+     },
+     {
+      "storm": null,
+      "info": null,
+      "legend": null,
+      "live": [
+       {
+        "id": "tropical_cyclone:al092026",
+        "name": "Isaias",
+        "category": "Tropical depression",
+        "wind_kt": 30,
+        "distance_km": 2599,
+        "bearing": "NW",
+        "advisory": null,
+        "hasCone": false,
+        "points": 0,
+        "drawn": false,
+        "text": "Isaias · Tropical depression · 2,599 km NW"
+       }
+      ],
+      "highlights": 0
+     }
+    ],
+    "w3": null,
+    "liveCyclones": [
+     {
+      "id": "tropical_cyclone:al092026",
+      "name": "Isaias",
+      "category": "Tropical depression",
+      "wind_kt": 30,
+      "distance_km": 2599,
+      "bearing": "NW",
+      "advisory": null,
+      "hasCone": false,
+      "points": 0,
+      "drawn": false,
+      "text": "Isaias · Tropical depression · 2,599 km NW"
+     }
+    ],
+    "legend": null,
+    "stormLegend": null,
+    "highlightIds": 0,
+    "selectedId": null
+   },
+   "frameMs": 1000,
+   "ok": true,
+   "ms": 56705,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "maria",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&nofeeds=1&storm=AL152017&t=2017-09-20T10:15:00Z&cam=-66.2,18.15,420000,0,62",
+   "loadMs": 36904,
+   "debug": {
+    "stats": {
+     "fps": 10,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.2,
+     "lat": 18.15,
+     "range": 420000.00000000023,
+     "heading": 0,
+     "pitch": 62,
+     "altitude": 374531.8148225945
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": -0.7035415930524577,
+     "dark": 0.23757957043786937,
+     "daylight": 0.22473756713054424,
+     "moonlight": 0,
+     "warmth": 1,
+     "lowSun": 0.7624204295621306,
+     "exposure": 1.2001680371389005,
+     "bloom": 0.30939489260946734,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      1,
+      -0.012,
+      -0.021
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 712,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "layers": [
+     {
+      "overlay": null,
+      "source": null,
+      "aboveWater": false,
+      "lastError": "",
+      "legend": null
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 30,
+      "lift": 450,
+      "selected": null,
+      "footprint": 0,
+      "highlights": 47,
+      "selectedId": null
+     },
+     {
+      "storm": "AL152017",
+      "info": {
+       "id": "AL152017",
+       "name": "María",
+       "year": 2017,
+       "t": 1505902500000,
+       "lat": 18,
+       "lon": -65.9,
+       "wind_kt": 135,
+       "pressure_mb": 920,
+       "category": "Category 4",
+       "status": "HU",
+       "band_counts": {
+        "34": 77,
+        "50": 76,
+        "64": 47
+       },
+       "hasRadii": true,
+       "active": true,
+       "source": "Best track (HURDAT2), NOAA National Hurricane Center"
+      },
+      "legend": {
+       "title": "María 2017 · Best track (HURDAT2)",
+       "stops": 10
+      },
+      "live": [],
+      "highlights": 47
+     }
+    ],
+    "w3": null,
+    "liveCyclones": [],
+    "legend": null,
+    "stormLegend": "María 2017 · Best track (HURDAT2)",
+    "highlightIds": 47,
+    "selectedId": null
+   },
+   "frameMs": 857,
+   "ok": true,
+   "ms": 60002,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "radar-close",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&nofeeds=1&overlay=radar&cam=-66.1,18.75,110000,0,50",
+   "loadMs": 99945,
+   "debug": {
+    "stats": {
+     "fps": 12,
+     "tiles": 16,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.1,
+     "lat": 18.75,
+     "range": 109999.99999999991,
+     "heading": 0,
+     "pitch": 50,
+     "altitude": 84006.20537312234
+    },
+    "terrain": {
+     "tiles": 16,
+     "pending": 0,
+     "maxZoom": 10
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 26.56030398938338,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "lowSun": 0.1627660950908385,
+     "exposure": 0.9731941685504445,
+     "bloom": 0.25,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      -0.852,
+      0.447,
+      0.273
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 1105,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "layers": [
+     {
+      "overlay": "radar",
+      "source": "radar:rainviewer:1791662400",
+      "aboveWater": true,
+      "lastError": "",
+      "legend": {
+       "title": "Rain radar",
+       "note": "Reflectivity, frame of 2026-10-10 16:00 AST. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7).",
+       "stops": 11
+      }
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 0,
+      "lift": 159,
+      "selected": null,
+      "footprint": 0,
+      "highlights": 0,
+      "selectedId": null
+     },
+     {
+      "storm": null,
+      "info": null,
+      "legend": null,
+      "live": [],
+      "highlights": 0
+     }
+    ],
+    "w3": null,
+    "liveCyclones": [],
+    "legend": {
+     "title": "Rain radar",
+     "unit": "dBZ",
+     "stops": [
+      {
+       "color": "#88ddee",
+       "label": "15"
+      },
+      {
+       "color": "#0099cc",
+       "label": "20"
+      },
+      {
+       "color": "#0077aa",
+       "label": "25"
+      },
+      {
+       "color": "#005588",
+       "label": "30"
+      },
+      {
+       "color": "#ffee00",
+       "label": "35"
+      },
+      {
+       "color": "#ffaa00",
+       "label": "40"
+      },
+      {
+       "color": "#ff7700",
+       "label": "45"
+      },
+      {
+       "color": "#ff4400",
+       "label": "50"
+      },
+      {
+       "color": "#ee0000",
+       "label": "55"
+      },
+      {
+       "color": "#990000",
+       "label": "60"
+      },
+      {
+       "color": "#ffaaff",
+       "label": "≥ 65"
+      }
+     ],
+     "note": "Reflectivity, frame of 2026-10-10 16:00 AST. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7).",
+     "source": "RainViewer radar mosaic (rainviewer.com), from NWS NEXRAD TJUA"
+    },
+    "stormLegend": null,
+    "highlightIds": 0,
+    "selectedId": null
+   },
+   "frameMs": 2000,
+   "ok": true,
+   "ms": 133596,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "fiona-day",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/dev/w3/w3.html?post=basic&ui=0&nofeeds=1&storm=AL072022&t=2022-09-18T19:20:00Z&overlay=choropleth&prop=derived:sfha_per_1000&cam=-66.6,18.1,420000,0,62",
+   "loadMs": 37351,
+   "debug": {
+    "stats": {
+     "fps": 10,
+     "tiles": 6,
+     "pending": 0,
+     "drawCalls": 1,
+     "tris": 1
+    },
+    "view": {
+     "lon": -66.6,
+     "lat": 18.1,
+     "range": 420000.00000000023,
+     "heading": 0,
+     "pitch": 62,
+     "altitude": 374716.10457978316
+    },
+    "terrain": {
+     "tiles": 6,
+     "pending": 0,
+     "maxZoom": 8
+    },
+    "post": {
+     "mode": "basic",
+     "lutsReady": false,
+     "clouds": false,
+     "units": 0.42058823529411765,
+     "elevation": 42.837489473173946,
+     "dark": 0,
+     "daylight": 1,
+     "moonlight": 0,
+     "warmth": 0,
+     "lowSun": 0,
+     "exposure": 0.95,
+     "bloom": 0.25,
+     "shadows": false,
+     "shadowExtent": 0,
+     "sun": [
+      -0.707,
+      0.68,
+      0.194
+     ]
+    },
+    "store": {
+     "persistent": true,
+     "seedVersion": "2026.10.10a",
+     "openedMs": 1024,
+     "objects": 7018,
+     "links": 12792,
+     "obs": 0
+    },
+    "layers": [
+     {
+      "overlay": "choropleth",
+      "source": "choropleth:derived:sfha_per_1000:1",
+      "aboveWater": false,
+      "lastError": "",
+      "legend": {
+       "title": "Buildings in the FEMA 1 % flood zone per 1,000 buildings (derived)",
+       "note": "78 of 78 municipios, 5 classes with equal counts (quantiles); darker = higher.",
+       "stops": 5
+      }
+     },
+     {
+      "municipios": 78,
+      "vertices": 123952,
+      "queued": 0,
+      "lift": 450,
+      "selected": null,
+      "footprint": 0,
+      "highlights": 13,
+      "selectedId": null
+     },
+     {
+      "storm": "AL072022",
+      "info": {
+       "id": "AL072022",
+       "name": "Fiona",
+       "year": 2022,
+       "t": 1663528800000,
+       "lat": 18,
+       "lon": -67.1,
+       "wind_kt": 75,
+       "pressure_mb": 986,
+       "category": "Category 1",
+       "status": "HU",
+       "band_counts": {
+        "34": 78,
+        "50": 36,
+        "64": 13
+       },
+       "hasRadii": true,
+       "active": true,
+       "source": "Best track (HURDAT2), NOAA National Hurricane Center"
+      },
+      "legend": {
+       "title": "Fiona 2022 · Best track (HURDAT2)",
+       "stops": 10
+      },
+      "live": [],
+      "highlights": 13
+     }
+    ],
+    "w3": null,
+    "liveCyclones": [],
+    "legend": {
+     "title": "Buildings in the FEMA 1 % flood zone per 1,000 buildings (derived)",
+     "unit": "per 1,000 buildings",
+     "stops": [
+      {
+       "color": "#ffffcc",
+       "label": "0.0 – < 9.3"
+      },
+      {
+       "color": "#a3dbb8",
+       "label": "9.3 – < 31.8"
+      },
+      {
+       "color": "#41b6c4",
+       "label": "31.8 – < 67.6"
+      },
+      {
+       "color": "#2078b4",
+       "label": "67.6 – < 157.6"
+      },
+      {
+       "color": "#0c2c84",
+       "label": "157.6 – 474.9"
+      }
+     ],
+     "note": "78 of 78 municipios, 5 classes with equal counts (quantiles); darker = higher.",
+     "source": "Derived here: buildings in the 1 % zone ÷ mapped buildings × 1,000. Inputs: Derived by Garita (spatial joins, elevation sampling, scenario counts) · Garita"
+    },
+    "stormLegend": "Fiona 2022 · Best track (HURDAT2)",
+    "highlightIds": 13,
+    "selectedId": null
+   },
+   "frameMs": 462,
+   "ok": true,
+   "ms": 64426,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co"
+   ],
+   "failedHosts": {}
+  }
+ ]
+}
