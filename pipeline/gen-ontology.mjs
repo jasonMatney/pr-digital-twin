@@ -80,6 +80,7 @@ const objectTypes = [
     P('capacity', 'Capacity', 'Capacidad', 'number', 'people', 'int', true), P('facility_type', 'Facility type', 'Tipo de instalación', 'string', null, null, true),
     P('list_year', 'Listed for season', 'Listado para la temporada', 'number', null, 'int'), P('location_basis', 'How it was located', 'Cómo se ubicó', 'string'),
     P('operating_status', 'Operating status', 'Estado operacional', 'string', null, null, true), ...addr, ...elev,
+    P('map_url', 'Map link in the official list', 'Enlace de mapa en la lista oficial', 'url'),
   ]),
   T('public_housing', 'asset', 'housing', 'Public housing development', 'Residencial público', 'Public housing developments', 'Residenciales públicos', 'hud:development', 'housing', '#ff9f6b', [
     P('units', 'Units', 'Unidades', 'number', 'units', 'int', true), P('occupied_units', 'Occupied units', 'Unidades ocupadas', 'number', 'units', 'int'),

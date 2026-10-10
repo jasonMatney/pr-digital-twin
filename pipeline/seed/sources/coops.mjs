@@ -24,7 +24,7 @@ export async function build(ctx) {
       } catch (e) { problems.push(`${id} floodlevels: ${e.message}`); }
     } catch (e) { problems.push(`${id} datums: ${e.message}`); }
     try {
-      const p = await fetchJson(`${SLR}?station=${id}&units=metric`);
+      const p = await fetchJson(`${SLR}?station=${id}&units=metric`, { tries: 2 });
       const rows = p.SlrProjections || [];
       if (rows.length) {
         const k = /cm/i.test(rows[0].units || '') ? 0.01 : /mm/i.test(rows[0].units || '') ? 0.001 : 1;

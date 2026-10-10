@@ -852,6 +852,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "map_url",
+     "label": {
+      "en": "Map link in the official list",
+      "es": "Enlace de mapa en la lista oficial"
+     },
+     "type": "url"
     }
    ]
   },

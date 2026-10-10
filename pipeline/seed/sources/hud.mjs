@@ -1,5 +1,5 @@
 // HUD public housing developments, multifamily assisted properties and LIHTC projects in Puerto Rico.
-import { arcgisFirst, num, round, clean, pick } from '../lib.mjs';
+import { arcgisFirst, num, round, clean, pick, normMuni } from '../lib.mjs';
 const B = 'https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services';
 const WH = ["STD_ST='PR'", "PROJ_ST='PR'", "STATE_CODE='PR'", "STATE2KX='72'", "STATE='PR'"];
 const NA = (v) => { const n = num(v); return n == null || n <= -1 ? null : n; }; // HUD picture-of-subsidized-households codes: -1 n/a, -4 suppressed, -5 not reported
@@ -72,17 +72,20 @@ export async function build(ctx) {
   await run('12-lihtc', async () => {
     const { rows, fields } = await arcgisFirst(`${B}/LIHTC/FeatureServer/0`, ["PROJ_ST='PR'", ...WH], { geometry: true, log: ctx.log });
     ctx.probe('hud_lihtc_fields', fields); ctx.probe('hud_lihtc_sample', rows[0]);
-    const objects = [], links = [], problems = [], seen = new Set(); let noMuni = 0;
+    const objects = [], links = [], problems = [], seen = new Set(); let noMuni = 0, byCityN = 0;
+    const byCity = new Map([...names].map(([g, n]) => [normMuni(n), g]));
     for (const r of rows) {
       const id = str(pick(r, ['HUD_ID', 'HUDID']));
       if (!id) { problems.push('row without HUD_ID'); continue; }
       const key = `lihtc-${id.replace(/\s+/g, '')}`; if (seen.has(key)) continue; seen.add(key);
-      const { geoid, lon, lat } = place(r, names);
+      let { geoid, lon, lat } = place(r, names); let conf;
+      if (!geoid) { const c = byCity.get(normMuni(pick(r, ['PROJ_CTY', 'STD_CITY']))); if (c) { geoid = c; conf = 0.7; byCityN++; } }
       const yr = num(pick(r, ['YR_PIS', 'YEAR_PIS']));
       objects.push({ type: 'assisted_housing', key, name: str(pick(r, ['PROJECT', 'PROJECT_NAME'])) || key, ...(lon != null ? { lon, lat } : {}), identities: [['hud:lihtc', id]],
         props: clean({ program: 'LIHTC', units: NA(pick(r, ['N_UNITS'])), assisted_units: NA(pick(r, ['LI_UNITS'])), placed_in_service: yr != null && yr >= 1986 && yr <= 2026 ? yr : null, address: addr(r), municipio_name: geoid ? names.get(geoid) : null }) });
-      if (geoid) links.push({ src: `assisted_housing:${key}`, type: 'located_in', dst: `municipio:${geoid}` }); else noMuni++;
+      if (geoid) links.push({ src: `assisted_housing:${key}`, type: 'located_in', dst: `municipio:${geoid}`, ...(conf ? { confidence: conf, note: 'record not geocoded by HUD; municipio taken from the project city name' } : {}) }); else noMuni++;
     }
+    if (byCityN) problems.push(`${byCityN} projects had no county FIPS (not geocoded by HUD): municipio taken from the project city where it equals a municipio name, confidence 0.7`);
     if (noMuni) problems.push(`${noMuni} projects without a usable county/tract FIPS: no municipio link`);
     return { file: '12-lihtc', problems, batch: { source: 'hud_lihtc', fetchedAt: Date.now(), objects, links,
       note: `HUD LIHTC database, PROJ_ST='PR' (${rows.length} records). Key = lihtc-<HUD_ID>. units = N_UNITS, assisted_units = LI_UNITS (low-income units), placed_in_service = YR_PIS (HUD codes 8888/9999 = unknown, left out).` } };

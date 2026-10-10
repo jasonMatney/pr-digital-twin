@@ -7,7 +7,8 @@ export async function build(ctx) {
   const layer = (svc.layers || [])[0];
   const { rows, fields, name } = await arcgisAll(`${SVC}/${layer.id}`, { log: ctx.log });
   ctx.probe('cdbg_fields', fields); ctx.probe('cdbg_sample', rows[0]);
-  const fLow = fields.find((f) => /^low_?mod$/i.test(f)), fUniv = fields.find((f) => /^low_?mod_?univ$/i.test(f)), fGeo = fields.find((f) => /^(geoid|geoid10|geoid20|bg_?id|fips)$/i.test(f));
+  // Layer LowModTractCDBG-DR: Est_LowMod = estimated low/moderate income persons, Personas_T = persons in the universe, Est_LowM_1 = their ratio in percent.
+  const fLow = fields.find((f) => /^(low_?mod|est_lowmod)$/i.test(f)), fUniv = fields.find((f) => /^(low_?mod_?univ|personas_t)$/i.test(f)), fGeo = fields.find((f) => /^(geoid|geoid10|geoid20|bg_?id|fips)$/i.test(f));
   if (!fLow || !fUniv) throw new Error(`no LOWMOD / LOWMODUNIV fields in ${name}: ${fields.join(',')}`);
   const muni = await ctx.municipios();
   const names = new Map(muni.rows.map((r) => [String(r.GEOID), String(r.BASENAME)]));
@@ -16,7 +17,7 @@ export async function build(ctx) {
     let g = String((fGeo ? r[fGeo] : null) ?? '').replace(/^15000US/, '').trim();
     if (!/^72\d{9,10}$/.test(g)) { const st = pick(r, ['STATE']), co = pick(r, ['COUNTY']), t = pick(r, ['TRACT']); g = st != null && co != null && t != null ? String(st).padStart(2, '0') + String(co).padStart(3, '0') + String(t).padStart(6, '0') : ''; }
     const low = num(r[fLow]), univ = num(r[fUniv]);
-    if (!/^72\d{9}/.test(g) || low == null || univ == null) { bad++; continue; }
+    if (!/^72\d{9}/.test(g) || low == null || univ == null || low > univ * 1.001) { bad++; continue; }
     for (const [m, k] of [[tr, g.slice(0, 11)], [mu, g.slice(0, 5)]]) { const a = m.get(k) || [0, 0]; a[0] += low; a[1] += univ; m.set(k, a); }
   }
   const objects = [];

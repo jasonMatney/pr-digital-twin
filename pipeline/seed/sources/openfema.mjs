@@ -53,12 +53,13 @@ export async function build(ctx) {
     o2.push({ type: 'disaster_impact', key: k, name: `${d ? d.declarationTitle : `Disaster ${a.dn}`}: ${byGeoid.get(a.g)}`, validFrom: d ? ms(d.incidentBeginDate) : null, validTo: d ? ms(d.incidentEndDate) : null,
       props: clean({ disaster_number: a.dn, municipio_name: byGeoid.get(a.g), valid_registrations: a.own + a.ren, owner_registrations: a.own, renter_registrations: a.ren, total_inspected: a.insp,
         total_damage_usd: round(a.dmg, 2), approved_usd: round(a.appr, 2), repair_replace_usd: round(a.rep, 2), rental_usd: round(a.rent, 2), major_damage_homes: a.major }) });
-    l2.push({ src: `disaster_impact:${k}`, type: 'record_of', dst: `disaster_declaration:${a.dn}` }, { src: `disaster_impact:${k}`, type: 'record_of', dst: `municipio:${a.g}` });
+    if (dis.has(a.dn)) l2.push({ src: `disaster_impact:${k}`, type: 'record_of', dst: `disaster_declaration:${a.dn}` });
+    l2.push({ src: `disaster_impact:${k}`, type: 'record_of', dst: `municipio:${a.g}` });
     if (a.dn === 4339) o2.push({ type: 'municipio', key: a.g, name: byGeoid.get(a.g), props: { ihp_registrations_maria: a.own + a.ren, ihp_approved_usd_maria: round(a.appr, 2) } });
   }
   for (const [c, n] of unmatched) p2.push(`county "${c}" not matched to a municipio (${n} registrations left out)`);
   const missingDecl = [...new Set([...agg.values()].map((a) => a.dn))].filter((n) => !dis.has(n));
-  if (missingDecl.length) p2.push(`disaster numbers in housing data without a declaration row: ${missingDecl.join(', ')}`);
+  if (missingDecl.length) p2.push(`disaster numbers in the PR housing data that have no PR declaration row (impact objects kept, no link to a declaration): ${missingDecl.join(', ')}`);
   out.push({ file: '31-housing-assistance', problems: p2, batch: { source: 'openfema_housing', fetchedAt: now, objects: o2, links: l2,
     note: `OpenFEMA HousingAssistanceOwners v2 (${own.length} rows) + HousingAssistanceRenters v2 (${ren.length} rows), state eq 'PR', summed from disaster x county x city x zip to disaster x municipio (county name normalised and matched to TIGER names). valid_registrations, total_inspected, approved_usd, repair_replace_usd, rental_usd = owners + renters. total_damage_usd = owners totalDamage only (the renters dataset has no dollar damage). major_damage_homes = owners with FEMA-inspected damage > $30,000 + renters with major or substantial damage. ihp_*_maria = DR-4339 row for the municipio.` } });
   return out;
