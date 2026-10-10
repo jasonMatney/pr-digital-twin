@@ -1,0 +1,6 @@
+{ "shots": [
+  { "id": "island-takram", "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&t=2026-10-10T15:30:00Z&cam=-66.45,18.1,330000,0,50", "w": 1280, "h": 800, "wait": 6000, "ready": 240000 },
+  { "id": "island-low", "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=low&t=2026-10-10T15:30:00Z&cam=-66.45,18.1,330000,0,50", "w": 1280, "h": 800, "wait": 6000 },
+  { "id": "osj-low", "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=low&t=2026-10-10T15:30:00Z&cam=-66.116,18.466,1600,20,32", "w": 1280, "h": 800, "wait": 8000 },
+  { "id": "app-wide", "url": "https://jasonmatney.github.io/pr-digital-twin/?q=low&t=2026-10-10T15:30:00Z", "w": 1600, "h": 900, "wait": 9000 }
+] }
