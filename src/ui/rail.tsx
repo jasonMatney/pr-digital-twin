@@ -46,6 +46,7 @@ function TypeRows({ types, counts }: { types: ObjectTypeDef[]; counts: Record<st
           );
         })}
       </ul>
+      {types.some((ty) => ty.id === 'aircraft') && <p class="fly-help fly-note">{t('rail.note.aircraft')}</p>}
     </>
   );
 }

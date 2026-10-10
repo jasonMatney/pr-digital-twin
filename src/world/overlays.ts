@@ -3,7 +3,7 @@
 // Every overlay publishes a legend (S.overlayLegend) that says what is shown, for when, and who publishes it.
 import { effect, signal, untracked } from '@preact/signals';
 import * as S from '../core/state';
-import { AST_OFFSET_H, ORIGIN, latToTileY, lonToTileX } from '../core/geo.ts';
+import { AST_OFFSET_H, ORIGIN, latToTileY, lonToTileX, tileLat, tileLon } from '../core/geo.ts';
 import type { LayerFactory } from './layers';
 import type { OverlaySource } from './types';
 import { DERIVED_SFHA, NO_DATA, choroplethDef, choroplethValues, formatValue, loadMunicipios, makeChoropleth } from './choropleth';
@@ -14,9 +14,41 @@ const HALF = 20037508.342789244;
 
 // RainViewer "Universal Blue" (colour scheme 2), as listed at rainviewer.com/api/color-schemes.html.
 const RV_STOPS: [number, string][] = [[15, '#88ddee'], [20, '#0099cc'], [25, '#0077aa'], [30, '#005588'], [35, '#ffee00'], [40, '#ffaa00'], [45, '#ff7700'], [50, '#ff4400'], [55, '#ee0000'], [60, '#990000'], [65, '#ffaaff']];
+// Below the first listed stop RainViewer shades weak echoes from transparent grey to tan (to be checked against the page above).
+const RV_WEAK = '#cec087';
 // NWS base reflectivity colours used by the Iowa Environmental Mesonet N0Q tiles.
 const NWS_STOPS: [number, string][] = [[5, '#04e9e7'], [10, '#019ff4'], [15, '#0300f4'], [20, '#02fd02'], [25, '#01c501'], [30, '#008e00'], [35, '#fdf802'], [40, '#e5bc00'], [45, '#fd9500'], [50, '#fd0000'], [55, '#d40000'], [60, '#bc0000'], [65, '#f800fd']];
 const dbz = (st: [number, string][]) => st.map(([v, color], i) => ({ color, label: i === st.length - 1 ? `≥ ${v}` : `${v}` }));
+
+// Overlays of things in the air (radar, satellite) are carried over the open sea by the terrain's far-sea plane, which
+// covers this box (terrain/index.ts, loadAbyssalOverlay). The picture is faded out over the last degrees inside
+// it, so that coverage ends in a gradient instead of a hard rectangle. Tiles well inside the box are untouched.
+const AIR_BOX = { west: -76, east: -58, south: 11, north: 26 }, AIR_FEATHER = 2.5;
+function feathered(url: (z: number, x: number, y: number) => string): NonNullable<OverlaySource['draw']> {
+  return async (z, x, y) => {
+    const r = await fetch(url(z, x, y), { mode: 'cors' });
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    const w = tileLon(x, z), e = tileLon(x + 1, z), n = tileLat(y, z), s = tileLat(y + 1, z), F = AIR_FEATHER;
+    // (straight alpha, as the terrain's own loader asks for: its shader blends by the alpha itself)
+    if (w >= AIR_BOX.west + F && e <= AIR_BOX.east - F && s >= AIR_BOX.south + F && n <= AIR_BOX.north - F) return createImageBitmap(blob, { premultiplyAlpha: 'none' });
+    const img = await createImageBitmap(blob);
+    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+    const g = cv.getContext('2d', { willReadFrequently: true })!;
+    g.drawImage(img, 0, 0); img.close?.();
+    const d = g.getImageData(0, 0, cv.width, cv.height), px = d.data;
+    for (let j = 0; j < cv.height; j++) {
+      const lat = tileLat(y + (j + 0.5) / cv.height, z), fy = Math.min(lat - AIR_BOX.south, AIR_BOX.north - lat);
+      for (let i = 0; i < cv.width; i++) {
+        const lon = w + ((i + 0.5) / cv.width) * (e - w);
+        const f = Math.max(0, Math.min(1, Math.min(fy, lon - AIR_BOX.west, AIR_BOX.east - lon) / F));
+        if (f < 1) px[(j * cv.width + i) * 4 + 3] *= f * f * (3 - 2 * f);
+      }
+    }
+    g.putImageData(d, 0, 0);
+    return cv;
+  };
+}
 
 /** NOAA maps sea level rise in half-foot steps from 0 to 10 ft; the service name spells 1.5 as "1_5". */
 export function slrStep(seaLevelM: number): { ft: number; name: string; substituted: boolean } {
@@ -45,16 +77,18 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
       if (!j?.host || !past?.length) throw new Error('no radar frames listed');
       const f = past[past.length - 1], base = `${j.host}${f.path}/256`;
       if (my !== gen) return;
-      show({ id: `radar:rainviewer:${f.time}`, minZoom: 0, maxZoom: 7, tileSize: 256, aboveWater: true, url: (z, x, y) => `${base}/${z}/${x}/${y}/2/1_1.png` }, {
-        title: tr('Rain radar', 'Radar de lluvia'), unit: 'dBZ', stops: dbz(RV_STOPS),
-        note: tr(`Reflectivity, frame of ${ast(f.time * 1000)}. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7).`, `Reflectividad, imagen de ${ast(f.time * 1000)}. Se actualiza cada 5 minutos. Resolución del mosaico: cerca de 1 km (teselas hasta zoom 7).`),
+      const rv = (z: number, x: number, y: number) => `${base}/${z}/${x}/${y}/2/1_1.png`;
+      show({ id: `radar:rainviewer:${f.time}`, minZoom: 0, maxZoom: 7, tileSize: 256, aboveWater: true, url: rv, draw: feathered(rv) }, {
+        title: tr('Rain radar', 'Radar de lluvia'), unit: 'dBZ', stops: [{ color: RV_WEAK, label: tr('< 15 (weak echoes)', '< 15 (ecos débiles)') }, ...dbz(RV_STOPS)],
+        note: tr(`Reflectivity, frame of ${ast(f.time * 1000)}. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7). The pale fringe around the echoes is reflectivity below 15 dBZ as RainViewer draws it (drizzle, or returns that are not rain).`, `Reflectividad, imagen de ${ast(f.time * 1000)}. Se actualiza cada 5 minutos. Resolución del mosaico: cerca de 1 km (teselas hasta zoom 7). El borde pálido alrededor de los ecos es reflectividad menor de 15 dBZ tal como la dibuja RainViewer (llovizna o ecos que no son lluvia).`),
         source: 'RainViewer radar mosaic (rainviewer.com), from NWS NEXRAD TJUA',
       });
     } catch (e) {
       lastError = 'rainviewer: ' + String(e);
       if (my !== gen) return;
       const bust = Math.floor(Date.now() / 300000);
-      show({ id: `radar:iem:${bust}`, minZoom: 0, maxZoom: 10, tileSize: 256, aboveWater: true, url: (z, x, y) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::JUA-N0Q-0/${z}/${x}/${y}.png?_=${bust}` }, {
+      const iem = (z: number, x: number, y: number) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::JUA-N0Q-0/${z}/${x}/${y}.png?_=${bust}`;
+      show({ id: `radar:iem:${bust}`, minZoom: 0, maxZoom: 10, tileSize: 256, aboveWater: true, url: iem, draw: feathered(iem) }, {
         title: tr('Rain radar · San Juan (TJUA)', 'Radar de lluvia · San Juan (TJUA)'), unit: 'dBZ', stops: dbz(NWS_STOPS),
         note: tr(`Base reflectivity, latest scan available at ${ast(Date.now())} (the tiles carry no time stamp). Refreshes every 5 minutes.`, `Reflectividad base, último barrido disponible a las ${ast(Date.now())} (las teselas no traen hora). Se actualiza cada 5 minutos.`),
         source: 'NWS NEXRAD TJUA via Iowa Environmental Mesonet (mesonet.agron.iastate.edu)',
@@ -85,7 +119,7 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
       return;
     }
     const time = iso(found);
-    show({ id: `goes:${time}`, minZoom: 0, maxZoom: 7, tileSize: 256, aboveWater: true, url: (z, x, y) => tile(time, z, x, y) }, {
+    show({ id: `goes:${time}`, minZoom: 0, maxZoom: 7, tileSize: 256, aboveWater: true, url: (z, x, y) => tile(time, z, x, y), draw: feathered((z, x, y) => tile(time, z, x, y)) }, {
       title: tr('Satellite · GOES-East GeoColor', 'Satélite · GOES-East GeoColor'),
       stops: [{ color: '#f4f6f7', label: tr('Cloud (day: true colour)', 'Nubes (día: color real)') }, { color: '#9db7e0', label: tr('Night: low cloud and fog', 'Noche: nubes bajas y niebla') }, { color: '#e9ecef', label: tr('Night: high cloud (infrared)', 'Noche: nubes altas (infrarrojo)') }],
       note: tr(`Image of ${ast(found)}, about ${Math.round((Date.now() - found) / 60000)} min old. Resolution about 1 km (tiles to zoom 7). At night the land under the cloud is a static city-lights picture, not live.`, `Imagen de ${ast(found)}, de hace unos ${Math.round((Date.now() - found) / 60000)} min. Resolución cerca de 1 km (teselas hasta zoom 7). De noche el suelo es una imagen fija de luces urbanas, no en vivo.`),

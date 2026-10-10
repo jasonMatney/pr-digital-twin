@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 export interface TileUniforms {
   tPhoto: { value: THREE.Texture };
-  tNorm: { value: THREE.Texture };       // RG = world normal x,z; B = height code: metres = B*128 - 96 (clamped)
+  tNorm: { value: THREE.Texture };       // RG = world normal x,z; B = height code: e = B*2 - 1, metres = sign(e) e^2 96; A = water / built-up
   tOverlay: { value: THREE.Texture };
   uOvXf: { value: THREE.Vector4 };
   uHasPhoto: { value: number };
@@ -45,8 +45,9 @@ vec3 gHypso(float h) {
 const ALBEDO = /* glsl */`
 {
   vec4 nt = texture2D(tNorm, vUv);
-  float hC = nt.b * 128.0 - 96.0;
-  float h = hC < -95.0 ? min(hC, vH) : (hC > 31.0 ? max(hC, vH) : hC);
+  float hE = nt.b * 2.0 - 1.0;
+  float hC = sign(hE) * hE * hE * 96.0;
+  float h = hC < -95.0 ? min(hC, vH) : (hC > 95.0 ? max(hC, vH) : hC);
   // Alpha is the photo's coverage (0 in the blank white/black blocks the service paints outside its footprint);
   // blank pixels are stored black, so rgb / alpha is the picture's own colour right up to the block edge.
   vec4 ph = texture2D(tPhoto, vUv, -0.35);
@@ -68,9 +69,10 @@ const ALBEDO = /* glsl */`
     c = mix(c, vec3(0.42, 0.40, 0.30), smoothstep(0.55, 1.0, t));
     land = mix(gToLin(c), land, cov); l = mix(0.45, l, cov);
   }
-  float wat = clamp(1.0 - nt.a * 2.0, 0.0, 1.0) * cov, built = clamp(nt.a * 2.0 - 1.0, 0.0, 1.0) * cov;
-  // Seabed for the ocean pass to tint: wherever the merged model is under the sea, and at sea level where the photo
-  // itself shows water (or shows nothing). Piers, the port and mangrove at 0 m keep their photo.
+  float wat = clamp(1.0 - nt.a * 2.0, 0.0, 1.0), built = clamp(nt.a * 2.0 - 1.0, 0.0, 1.0) * cov;
+  // Seabed for the ocean pass to tint: wherever the merged model is under the sea. Only where there is no topo-bathy
+  // (the worker clears the water flag where there is) does the photo decide at sea level: water or nothing in the
+  // picture = seabed. Lagoons, piers, the port and mangrove at 0 m keep their photo.
   float depth = max(0.0, -h);
   float shallow = 1.0 - smoothstep(0.0, 25.0, depth);
   // Sand against seagrass is read off the photo only where the water is shallow enough for it to show the real
@@ -82,10 +84,13 @@ const ALBEDO = /* glsl */`
   bed = mix(bed, vec3(0.13, 0.17, 0.11), veg * 0.75);
   bed = mix(bed, vec3(0.20, 0.20, 0.19), smoothstep(20.0, 70.0, depth));
   float low = 1.0 - smoothstep(0.25, 0.7, h);
-  float under = max(smoothstep(-0.15, -0.45, h), low * max(smoothstep(0.3, 0.6, wat), 1.0 - cov));
+  // The first metre of water keeps the photo (it shows that water: surf, a turbid pond, the wet edge of a marsh);
+  // a blank photo has nothing to show, so there the seabed starts at the waterline.
+  float deepen = mix(smoothstep(-0.25, -1.25, h), smoothstep(-0.05, -0.35, h), 1.0 - cov);
+  float under = max(deepen, low * smoothstep(0.3, 0.6, wat));
   vec3 alb = mix(land, bed, under);
   if (uTintMode > 0.5) {
-    float hh = (hC < -95.0 || hC > 31.0) ? vH : h;
+    float hh = (hC < -95.0 || hC > 95.0) ? vH : h;
     float g = dot(land, vec3(0.30, 0.59, 0.11));
     alb = gHypso(hh) * clamp(0.50 + 2.4 * mix(0.2, g, 1.0 - under), 0.35, 1.5);
   }
@@ -152,6 +157,6 @@ export function makeTileMaterial(g: GlobalUniforms, photo: THREE.Texture, norm: 
       .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  gl_FragColor.a = 1.0 - gOvCov * uOvAbove;')
       .replace('#include <normal_fragment_maps>', NORMAL);
   };
-  material.customProgramCacheKey = () => 'garita-tile-13';
+  material.customProgramCacheKey = () => 'garita-tile-14';
   return { material, uniforms };
 }

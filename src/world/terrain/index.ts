@@ -213,13 +213,24 @@ export function createTerrain(world: World): TerrainApi {
       const d = z - bz, bx = x >> d, by = y >> d;
       if (bathyIdx.get(bz)?.has(pack(bx, by)) && usable(bathyUrl(bz, bx, by), now)) cudem = { url: bathyUrl(bz, bx, by), z: bz, x: bx, y: by };
     }
+    // One zoom above the layer's coarsest tiles (the open-sea tiles stop at zoom 11): its four children, averaged, so
+    // the seabed is the same surface on both sides of the zoom boundary.
+    let cudemKids: (DemSrc | null)[] | null = null;
+    if (bathyIdx && !cudem && z === bathyMin - 1) {
+      const set = bathyIdx.get(bathyMin)!;
+      const kids = [0, 1, 2, 3].map((i) => {
+        const kx = 2 * x + (i & 1), ky = 2 * y + (i >> 1);
+        return set.has(pack(kx, ky)) && usable(bathyUrl(z + 1, kx, ky), now) ? { url: bathyUrl(z + 1, kx, ky), z: z + 1, x: kx, y: ky } : null;
+      });
+      if (kids.some(Boolean)) cudemKids = kids;
+    }
     // Coarse stand-in where there is none: only zoom 10 and below carry bathymetry (zooms 11+ hold the sea at exactly 0 m).
     const bathy: DemSrc[] = [];
     if (z >= 11) for (let az = 10; az >= ROOT_Z; az--) {
       const d = z - az, ax = x >> d, ay = y >> d;
       if (has('dem', az, ax, ay)) { bathy.push({ url: demUrl(az, ax, ay), z: az, x: ax, y: ay }); break; }
     }
-    return { type: 'tile', id: 0, z, x, y, grid: z >= 14 ? 128 : 64, dem, img, crop, cudem, bathy, root: z === ROOT_Z };
+    return { type: 'tile', id: 0, z, x, y, grid: z >= 14 ? 128 : 64, dem, img, crop, cudem, cudemKids, bathy, root: z === ROOT_Z };
   }
 
   // ---- workers ----

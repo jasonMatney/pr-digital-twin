@@ -9,6 +9,7 @@ export interface TileJob {
   img: string[][];               // candidates: four z+1 urls (nw, ne, sw, se) or one url; empty = no photo wanted
   crop?: DemSrc | null;          // nearest ancestor photo, cropped, when the tile adds elevation detail but has no photo of its own
   cudem?: DemSrc | null;         // topo-bathy layer (NOAA CUDEM): one continuous surface through the waterline; no-data = -32768
+  cudemKids?: (DemSrc | null)[] | null;   // one zoom above the layer's coarsest: its four children (nw, ne, sw, se), averaged 2x2
   bathy?: DemSrc[];              // coarse stand-in where there is no topo-bathy: an elevation ancestor that carries bathymetry
   root: boolean;                 // roots never fail: flat sea level and no photo instead
 }
@@ -141,6 +142,33 @@ async function loadDem(url: string, signal: AbortSignal, topoBathy = false) {
   return dem;
 }
 
+/** A topo-bathy grid for a tile one zoom above the layer's coarsest zoom: the four children, each averaged 2x2 without
+ *  letting no-data into the mean. The sea then has the same depths on both sides of a zoom-11 / zoom-12 tile boundary. */
+async function loadCudemQuad(kids: (DemSrc | null)[], signal: AbortSignal, okUrls: string[], failed: string[]) {
+  const key = 'quad|' + kids.map((k) => (k ? k.url : '-')).join('|');
+  const hit = demCache.get(key);
+  if (hit) { demCache.delete(key); demCache.set(key, hit); return hit; }
+  const W = 256, h = new Float32Array(W * W).fill(NaN);
+  let any = false;
+  for (let q = 0; q < 4; q++) {
+    const k = kids[q];
+    if (!k) continue;
+    let cd: { w: number; h: Float32Array };
+    try { cd = await loadDem(k.url, signal, true); okUrls.push(k.url); } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, k.url)); continue; }
+    const cw = cd.w, f = cw / (W / 2), ox = (q & 1) * (W / 2), oy = (q >> 1) * (W / 2);
+    for (let j = 0; j < W / 2; j++) for (let i = 0; i < W / 2; i++) {
+      let sum = 0, n = 0;
+      for (let dj = 0; dj < f; dj++) for (let di = 0; di < f; di++) { const v = cd.h[(j * f + dj) * cw + i * f + di]; if (v === v) { sum += v; n++; } }
+      if (n) { h[(oy + j) * W + ox + i] = sum / n; any = true; }
+    }
+  }
+  if (!any) return null;
+  const dem = { w: W, h };
+  demCache.set(key, dem);
+  if (demCache.size > 28) demCache.delete(demCache.keys().next().value!);
+  return dem;
+}
+
 function sample(H: Float32Array, w: number, px: number, py: number): number {
   if (px < 0) px = 0; else if (px > w - 1) px = w - 1;
   if (py < 0) py = 0; else if (py > w - 1) py = w - 1;
@@ -191,16 +219,26 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
 
   // ---- seabed for cells the elevation holds at about 0 m (lidar tiles have no bathymetry) ----
   // Topo-bathy first: where it has data it is the surface for the whole nearshore zone.
-  let cAt: ((u: number, v: number) => number) | null = null, cudemFull = false;
+  let cAt: ((u: number, v: number) => number) | null = null, cudemFull = false, cStep = 1 / 256;   // cStep: one topo-bathy cell in tile uv
   if (job.cudem) {
     try {
       const c = job.cudem, cd = await loadDem(c.url, signal, true);
       okUrls.push(c.url);
       const CW = cd.w, CH = cd.h, cs = 2 ** (z - c.z), cu0 = (x - c.x * cs) / cs, cv0 = (y - c.y * cs) / cs;
       cAt = (u, v) => sample(CH, CW, (cu0 + u / cs) * CW - 0.5, (cv0 + v / cs) * CW - 0.5);
+      cStep = cs / CW;
       cudemFull = true;
       for (let j = 0; j <= 16 && cudemFull; j++) for (let i = 0; i <= 16; i++) { const v = cAt(i / 16, j / 16); if (v !== v) { cudemFull = false; break; } }
     } catch (e) { if (signal.aborted) throw e; failed.push(tag(e, job.cudem.url)); }
+  } else if (job.cudemKids) {
+    const cd = await loadCudemQuad(job.cudemKids, signal, okUrls, failed);
+    if (cd) {
+      const CW = cd.w, CH = cd.h;
+      cAt = (u, v) => sample(CH, CW, u * CW - 0.5, v * CW - 0.5);
+      cStep = 1 / CW;
+      cudemFull = true;
+      for (let j = 0; j <= 16 && cudemFull; j++) for (let i = 0; i <= 16; i++) { const v = cAt(i / 16, j / 16); if (v !== v) { cudemFull = false; break; } }
+    }
   }
   let bath: { w: number; h: Float32Array } | null = null, bsrc: DemSrc | null = null;
   if (job.bathy?.length && !cudemFull) {
@@ -238,6 +276,7 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
   let px: Uint8Array | null = null, PW = 0;
   const cls = new Uint8Array(T * T).fill(128);          // 0 = the photo shows water, 128 = neither, 255 = built-up
   let wd: Float32Array | null = null;                   // depth (m) read off the photo's water colour, 0 = not water
+  let blank: Uint8Array | null = null;                  // 1 = the photo has no picture in this cell
   if (photo.bmp) {
     PW = photo.bmp.width >= 512 ? 512 : 256;
     const d = pixels(photo.bmp, PW);
@@ -278,6 +317,7 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
       r /= n; g /= n; b /= n;
       cr[k] = r; cg[k] = g; cb[k] = b; lum[k] = 0.3 * r + 0.59 * g + 0.11 * b;
     }
+    blank = nd;
     for (let j = 0, k = 0; j < T; j++) for (let i = 0; i < T; i++, k++) {
       if (nd[k]) continue;
       let lo = 255, hi = 0;
@@ -327,10 +367,22 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
       // One continuous surface through the waterline: topo-bathy below +1 m, eased into the base elevation by +3 m.
       const c = CAT(u, v);
       if (c === c) {
-        if (c >= 3) return h;
-        if (c <= 1) return c;
-        const t = (c - 1) / 2, w = 1 - t * t * (3 - 2 * t);
-        return h + (c - h) * w;
+        let m = c >= 3 ? h : c;
+        if (c > 1 && c < 3) { const t = (c - 1) / 2, w = 1 - t * t * (3 - 2 * t); m = h + (c - h) * w; }
+        // A cell of the layer that straddles a sea wall or a quay is the mean of the wall top and the seabed. Below
+        // +3 m that is a flat step at about sea level; above, the base elevation is used and that holds the sea at
+        // 0 m. Either way a shelf one cell wide (37 m at zoom 12) stood out from the shore in blocks. Where the photo
+        // shows water on such a cell (high ground and seabed both among its neighbours) it takes the seabed's side.
+        if (WD && (c >= 3 || m > -0.5) && m < 1.2 && sample(WD, T, u * T - 0.5, v * T - 0.5) > 0.45) {
+          let lo = m, hi = c;
+          for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+            if (!di && !dj) continue;
+            const n = CAT(u + di * cStep, v + dj * cStep);
+            if (n < lo) lo = n; else if (n > hi) hi = n;
+          }
+          if (lo < -0.5 && hi > 2.5) m = lo;
+        }
+        return m;
       }
     }
     // No topo-bathy here: the coarse stand-in, then the depth guessed from the water's colour.
@@ -385,9 +437,17 @@ async function buildTile(job: TileJob, signal: AbortSignal): Promise<{ res: Tile
       const inv = 1 / Math.sqrt(nx * nx + 1 + nz * nz);
       norm[o] = Math.round((nx * inv * 0.5 + 0.5) * 255);
       norm[o + 1] = Math.round((nz * inv * 0.5 + 0.5) * 255);
-      const hc = (G[k] + 96) / 128;                       // -96 m .. +32 m in 0.5 m steps
-      norm[o + 2] = hc <= 0 ? 0 : hc >= 1 ? 255 : Math.round(hc * 255);
-      norm[o + 3] = cls[j * T + i];
+      // Height code, companded so that the waterline is exact: metres = sign(e) e^2 96 with e = B * 2 - 1
+      // (5 cm steps at 0.1 m, 15 cm at 1 m, 0.5 m at 10 m; beyond +-96 m the shader uses the mesh height).
+      const g = G[k], e = g < 0 ? -Math.sqrt(Math.min(1, -g / 96)) : Math.sqrt(Math.min(1, g / 96));
+      norm[o + 2] = Math.round((e * 0.5 + 0.5) * 255);
+      // A: 0 = sea level here may be painted as seabed (the photo shows water, or shows nothing), 128 = neither,
+      // 255 = built-up. Where the topo-bathy layer has data its surface alone decides what is under the sea: a lagoon
+      // it holds at its water level, and dark mangrove that the photo test takes for water, keep their photo.
+      let a = cls[j * T + i];
+      if (CAT) { const c = CAT((i + 0.5) / T, (j + 0.5) / T); if (c === c) { if (a < 128) a = 128; } else if (!blank || blank[j * T + i]) a = 0; }
+      else if (!blank || blank[j * T + i]) a = 0;
+      norm[o + 3] = a;
     }
   }
 

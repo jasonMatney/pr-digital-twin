@@ -73,3 +73,12 @@ export async function affectsCount(id: string): Promise<number> {
 
 export const SEV_FLOOD: Record<string, number> = { action: 1, minor: 2, moderate: 3, major: 4 };
 export const sevClass = (s: number | null | undefined) => 'sev-' + Math.max(0, Math.min(4, Math.round(s ?? 0)));
+
+/** When an aircraft's position was reported (the relay passes it on minutes later): the newest of the values that
+ *  arrive with a fix, the same rule the scene uses for its staleness caption. */
+export function aircraftFixAt(o: { type: string; updatedAt?: number | null; allProps?: { key: string; observedAt: number }[] }): number | null {
+  if (o.type !== 'aircraft') return null;
+  let at = -Infinity;
+  for (const p of o.allProps ?? []) if ((p.key === 'track_deg' || p.key === 'altitude_m') && p.observedAt > at) at = p.observedAt;
+  return Number.isFinite(at) ? at : o.updatedAt ?? null;
+}

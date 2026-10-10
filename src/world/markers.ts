@@ -30,6 +30,7 @@ const PROPS: Record<string, string[]> = { earthquake: ['magnitude'], aircraft: [
 const DAY = 86400000, KT = 0.514444;
 const DASH = [3, 3], SOLID: number[] = [];
 const HN = 1 << 15, HM = HN - 1;   // cluster hash table
+const NOTE_RANGE = 40000;          // camera range (m) under which a stale aircraft carries its age as text
 const AGG_MIN = 30;                // dots in a ~75 px cell before a count badge is worth showing
 
 export const createMarkers: LayerFactory = (ctx) => {
@@ -288,7 +289,7 @@ export const createMarkers: LayerFactory = (ctx) => {
 
   function paint(now: number, wall: number) {
     // With thousands of dots on screen (every layer on, from orbit) each one gets smaller and fainter.
-    const dense = smooth(250, 900, nDots);
+    const dense = smooth(250, 900, nDots), orbit = smooth(150000, 280000, range);
     nDrawn = 0; nDots = 0;
     const A = atlas.canvas, cs = CELL * dpr;
     for (let k = 0; k < nItems; k++) {
@@ -314,9 +315,10 @@ export const createMarkers: LayerFactory = (ctx) => {
         r = (DOT_R - 0.5 + (DISC_R - DOT_R + 0.5) * grow) * shrink * (1 - 0.16 * far);
         if (grow < 0.45) {
           nDots++;
-          r *= 1 - 0.24 * dense;
+          // At island range and beyond the island is the subject: dots step back a little further.
+          r *= (1 - 0.24 * dense) * (1 - 0.14 * orbit);
           const size = CELL * r / DOT_R;
-          g.globalAlpha = a * (0.9 - 0.25 * dense);
+          g.globalAlpha = a * (0.9 - 0.25 * dense) * (1 - 0.22 * orbit);
           g.drawImage(A, t.idx * cs, cs, cs, cs, x - size / 2, y - size / 2, size, size);
           if (sev >= 1) { g.beginPath(); g.arc(x, y, r + 1.6, 0, 6.2832); g.lineWidth = 1.2; g.strokeStyle = SEV[sev]; g.stroke(); }
           iR[i] = r + 2;
@@ -388,7 +390,9 @@ export const createMarkers: LayerFactory = (ctx) => {
       } else if (t.mode === 'aircraft') {
         // The feed is relayed every few minutes: these are where aircraft were, not where they are.
         const age = Math.max(0, wall - m.time), stale = age > 2 * 60000;
-        a *= stale ? 0.6 : 0.92;
+        // From orbit an aircraft is context, not the subject: smaller and quieter, with a shorter leader.
+        const ps = prio >= 61 ? 20 : 20 - 6 * orbit;
+        a *= (stale ? 0.6 : 0.92) * (prio >= 61 ? 1 : 1 - 0.25 * orbit);
         g.globalAlpha = a;
         let ang = -Math.PI / 2;
         if (Number.isFinite(m.track)) {
@@ -400,29 +404,34 @@ export const createMarkers: LayerFactory = (ctx) => {
           if (view.project(m.wx + Math.sin(tr) * L, m.wy, m.wz - Math.cos(tr) * L)) {
             ang = Math.atan2(view.sy - m.sy, view.sx - m.sx);
             const cx = Math.cos(ang), sy = Math.sin(ang);
-            let ex = x + cx * 34, ey = y + sy * 34, ghost = false;
+            let ex = x + cx * (ps + 14), ey = y + sy * (ps + 14), ghost = false;
             if (dr > L && view.project(m.wx + Math.sin(tr) * dr, m.wy, m.wz - Math.cos(tr) * dr)) {
               const gx = x + view.sx - m.sx, gy = y + view.sy - m.sy;
               if (Math.hypot(gx - x, gy - y) > 22) { ex = gx; ey = gy; ghost = true; }
             }
             g.setLineDash(DASH);
-            g.beginPath(); g.moveTo(x + cx * 12, y + sy * 12); g.lineTo(ex, ey);
+            g.beginPath(); g.moveTo(x + cx * ps * 0.6, y + sy * ps * 0.6); g.lineTo(ex, ey);
             g.lineWidth = 2.4; g.strokeStyle = 'rgba(3,11,16,0.45)'; g.stroke();
             g.lineWidth = 1.1; g.strokeStyle = t.def.color; g.stroke();
             if (ghost) { g.beginPath(); g.arc(ex, ey, 4.5, 0, 6.2832); g.lineWidth = 1.1; g.stroke(); }
             g.setLineDash(SOLID);
           }
         }
-        const s = 20 / 16, c = Math.cos(ang + Math.PI / 2) * s * dpr, sn = Math.sin(ang + Math.PI / 2) * s * dpr;
+        const s = ps / 16, c = Math.cos(ang + Math.PI / 2) * s * dpr, sn = Math.sin(ang + Math.PI / 2) * s * dpr;
         g.setTransform(c, sn, -sn, c, dpr * x - (c * 8 - sn * 8), dpr * y - (sn * 8 + c * 8));
         g.lineJoin = 'round'; g.lineWidth = 2.2; g.strokeStyle = 'rgba(4,14,19,0.9)'; g.stroke(planePath);
         g.fillStyle = t.def.color; g.fill(planePath);
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (stale && m.note) {
+        // The age is written beside an aircraft only close in, or on the one under the pointer / selected: from orbit
+        // twenty identical captions bury the place names. The hover tip and the object panel always carry it.
+        const near = prio >= 61 ? 1 : stale ? 1 - smooth(NOTE_RANGE, NOTE_RANGE * 1.15, range) : 0;
+        if (near > 0.02 && m.note) {
+          g.globalAlpha = Math.max(a, prio >= 61 ? 0.85 : 0) * near;
           g.font = "500 9.5px 'IBM Plex Mono', ui-monospace, Menlo, monospace"; g.textAlign = 'left'; g.textBaseline = 'middle';
-          haloText(g, m.note, x + 12, y + 12, '#cfd8e3', 'rgba(3,11,16,0.8)', 2.6);
+          haloText(g, m.note, x + (prio >= 62 ? 21 : 12), y + (prio >= 62 ? 15 : 12), '#cfd8e3', 'rgba(3,11,16,0.8)', 2.6);
+          g.globalAlpha = a;
         }
-        r = 11;
+        r = 11 * ps / 20;
       } else {
         // Tropical cyclone: a turning spiral, counter-clockwise as in the northern hemisphere.
         r = 19;

@@ -540,3 +540,14 @@ table.grid.rp-bands td.num { font-family: var(--font-mono); font-size: var(--fs-
 .about-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid var(--line); font-size: var(--fs-1); }
 .about-foot a { display: inline-flex; align-items: center; gap: 5px; } .about-foot .btn { margin-left: auto; }
 @media (max-width: 600px) { .about-cols, .about-keys { grid-template-columns: 1fr; } }
+
+/* live sources fetched only while their overlay is on: neither on time nor late */
+.fdot.fresh-ondemand { background: transparent; border: 1px solid var(--fg-3); }
+.fresh-pill.fresh-ondemand { color: var(--fg-3); }
+.feed-sum ul { display: grid; gap: 3px; padding: 0 2px 4px; list-style: none; }
+.feed-sum .feed-sum-top { color: var(--fg); }
+.fly-note { padding-bottom: 10px !important; line-height: 1.45; border-top: 1px solid var(--line); margin-top: 6px; }
+.hovertip-note { font-size: var(--fs-1); color: var(--fg-3); }
+.ob-relay { font-size: var(--fs-1); color: var(--fg-2); line-height: 1.4; white-space: normal; }
+/* The scene's own DOM chips (cyclone pointer, z-index 4) sit on the map, never on a panel that opens over it. */
+.topbar, .kpis, .rail, .flyout, .dock, .bottombar, .legend, .toasts { z-index: 6; }

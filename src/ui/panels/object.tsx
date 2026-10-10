@@ -4,8 +4,8 @@ import type { TwinStore, ObjectRecord, LinkRecord, PropRecord, Series, MetricDef
 import * as S from '../../core/state';
 import { t, L } from '../../i18n/index';
 import { Icon } from '../icons';
-import { formatProp, ago, fmtDateTime, dd, dmm, num, unitLabel, DASH } from '../format';
-import { storeTick, nowTick, useQuery, typeDef, sourceDef, linkDef, propDef, sevClass, paletteOpen } from '../uistate';
+import { formatProp, ago, fmtDateTime, fmtTime, dd, dmm, num, unitLabel, DASH } from '../format';
+import { storeTick, nowTick, useQuery, typeDef, sourceDef, linkDef, propDef, sevClass, paletteOpen, aircraftFixAt } from '../uistate';
 
 function SourceChip({ id }: { id: string }) {
   const s = sourceDef(id);
@@ -192,6 +192,7 @@ export function ObjectPanel({ store }: { store: TwinStore }) {
   const notes = [...pending.filter((p) => !userRecs.some((u) => u.key === p.key && String(u.value) === p.value)).map((p) => ({ key: p.key, value: p.value, observedAt: p.t })), ...userRecs];
   const userStatus = notes.find((x) => x.key === 'status')?.value;
   const status = (userStatus as string) ?? o.status;
+  const fixAt = aircraftFixAt(o);
   const copy = () => { navigator.clipboard?.writeText(o.id).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1400); }).catch(() => {}); };
   const save = async () => {
     const v = text.trim(); if (!v || !form) return;
@@ -218,6 +219,7 @@ export function ObjectPanel({ store }: { store: TwinStore }) {
             ? <span title={`${dd(o.lat)}, ${dd(o.lon)}`}>{dmm(o.lat!, 'lat')}  {dmm(o.lon!, 'lon')}</span>
             : <span class="muted">{t('ob.noloc')}{o.geometry?.type ? ` · ${o.geometry.type}` : ''}</span>}
         </div>
+        {fixAt != null && <p class="ob-relay">{t('ac.relayed').replace('{time}', fmtTime(fixAt)).replace('{ago}', ago(fixAt, now))}</p>}
         <div class="ob-actions">
           <button class="btn" onClick={() => { S.pendingFlyToObject.value = o.id; }}><Icon name="fly" size={14} />{t('ob.fly')}</button>
           <button class={'btn' + (form === 'note' ? ' on' : '')} onClick={() => { setForm(form === 'note' ? null : 'note'); setText(''); }}><Icon name="note" size={14} />{t('ob.note')}</button>

@@ -80,14 +80,25 @@ const FRAG = /* glsl */`
     return smoothstep(0.55, 0.95, r) * 0.7 + smoothstep(0.6, 0.97, q) * 0.5;
   }
 
-  // Cloud cover as seen from orbit (a 2D field on a shell 1.5 km up): fields of cumulus with clear lanes, more over the island.
+  // Cloud cover as seen from orbit: a procedural 2D field on a shell 2.2 km up, driven by the cloud-cover value
+  // only (it is NOT observed weather, and is switched off whenever a radar or satellite overlay is shown). Cloud
+  // masses tens of km across broken into cumulus cells, with clear lanes and more over the island; the coordinates
+  // are warped so that edges curl instead of following the noise lattice, and the edge is crisp in some regions and
+  // frayed in others.
   float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vnoise(p, 4096.0); p = p * 2.07 + 13.7; a *= 0.5; } return s / 0.9375; }
+  float fbm2(vec2 p) { return (vnoise(p, 4096.0) + 0.5 * vnoise(p * 2.11 + 19.3, 4096.0)) / 1.5; }
   float cloud2D(vec2 p) {
+    vec2 wv = (vec2(fbm2(p / 21000.0 + 7.1), fbm2(p / 21000.0 + 53.4)) - 0.5) * 11000.0, q = p + wv;
     float field = fbm(p / 90000.0 + 31.0);
-    float cells = 0.72 * fbm(p / 9000.0 + 5.0) + 0.28 * fbm(p / 2100.0 + 41.0);
+    float mass = fbm2(q / 30000.0 + 11.0);
+    float cells = fbm(q / 7500.0 + 5.0);
+    float fray = fbm2((p + 0.3 * wv) / 1700.0 + 41.0);   // (barely warped: stretched fine detail reads as brush strokes)
     float island = exp(-(p.x * p.x) / (2.0 * 70000.0 * 70000.0) - ((p.y - 3000.0) * (p.y - 3000.0)) / (2.0 * 17000.0 * 17000.0));
-    float c = cells + (smoothstep(0.38, 0.62, field) - 0.5) * 0.30 + 0.10 * island + uCloud2.w;
-    return smoothstep(uCloud2.x, uCloud2.x + uCloud2.y, c);
+    float c = 0.5 + (0.36 * mass + 0.44 * cells + 0.20 * fray - 0.5) * 1.3;
+    c += (smoothstep(0.38, 0.62, field) - 0.5) * 0.30 + 0.10 * island + uCloud2.w;
+    float soft = uCloud2.y * mix(0.55, 2.1, smoothstep(0.3, 0.7, fbm2(p / 52000.0 + 77.0)));
+    float mid = uCloud2.x + 0.5 * uCloud2.y;
+    return smoothstep(mid - 0.5 * soft, mid + 0.5 * soft, c);
   }
   float stars(vec3 d) {
     vec3 p = d * 230.0, q = floor(p), f = p - q - 0.5;
@@ -206,16 +217,28 @@ const FRAG = /* glsl */`
     }
 
     if (uOrbit > 0.001 && !sky) {
-      float hc = uCamH - 1500.0, dc = b * b - 4.0 * a * hc;
+      const float CLOUD_H = 2200.0;
+      float hc = uCamH - CLOUD_H, dc = b * b - 4.0 * a * hc;
       if (hc > 0.0 && b < 0.0 && dc > 0.0) {
         float tC = 2.0 * hc / (-b + sqrt(dc)), tG = water ? tW : tScene;
         vec2 gp = uCamPos.xz + rd.xz * tG;
-        col *= 1.0 - uCloud2.z * uOrbit * cloud2D(gp + uLightDir.xz / max(uLightDir.y, 0.15) * 1500.0);
+        vec2 toSun = uLightDir.xz / max(uLightDir.y, 0.2);
+        // the shadow on the sea and the land beneath: two taps along the light, so it is softer than the cloud that casts it
+        float sh = 0.6 * cloud2D(gp + toSun * CLOUD_H) + 0.4 * cloud2D(gp + toSun * (CLOUD_H + 900.0) + 700.0);
+        col *= 1.0 - uCloud2.z * uOrbit * sh;
         if (tC < tG) {
-          vec2 cp = uCamPos.xz + rd.xz * tC;
+          vec2 cp = uCamPos.xz + rd.xz * tC, sd = normalize(uLightDir.xz + 1e-4);
           float cv = cloud2D(cp);
-          float lit = clamp(0.55 + 0.45 * cv + (cv - cloud2D(cp + normalize(uLightDir.xz + 1e-4) * 1100.0)) * 1.6, 0.0, 1.0);   // thick and sun-facing: bright
-          col = mix(col, uEd * 0.86 * mix(vec3(0.60, 0.66, 0.76), vec3(1.0), lit), pow(cv, 0.8) * uOrbit * 0.94);
+          if (cv > 0.002) {
+            // shading from the sun's side: thinner toward the sun = a lit flank, thicker toward it = in the cloud's own shade;
+            // thick tops are mottled, thin edges take the colour of what is under them
+            float g = cv - 0.5 * (cloud2D(cp + sd * 900.0) + cloud2D(cp + sd * 2600.0));
+            float low = clamp(uLightDir.y * 2.5, 0.25, 1.0);
+            float bump = vnoise(cp / 520.0 + 3.0, 4096.0) - 0.5;
+            float lit = clamp(0.70 + 1.5 * g / low - 0.16 * cv * cv + 0.22 * bump * cv, 0.0, 1.0);
+            vec3 cc = uEd * 0.86 * mix(vec3(0.46, 0.53, 0.66), vec3(1.0), lit);
+            col = mix(col, cc, pow(cv, 1.25) * uOrbit * 0.95);
+          }
         }
       }
     }
@@ -264,7 +287,7 @@ export class SceneOceanPass extends Pass {
       tColor: { value: this.target.texture }, tDepth: { value: depthTexture },
       uNear: { value: 1 }, uFar: { value: 1e6 }, uCamH: { value: 100 }, uTime: { value: 0 }, uPix: { value: 0.001 },
       uOcean: { value: 1 }, uBasic: { value: 0 }, uMss: { value: 0.03 }, uWindMs: { value: 6 }, uWaveH: { value: 1 }, uNight: { value: 0 }, uDeepGain: { value: 1 },
-      uOrbit: { value: 0 }, uDbgAlpha: { value: 0 }, uCloud2: { value: new THREE.Vector4(0.60, 0.24, 0.5, 0) },
+      uOrbit: { value: 0 }, uDbgAlpha: { value: 0 }, uCloud2: { value: new THREE.Vector4(0.60, 0.24, 0.62, 0) },
       uTan: { value: new THREE.Vector2(1, 1) }, uOR: { value: new THREE.Vector2() }, uWrap: { value: new THREE.Vector2() },
       uCamPos: { value: v3() }, uRight: { value: v3() }, uUp: { value: v3() }, uFwd: { value: v3() },
       uLightDir: { value: new THREE.Vector3(0, 1, 0) }, uLightE: { value: new THREE.Vector3(3, 3, 3) }, uEd: { value: new THREE.Vector3(1, 1, 1) },

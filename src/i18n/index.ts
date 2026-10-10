@@ -14,8 +14,9 @@ const D: Dict = {
   'app.quality': ['Render quality', 'Calidad gráfica'],
   'q.low': ['Low', 'Baja'], 'q.medium': ['Med', 'Media'], 'q.high': ['High', 'Alta'],
   'feeds.chip': ['feeds', 'fuentes'],
-  'feeds.ok': ['All live feeds reporting', 'Todas las fuentes en vivo responden'],
-  'feeds.problem': ['Some feeds are late or failing', 'Algunas fuentes están atrasadas o fallan'],
+  'feeds.sum': ['{ok} of {n} polled feeds on time', '{ok} de {n} fuentes sondeadas al día'],
+  'feeds.failing': ['Failing', 'Fallando'], 'feeds.late': ['Late', 'Atrasadas'], 'feeds.waiting': ['Waiting for a first run', 'Esperan su primera corrida'],
+  'feeds.ondemand': ['Not counted, {n} map tile services fetched only while their overlay is on', 'No se cuentan {n} servicios de teselas que se piden solo con su superposición encendida'],
   'feeds.none': ['No feed has reported yet', 'Ninguna fuente ha respondido aún'],
 
   // KPI strip
@@ -43,6 +44,9 @@ const D: Dict = {
   'grp.scene': ['Scene', 'Escena'], 'grp.overlays': ['Overlays', 'Superposiciones'],
   'rail.all_on': ['All on', 'Todas'], 'rail.all_off': ['All off', 'Ninguna'],
   'rail.objects': ['objects', 'objetos'],
+  'rail.note.aircraft': ['Aircraft positions are relayed every few minutes, not live: each mark is where the aircraft was, minutes ago. The dashed line and hollow ring are a projection along its last track. The age of each position is in its tooltip and panel, and beside the aircraft when you zoom in.', 'Las posiciones de aeronaves se relevan cada pocos minutos, no en vivo: cada marca es donde estaba la aeronave hace unos minutos. La línea de trazos y el anillo hueco son una proyección sobre su último rumbo. La edad de cada posición está en su etiqueta y su panel, y junto a la aeronave al acercarte.'],
+  'ac.age': ['Position from', 'Posición de'],
+  'ac.relayed': ['Relayed position, not live: where the aircraft was at {time} AST ({ago}).', 'Posición relevada, no en vivo: donde estaba la aeronave a las {time} AST ({ago}).'],
   'scene.buildings': ['Buildings', 'Edificios'], 'scene.clouds': ['Clouds', 'Nubes'], 'scene.labels': ['Place labels', 'Nombres de lugares'],
   'scene.municipios': ['Municipio outlines', 'Límites de municipios'], 'scene.ocean_detail': ['Ocean detail', 'Detalle del mar'], 'scene.markers': ['Markers', 'Marcadores'],
   'ov.none': ['None', 'Ninguna'], 'ov.radar': ['Radar (rain)', 'Radar (lluvia)'], 'ov.goes': ['GOES satellite', 'Satélite GOES'],
@@ -92,6 +96,14 @@ const D: Dict = {
   'al.expires': ['until', 'hasta'], 'al.expiredAt': ['expired', 'expiró'],
   'al.count.none': ['Nothing needs attention right now', 'Nada requiere atención ahora'],
   'al.count': ['items', 'elementos'],
+  'al.f.region': ['{name} region', 'Región de {name}'],
+  'al.f.power': ['{n} customers without power ({pct} %)', '{n} clientes sin luz ({pct} %)'],
+  'al.f.power.pct': ['{pct} % of customers without power', '{pct} % de los clientes sin luz'],
+  'al.f.depth': ['{v} km deep', 'a {v} km de profundidad'],
+  'al.f.wind': ['winds {v} kt', 'vientos de {v} kt'], 'al.f.pressure': ['pressure {v} hPa', 'presión {v} hPa'], 'al.f.dist': ['{v} km from Puerto Rico', 'a {v} km de Puerto Rico'],
+  'al.f.cat.action': ['at action stage', 'en etapa de acción'], 'al.f.cat.minor': ['minor flooding', 'inundación menor'],
+  'al.f.cat.moderate': ['moderate flooding', 'inundación moderada'], 'al.f.cat.major': ['major flooding', 'inundación mayor'],
+  'al.f.stage': ['stage {v} m', 'nivel {v} m'], 'al.f.flow': ['flow {v} m³/s', 'caudal {v} m³/s'],
 
   // severity
   'sev.0': ['Info', 'Info'], 'sev.1': ['Minor', 'Menor'], 'sev.2': ['Moderate', 'Moderado'], 'sev.3': ['Severe', 'Severo'], 'sev.4': ['Extreme', 'Extremo'],
@@ -142,6 +154,10 @@ const D: Dict = {
   'li.objects': ['Objects', 'Objetos'], 'li.never': ['not run yet', 'aún sin correr'], 'li.open': ['Open source page', 'Abrir página de la fuente'],
   'li.ok': ['on time', 'al día'], 'li.stale': ['late', 'atrasada'], 'li.error': ['failing', 'fallando'], 'li.static': ['static', 'estática'], 'li.unknown': ['no run yet', 'sin corrida'],
   'li.obs': ['observations', 'observaciones'],
+  'li.feeds': ['Feeds now', 'Fuentes ahora'],
+  'li.ondemand': ['on demand', 'bajo demanda'],
+  'li.ondemand.note': ['Map tiles this browser fetches only while the “{ov}” overlay is on ({state}). Not polled, so there is no run to report and it is not in the feed count.', 'Teselas que este navegador pide solo con la superposición «{ov}» encendida ({state}). No se sondea: no hay corrida que reportar ni entra en el conteo de fuentes.'],
+  'li.ov.on': ['on now', 'encendida ahora'], 'li.ov.off': ['off now', 'apagada ahora'],
 
   // bottom bar
   'bb.cursor': ['Cursor', 'Cursor'], 'bb.elev': ['Elev', 'Elev'], 'bb.depth': ['Depth', 'Prof'], 'bb.cam': ['Eye alt', 'Altura'],

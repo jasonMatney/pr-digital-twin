@@ -228,10 +228,13 @@ export const createStorms: LayerFactory = async ({ world, store }) => {
         const d = (world.post as any).debug?.() ?? {};
         const daylight = typeof d.daylight === 'number' ? d.daylight : 1 - world.night, exposure = typeof d.exposure === 'number' && d.exposure > 0 ? d.exposure : 1;
         const fillDim = 0.36 * Math.max(0.06, Math.min(1, daylight)), lineDim = Math.min(1, 0.95 / exposure);
+        // the wind rings' outlines follow the scene light (down to 40 % of their daytime brightness on screen): at
+        // steady brightness the 64 kt ring was the heaviest thing in a dark frame before dawn
+        const ringDim = lineDim * (0.4 + 0.6 * Math.max(0, Math.min(1, daylight)));
         liveDim = lineDim;
-        if (Math.abs(fillDim - lastDim) > 0.004) {
-          lastDim = fillDim;
-          lobes.forEach((l, i) => { (l.fill.material as THREE.MeshBasicMaterial).color.setHex(BANDS[i].color).multiplyScalar(fillDim); (l.edge.material as THREE.LineBasicMaterial).color.setHex(BANDS[i].color).multiplyScalar(lineDim); });
+        if (Math.abs(fillDim + ringDim * 7 + lineDim * 13 - lastDim) > 0.004) {
+          lastDim = fillDim + ringDim * 7 + lineDim * 13;
+          lobes.forEach((l, i) => { (l.fill.material as THREE.MeshBasicMaterial).color.setHex(BANDS[i].color).multiplyScalar(fillDim); (l.edge.material as THREE.LineBasicMaterial).color.setHex(BANDS[i].color).multiplyScalar(ringDim); });
           for (const m of [future.material, past.material]) (m as LineMaterial).color.setScalar(lineDim);
           (ticks.material as THREE.PointsMaterial).color.setScalar(lineDim); (eye.material as THREE.PointsMaterial).color.setScalar(lineDim);
         }

@@ -12,6 +12,7 @@ import type { LayerFactory } from './layers';
 import { loadMunicipios, municipioAt, type Municipio } from './choropleth';
 
 const ACCENT = 0xff6a3d, SECOND = [1.0, 0.82, 0.36], BASE = [0.9, 0.96, 0.95];
+const NIGHT_DIM = 0.84;                                   // share of the outline opacity taken away at full night
 const BASE_A = 0.5, MAX_SEG = 320;                       // metres between draped vertices
 const SEVERITY = [0x9fb4b8, 0xf2c94c, 0xf2994a, 0xeb5757, 0xc23bd4];
 const FOOTPRINT_TYPES = new Set(['weather_alert', 'tropical_cyclone', 'earthquake', 'disaster_declaration']);
@@ -155,6 +156,8 @@ export const createBoundaries: LayerFactory = async ({ world, store, onHover, on
   const alertLine = new LineSegments2(new LineSegmentsGeometry(), thickMat(SEVERITY[2], 2.4, 0.95, false));
   alertLine.visible = false; alertLine.frustumCulled = false; alertLine.renderOrder = 23; alertLine.layers.set(OVER_WATER_LAYER);
   group.add(alertLine);
+  const thick: [LineSegments2, number][] = [selGlow, selLine, hiLine, alertLine].map((o) => [o, (o.material as LineMaterial).opacity]);
+  let seenNight = 0;
   let alertXZ: number[] | null = null;
   function buildAlert() {
     if (!alertXZ) { alertLine.visible = false; return; }
@@ -238,7 +241,14 @@ export const createBoundaries: LayerFactory = async ({ world, store, onHover, on
       // Far away one pixel covers hundreds of metres and the drawn terrain is coarser than the elevation it was sampled from.
       liftU.value = Math.min(450, 5 + range * 0.0014);
       const fade = THREE.MathUtils.smoothstep(range, 3500, 9000);
-      mat.opacity = anyHighlight ? Math.max(fade, 0.7) : fade;
+      // The lines are unlit: against a night scene a day-strength outline outshines the town lights. After dark they
+      // fall to a faint guide; the selection and highlights keep more, they are what the reader asked for.
+      const night = Math.min(1, Math.max(0, world.night || 0));
+      mat.opacity = (anyHighlight ? Math.max(fade, 0.7) : fade) * (1 - NIGHT_DIM * night);
+      if (night !== seenNight) {
+        seenNight = night;
+        for (const [o, base] of thick) (o.material as LineMaterial).opacity = base * (1 - 0.45 * night);
+      }
       lines.visible = on && mat.opacity > 0.01;
       world.renderer.getDrawingBufferSize(res);
       if (f.index % 15 === 0 && !queue.length) {

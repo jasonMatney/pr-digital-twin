@@ -4,7 +4,8 @@ import { t } from '../../i18n/index';
 import { Icon } from '../icons';
 import { ago, duration, fmtDateTime, num } from '../format';
 import { storeTick, nowTick, useQuery } from '../uistate';
-import { freshness } from '../topbar';
+import * as S from '../../core/state';
+import { freshness, tallyFeeds, feedSummary, ON_DEMAND } from '../topbar';
 
 const KINDS = ['live', 'relay', 'baked', 'derived', 'user'] as const;
 
@@ -36,6 +37,7 @@ function Card({ s, now }: { s: SourceStatus; now: number }) {
         <div><dt class="label">{t('li.objects')}</dt><dd class="num">{num(s.objectCount)}{run && run.obs ? <i> · {num(run.obs)} {t('li.obs')}</i> : null}</dd></div>
         <div><dt class="label">{t('li.licence')}</dt><dd>{s.source.license || '—'}</dd></div>
       </dl>
+      {f === 'ondemand' && <p class="src-note">{t('li.ondemand.note').replace('{ov}', t('ov.' + ON_DEMAND[s.source.id])).replace('{state}', t(S.overlay.value === ON_DEMAND[s.source.id] ? 'li.ov.on' : 'li.ov.off'))}</p>}
       {run?.note && <p class={'src-note' + (run.status === 'error' ? ' is-error' : '')}>{run.note}</p>}
       {feedError && <p class="src-note is-error">{feedError}</p>}
       {s.source.note && <p class="src-note">{s.source.note}</p>}
@@ -55,6 +57,12 @@ export function LineagePanel({ store }: { store: TwinStore }) {
       </header>
       <div class="pane-scroll">
         {!src && <p class="muted pad">{t('ob.loading')}…</p>}
+        {src && (
+          <section class="src-group feed-sum">
+            <h3 class="label"><span>{t('li.feeds')}</span></h3>
+            <ul>{feedSummary(tallyFeeds(src, now)).map((l, i) => <li key={i} class={'src-note' + (i === 0 ? ' feed-sum-top' : '')}>{l}</li>)}</ul>
+          </section>
+        )}
         {src && KINDS.map((k) => {
           const list = src.filter((s) => s.source.kind === k);
           if (!list.length) return null;

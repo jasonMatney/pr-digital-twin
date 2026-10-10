@@ -22,7 +22,12 @@ const DAY = { hemi: 0.45, sun: 3.4, sunColor: new THREE.Color(0xfff0dc), exposur
 const NIGHT = { hemi: 0.22, sun: 0.5, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.2, bloom: 0.5 };   // a readable night: moonlight even at new moon
 const SUNSET = new THREE.Color(0xff9a52);
 // Low sun: expose for the sky (a small lift only), more from orbit where the frame is all ground; richer colour.
-const LOW = { lift: 0.15, orbit: 1.1, sat: 0.22, curve: 0.3, darkPow: 2.0 };
+const LOW = { lift: 0.15, orbit: 0.3, sat: 0.2, curve: 0.3, darkPow: 2.0, shadows: 0.11 };
+// What flat ground receives, (sky fill + sun or moon on a horizontal surface) x exposure, never falls below this
+// between day and night. A night under a high full moon reaches about 2.3, noon about 3.3; without the floor, dusk and dawn (sun
+// grazing and dimmed, exposure still set for the bright sky) sat near 1.0: darker than the night that follows.
+const GROUND_FLOOR = 2.3;
+const HEMI_SKY = new THREE.Color(0xcfe2ff), HEMI_DUSK = new THREE.Color(0xf1d9cb);
 // Scene radiance -> the atmosphere's units. The takram sun delivers solarIrradiance (1.47, 1.85, 1.91) x transmittance
 // (about 0.8 at noon) on the ground, so its sunlit white wall is ~1.43 / pi; ours is DAY.sun / pi.
 const UNITS = +(params.get('units') ?? 0) || 1.43 / DAY.sun;
@@ -47,17 +52,19 @@ class Scale extends Effect {
 /** After tone mapping (display-linear in): white lift, a soft S-curve and saturation. g = (gain, curve, saturation). */
 class Grade extends Effect {
   constructor() {
-    super('Grade', `uniform vec3 g;
+    super('Grade', `uniform vec3 g; uniform float lift;
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         vec3 c = clamp(inputColor.rgb * g.x, 0.0, 1.0);
         vec3 p = pow(c, vec3(1.0 / 2.2));
         p = mix(p, p * p * (3.0 - 2.0 * p), g.y);
+        p = pow(p, vec3(1.0 - lift));   // low sun: opens the shadows without moving white
         c = pow(p, vec3(2.2));
         float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
         outputColor = vec4(clamp(mix(vec3(l), c, g.z), 0.0, 1.0), inputColor.a);
-      }`, { uniforms: new Map([['g', new THREE.Uniform(new THREE.Vector3(1.1, 0.3, 1.12))]]) });
+      }`, { uniforms: new Map<string, THREE.Uniform>([['g', new THREE.Uniform(new THREE.Vector3(1.1, 0.3, 1.12))], ['lift', new THREE.Uniform(0)]]) });
   }
   get g(): THREE.Vector3 { return this.uniforms.get('g')!.value; }
+  set lift(v: number) { this.uniforms.get('lift')!.value = v; }
 }
 
 type Mode = 'takram' | 'basic' | 'plain';
@@ -81,7 +88,7 @@ export function createPost(world: World): PostApi {
   sun.shadow.radius = 2;
   sun.shadow.bias = -0.0002;
   sun.shadow.mapSize.set(2048, 2048);
-  const st = { elevation: 45, dark: 0, daylight: 1, moonlight: 0, warmth: 0, lowSun: 0, exposure: DAY.exposure, bloom: DAY.bloom, shadows: false, shadowExtent: 0 };
+  const st = { elevation: 45, dark: 0, daylight: 1, moonlight: 0, warmth: 0, lowSun: 0, fill: 0, ground: 0, observed: false, exposure: DAY.exposure, bloom: DAY.bloom, shadows: false, shadowExtent: 0 };
 
   // ---- where the scene sits on the globe: world (east, up, south) -> ECEF
   const ecef = new Geodetic(radians(ORIGIN.lon), radians(ORIGIN.lat), 0).toECEF();
@@ -258,11 +265,19 @@ ${mask}`);
     sun.color.copy(DAY.sunColor).lerp(SUNSET, st.warmth * 0.85).lerp(NIGHT.sunColor, st.moonlight);
     // Around sunset the sun gives the ground almost nothing (grazing, through thick air) while the sky is still
     // bright: without more sky fill the ground is darker at dusk than at night.
-    const duskFill = (1 - sstep(deg, 4, 14)) * (1 - st.dark);
-    hemi.intensity = lerp(DAY.hemi, NIGHT.hemi, st.dark) * (1 + 1.2 * duskFill);
     const lowSun = st.lowSun = (1 - sstep(deg, 2, 35)) * (1 - st.dark);
     st.exposure = lerp(DAY.exposure, NIGHT.exposure, Math.pow(st.dark, LOW.darkPow)) * (1 + LOW.lift * lowSun);
-    grade.g.set(lerp(1.1, 1.0, st.dark), LOW.curve * (1 - st.dark), lerp(1.12 + LOW.sat * lowSun, 1.0, st.dark));
+    // ... so the sky fill is raised to hold the floor (see GROUND_FLOOR); it lets go only in the last of twilight,
+    // where it meets the night's own level from above. Terrain and buildings share these lights: both come up.
+    const baseHemi = lerp(DAY.hemi, NIGHT.hemi, st.dark), flatSun = sun.intensity * Math.max(lightDir.y, 0);
+    const need = GROUND_FLOOR / st.exposure - flatSun;
+    hemi.intensity = Math.max(baseHemi, lerp(need, baseHemi, sstep(st.dark, 0.9, 1)));
+    st.fill = hemi.intensity / baseHemi - 1;
+    st.ground = (hemi.intensity + flatSun) * st.exposure;
+    const duskFill = (1 - sstep(deg, 6, 20)) * (1 - st.dark);
+    hemi.color.copy(HEMI_SKY).lerp(HEMI_DUSK, 0.7 * duskFill * sstep(deg, -5, 1));   // the fill of a low sun is the warm half of the sky
+    grade.g.set(lerp(1.1, 1.0, st.dark), LOW.curve * (1 - st.dark) * (1 - 0.45 * duskFill), lerp(1.12 + LOW.sat * lowSun, 1.0, st.dark));
+    grade.lift = LOW.shadows * duskFill;
     st.bloom = lerp(DAY.bloom, NIGHT.bloom, st.dark);
     bloom.intensity = st.bloom;
 
@@ -281,6 +296,9 @@ ${mask}`);
     (u.uLightE.value as THREE.Vector3).set(tmpC.r, tmpC.g, tmpC.b);
     const zen = u.uZen.value as THREE.Vector3, hor = u.uHor.value as THREE.Vector3, k = Math.max(lightDir.y, 0) / Math.PI;
     (u.uEd.value as THREE.Vector3).set(tmpC.r * k + 0.5 * (zen.x + hor.x), tmpC.g * k + 0.5 * (zen.y + hor.y), tmpC.b * k + 0.5 * (zen.z + hor.z));
+    // (the sea, its foam and the orbit cloud field get the raised sky fill too, or the land would outshine a black sea at dusk)
+    const extra = 0.5 * (hemi.intensity - baseHemi) / Math.PI;
+    (u.uEd.value as THREE.Vector3).x += extra * hemi.color.r; (u.uEd.value as THREE.Vector3).y += extra * hemi.color.g; (u.uEd.value as THREE.Vector3).z += extra * hemi.color.b;
     u.uNight.value = st.dark;
     if (bakedSun.angleTo(world.sunDir) > 0.035) bakeEnv();
   }
@@ -290,7 +308,7 @@ ${mask}`);
     mode = next;
     const tk = next === 'takram';
     const q = S.quality.value;
-    const cloudsOn = tk && !!cloudPass && q !== 'low' && S.layerOn.value.clouds !== false && !orbitOnly;
+    const cloudsOn = tk && !!cloudPass && q !== 'low' && S.layerOn.value.clouds !== false && !orbitOnly && !st.observed;
     scaleInPass.enabled = tk;
     if (cloudPass) cloudPass.enabled = cloudsOn;
     if (skyPass) skyPass.enabled = tk && !cloudsOn;
@@ -309,7 +327,11 @@ ${mask}`);
     }
     const want: Mode = wantTakram && lutsReady ? 'takram' : 'basic';
     const q = S.quality.value, cover = S.weather.value.cloudCover;
-    if (want !== mode || q !== lastQuality) {
+    // Observed rain or cloud is on the map (radar, GOES): our procedural clouds, their shading of the ground and the
+    // 2D field from orbit are switched off, so that nothing of ours can be read as part of the observation.
+    const ov = S.overlay.value, observed = ov === 'radar' || ov === 'goes';
+    if (want !== mode || q !== lastQuality || observed !== st.observed) {
+      st.observed = observed;
       lastQuality = q;
       if (clouds) clouds.qualityPreset = q === 'high' ? 'high' : 'medium';
       bloom.blendMode.opacity.value = q === 'low' ? 0.6 : 1;
@@ -347,7 +369,7 @@ ${mask}`);
     oin.waveH = w.waveHeightM; oin.wavePeriod = w.wavePeriodS; oin.waveDirDeg = w.waveDirDeg;
     ocean.update(oin);
     // Volumetric clouds up to ~60 km camera height; from there to 150 km they give way to the 2D field (specks otherwise).
-    const cloudsWanted = wantClouds && q !== 'low' && S.layerOn.value.clouds !== false;
+    const cloudsWanted = wantClouds && q !== 'low' && S.layerOn.value.clouds !== false && !observed;
     const orbit = cloudsWanted ? sstep(ocean.uniforms.uCamH.value, 60000, 150000) : 0;
     ocean.uniforms.uOrbit.value = orbit;
     (ocean.uniforms.uCloud2.value as THREE.Vector4).w = (cover - 0.3) * 0.25;
