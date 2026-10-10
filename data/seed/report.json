@@ -1,5 +1,5 @@
 {
- "startedAt": "2026-10-10T04:57:12.166Z",
+ "startedAt": "2026-10-10T05:04:01.813Z",
  "ontologyVersion": "2026.10.1",
  "sources": {
   "census_tiger": {
@@ -27,7 +27,7 @@
    },
    "links": 1882,
    "problems": [],
-   "ms": 548
+   "ms": 1899
   },
   "hud": {
    "status": "ok",
@@ -63,7 +63,7 @@
      "objects": {
       "assisted_housing": 231
      },
-     "links": 68,
+     "links": 227,
      "validationErrors": 0,
      "validationWarnings": 0,
      "published": true,
@@ -75,11 +75,12 @@
     "municipio": 75,
     "assisted_housing": 427
    },
-   "links": 568,
+   "links": 727,
    "problems": [
-    "163 projects without a usable county/tract FIPS: no municipio link"
+    "159 projects had no county FIPS (not geocoded by HUD): municipio taken from the project city where it equals a municipio name, confidence 0.7",
+    "4 projects without a usable county/tract FIPS: no municipio link"
    ],
-   "ms": 3753
+   "ms": 1738
   },
   "openfema": {
    "status": "ok",
@@ -104,7 +105,7 @@
       "disaster_impact": 432,
       "municipio": 78
      },
-     "links": 864,
+     "links": 855,
      "validationErrors": 0,
      "validationWarnings": 0,
      "published": true,
@@ -116,12 +117,12 @@
     "municipio": 156,
     "disaster_impact": 432
    },
-   "links": 2976,
+   "links": 2967,
    "problems": [
     "county \"Statewide\" not matched to a municipio (1 registrations left out)",
-    "disaster numbers in housing data without a declaration row: 1561, 4337"
+    "disaster numbers in the PR housing data that have no PR declaration row (impact objects kept, no link to a declaration): 1561, 4337"
    ],
-   "ms": 6271
+   "ms": 12781
   },
   "coops": {
    "status": "ok",
@@ -146,24 +147,24 @@
    "problems": [
     "9752621 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9752621/floodlevels.json?units=metric",
     "9752235 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752235&units=metric",
-    "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
     "9752695 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752695&units=metric",
-    "9754229 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9754229/floodlevels.json?units=metric",
+    "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
     "9753216 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9753216/floodlevels.json?units=metric",
+    "9754229 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9754229/floodlevels.json?units=metric",
     "9755968 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9755968/floodlevels.json?units=metric",
-    "9754229 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9754229&units=metric",
     "9753216 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9753216&units=metric",
+    "9754229 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9754229&units=metric",
     "9757811 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9757811/floodlevels.json?units=metric",
     "9758066 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9758066/floodlevels.json?units=metric",
     "9755968 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9755968&units=metric",
     "9757811 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9757811&units=metric",
+    "9759413 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9759413/floodlevels.json?units=metric",
     "9758066 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9758066&units=metric",
     "9759394 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759394&units=metric",
-    "9759413 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9759413/floodlevels.json?units=metric",
-    "9759938 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759938&units=metric",
-    "9759413 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759413&units=metric"
+    "9759413 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759413&units=metric",
+    "9759938 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759938&units=metric"
    ],
-   "ms": 94067
+   "ms": 23253
   },
   "usgs": {
    "status": "ok",
@@ -188,7 +189,7 @@
    },
    "links": 142,
    "problems": [],
-   "ms": 345
+   "ms": 787
   },
   "nws": {
    "status": "ok",
@@ -226,7 +227,7 @@
    },
    "links": 78,
    "problems": [],
-   "ms": 12514
+   "ms": 6418
   },
   "cdc_svi": {
    "status": "ok",
@@ -251,7 +252,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 4161
+   "ms": 2653
   },
   "nwps": {
    "status": "ok",
@@ -263,20 +264,47 @@
       "reservoir": 19,
       "stream_gauge": 99
      },
-     "links": 0,
+     "links": 117,
      "validationErrors": 0,
      "validationWarnings": 0,
      "published": true,
-     "note": "NWPS gauges in the PR bounding box (118); 108 carry a usgsId and are keyed by it (1 of those are not in the USGS active real-time list and are created here); the rest are keyed nws-<lid>. Flood stages from flood.categories.*.stage converted with flood.stageUnits (ft x 0.3048); missing or negative-sentinel stages are left out. Reservoir objects get the NWS identity only (the reservoir type has no stage thresholds)."
+     "note": "NWPS gauges in the PR bounding box (118); 108 carry a usgsId and are keyed by it (1 of those are not in the USGS active real-time list and are created here); the rest are keyed nws-<lid>. Flood stages from flood.categories.*.stage converted with flood.stageUnits (ft x 0.3048); missing or negative-sentinel stages are left out. Municipio from the gauge's county name. Reservoir objects get the NWS identity only (the reservoir type has no stage thresholds)."
     }
    ],
    "objects": {
     "reservoir": 19,
     "stream_gauge": 99
    },
-   "links": 0,
+   "links": 117,
    "problems": [],
-   "ms": 4619
+   "ms": 8218
+  },
+  "cdbg": {
+   "status": "ok",
+   "files": [
+    {
+     "file": "data/seed/03-cdbg-lmi.batch.json",
+     "source": "hud_cdbg_dr",
+     "objects": {
+      "tract": 885,
+      "municipio": 78
+     },
+     "links": 0,
+     "validationErrors": 0,
+     "validationWarnings": 0,
+     "published": true,
+     "note": "HUD LMA_PuertoRico_CDBG_DR layer \"LowModTractCDBG-DR\" (977 rows, geography field GEOID). cdbg_dr_lmi_pct = 100 x sum(Est_LowMod) / sum(Personas_T) over the rows of each tract and each municipio. Tract ids are those of the layer's own census vintage and may not all match current (2020) tracts."
+    }
+   ],
+   "objects": {
+    "tract": 885,
+    "municipio": 78
+   },
+   "links": 0,
+   "problems": [
+    "32 of 977 rows had no usable geography or counts"
+   ],
+   "ms": 235
   },
   "hurdat2": {
    "status": "ok",
@@ -284,16 +312,7 @@
    "objects": {},
    "links": 0,
    "problems": [],
-   "ms": 3165
-  },
-  "cdbg": {
-   "status": "error",
-   "files": [],
-   "objects": {},
-   "links": 0,
-   "problems": [],
-   "error": "Error: no LOWMOD / LOWMODUNIV fields in LowModTractCDBG-DR: OBJECTID,GEOID,Nombre_Geo,Ingr_Med_H,Ingr_Med_F,Ingr_Med_N,Personas_T,Est_LowMod,Est_LowM_1,Shape__Area,Shape__Length\n    at Module.build (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/sources/cdbg.mjs:11:30)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async runSource (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:39:18)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:87\n    at async Promise.all (index 1)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:1",
-   "ms": 723
+   "ms": 3146
   },
   "luma": {
    "status": "ok",
@@ -316,7 +335,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 457
+   "ms": 1217
   },
   "ndbc": {
    "status": "ok",
@@ -339,7 +358,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 147
+   "ms": 278
   }
  },
  "replay": [
@@ -359,7 +378,7 @@
    "bytes": 2471
   }
  ],
- "finishedAt": "2026-10-10T04:58:46.380Z",
+ "finishedAt": "2026-10-10T05:04:25.344Z",
  "requests": 253,
- "bytes": 34901295
+ "bytes": 34901301
 }

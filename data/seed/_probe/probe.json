@@ -867,160 +867,6 @@
   "__x": -65.87769999971219,
   "__y": 18.42949999971092
  },
- "nwps_gauge_sample": {
-  "lid": "ADJP4",
-  "usgsId": "50020100",
-  "reachId": "",
-  "name": "Lago Garzas nr Adjuntas",
-  "description": "",
-  "rfc": {
-   "abbreviation": "SERFC",
-   "name": "Southeast River Forecast Center"
-  },
-  "wfo": {
-   "abbreviation": "SJU",
-   "name": "San Juan"
-  },
-  "state": {
-   "abbreviation": "PR",
-   "name": "Puerto Rico"
-  },
-  "county": "Adjuntas",
-  "timeZone": "AST4",
-  "latitude": 18.1316487,
-  "longitude": -66.7425802,
-  "pedts": {
-   "observed": "HPIRG",
-   "forecast": ""
-  },
-  "status": {
-   "observed": {
-    "primary": 2415.14,
-    "primaryUnit": "ft",
-    "secondary": -999,
-    "secondaryUnit": "kcfs",
-    "floodCategory": "not_defined",
-    "validTime": "2026-10-10T03:45:00Z"
-   },
-   "forecast": {
-    "primary": -999,
-    "primaryUnit": "",
-    "secondary": -999,
-    "secondaryUnit": "",
-    "floodCategory": "fcst_not_current",
-    "validTime": "0001-01-01T00:00:00Z"
-   }
-  },
-  "flood": {
-   "stageUnits": "ft",
-   "flowUnits": "cfs",
-   "categories": {
-    "major": {
-     "stage": -9999,
-     "flow": -9999
-    },
-    "moderate": {
-     "stage": -9999,
-     "flow": -9999
-    },
-    "minor": {
-     "stage": -9999,
-     "flow": -9999
-    },
-    "action": {
-     "stage": -9999,
-     "flow": -9999
-    }
-   },
-   "lro": null,
-   "crests": {
-    "historic": [],
-    "recent": []
-   },
-   "lowWaters": {
-    "historic": []
-   },
-   "impacts": []
-  },
-  "images": {
-   "probability": {
-    "weekint": {
-     "stage": "",
-     "flow": "",
-     "volume": ""
-    },
-    "entperiod": {
-     "stage": "",
-     "flow": "",
-     "volume": ""
-    },
-    "shortrange": ""
-   },
-   "hydrograph": {
-    "default": "https://water.noaa.gov/resources/hydrographs/adjp4_hg.png",
-    "floodcat": "https://water.noaa.gov/resources/hydrographs/adjp4_record.png"
-   },
-   "photos": []
-  },
-  "dataAttribution": [
-   {
-    "abbrev": "USGS",
-    "text": "50020100",
-    "title": "US Geological Survey",
-    "url": "https://waterdata.usgs.gov/monitoring-location/50020100/#parameterCode=62614&period=P7D"
-   }
-  ],
-  "impactsLowWaters": [],
-  "normalThreshold": null,
-  "hydronotes": [],
-  "datums": {
-   "vertical": {
-    "value": [
-     {
-      "label": "Puerto Rico Vertical Datum of 2002",
-      "abbrev": "PRVD02",
-      "description": "Puerto Rico Vertical Datum",
-      "value": 2406.8
-     },
-     {
-      "label": "Highest Astronomical Tide",
-      "abbrev": "HAT",
-      "description": "The elevation of the highest predicted astronomical tide expected to occur at a specific tide station over the National Tidal Datum Epoch.",
-      "value": 0
-     }
-    ]
-   },
-   "horizontal": {
-    "value": []
-   },
-   "notes": {
-    "value": []
-   }
-  },
-  "inundation": {
-   "enabled": false,
-   "url": "",
-   "zeroDatum": null,
-   "downloads": null,
-   "siteSpecificInfo": "",
-   "dataAttribution": []
-  },
-  "upstreamLid": "",
-  "downstreamLid": "",
-  "inService": {
-   "enabled": true,
-   "message": ""
-  },
-  "lowThreshold": {
-   "units": "ft",
-   "value": 2399
-  },
-  "forecastReliability": "Forecasts are not available. Only observed stages are available for this point.",
-  "TruncateObs": "-1",
-  "TruncateFcst": "-1",
-  "ObservedFloodCategory": "not_defined",
-  "ForecastFloodCategory": "fcst_not_current"
- },
  "hud_lihtc_fields": [
   "OBJECTID",
   "HUD_ID",
@@ -1268,6 +1114,37 @@
   "BLKGRP_LEVEL": "721130712003",
   "__x": -66.61700000022005,
   "__y": 18.007900000356138
+ },
+ "cdbg_layers": [
+  "0 LowModTractCDBG-DR"
+ ],
+ "cdbg_fields": [
+  "OBJECTID",
+  "GEOID",
+  "Nombre_Geo",
+  "Ingr_Med_H",
+  "Ingr_Med_F",
+  "Ingr_Med_N",
+  "Personas_T",
+  "Est_LowMod",
+  "Est_LowM_1",
+  "Shape__Area",
+  "Shape__Length"
+ ],
+ "cdbg_sample": {
+  "OBJECTID": 1,
+  "GEOID": "72001956300",
+  "Nombre_Geo": "Census Tract 9563, Adjuntas Municipio, Puerto Rico",
+  "Ingr_Med_H": 10370,
+  "Ingr_Med_F": 11408,
+  "Ingr_Med_N": 4116,
+  "Personas_T": 3937,
+  "Est_LowMod": 3452,
+  "Est_LowM_1": 87.680975362,
+  "Shape__Area": 0.003837003283251761,
+  "Shape__Length": 0.41600798177789095,
+  "__x": null,
+  "__y": null
  },
  "svi_tract_fields": [
   "ST",
@@ -1597,9 +1474,6 @@
   "__x": null,
   "__y": null
  },
- "cdbg_layers": [
-  "0 LowModTractCDBG-DR"
- ],
  "svi_county_fields": [
   "ST",
   "STATE",
@@ -1763,33 +1637,693 @@
   "Shape__Area",
   "Shape__Length"
  ],
- "cdbg_fields": [
-  "OBJECTID",
-  "GEOID",
-  "Nombre_Geo",
-  "Ingr_Med_H",
-  "Ingr_Med_F",
-  "Ingr_Med_N",
-  "Personas_T",
-  "Est_LowMod",
-  "Est_LowM_1",
-  "Shape__Area",
-  "Shape__Length"
- ],
- "cdbg_sample": {
-  "OBJECTID": 1,
-  "GEOID": "72001956300",
-  "Nombre_Geo": "Census Tract 9563, Adjuntas Municipio, Puerto Rico",
-  "Ingr_Med_H": 10370,
-  "Ingr_Med_F": 11408,
-  "Ingr_Med_N": 4116,
-  "Personas_T": 3937,
-  "Est_LowMod": 3452,
-  "Est_LowM_1": 87.680975362,
-  "Shape__Area": 0.003837003283251761,
-  "Shape__Length": 0.41600798177789095,
-  "__x": null,
-  "__y": null
+ "nwps_gauge_sample": {
+  "lid": "AIBP4",
+  "usgsId": "50043000",
+  "reachId": "800027269",
+  "name": "Rio De La Plata at Proyecto La Plata",
+  "description": "",
+  "rfc": {
+   "abbreviation": "SERFC",
+   "name": "Southeast River Forecast Center"
+  },
+  "wfo": {
+   "abbreviation": "SJU",
+   "name": "San Juan"
+  },
+  "state": {
+   "abbreviation": "PR",
+   "name": "Puerto Rico"
+  },
+  "county": "Aibonito",
+  "timeZone": "AST4",
+  "latitude": 18.15801429,
+  "longitude": -66.22850099,
+  "pedts": {
+   "observed": "HGIRG",
+   "forecast": "HGIFF"
+  },
+  "status": {
+   "observed": {
+    "primary": 10.07,
+    "primaryUnit": "ft",
+    "secondary": 0.037,
+    "secondaryUnit": "kcfs",
+    "floodCategory": "no_flooding",
+    "validTime": "2026-10-10T04:15:00Z"
+   },
+   "forecast": {
+    "primary": -999,
+    "primaryUnit": "",
+    "secondary": -999,
+    "secondaryUnit": "",
+    "floodCategory": "fcst_not_current",
+    "validTime": "0001-01-01T00:00:00Z"
+   }
+  },
+  "flood": {
+   "stageUnits": "ft",
+   "flowUnits": "cfs",
+   "categories": {
+    "major": {
+     "stage": 30,
+     "flow": 48358
+    },
+    "moderate": {
+     "stage": 25,
+     "flow": 27578
+    },
+    "minor": {
+     "stage": 20,
+     "flow": 12747
+    },
+    "action": {
+     "stage": 15,
+     "flow": 3880
+    }
+   },
+   "lro": null,
+   "crests": {
+    "historic": [
+     {
+      "occurredTime": "1992-01-05T00:00:00Z",
+      "stage": 36.39,
+      "flow": 73600,
+      "preliminary": "R",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1996-09-10T00:00:00Z",
+      "stage": 34.1,
+      "flow": 66000,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1961-08-27T00:00:00Z",
+      "stage": 32.2,
+      "flow": 59600,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "2022-09-18T22:40:00Z",
+      "stage": 30.51,
+      "flow": 50800,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1960-09-06T00:00:00Z",
+      "stage": 30.5,
+      "flow": 54500,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1970-10-09T00:00:00Z",
+      "stage": 28.32,
+      "flow": 48000,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "2022-11-06T00:15:00Z",
+      "stage": 22.74,
+      "flow": 20100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1974-10-23T00:00:00Z",
+      "stage": 22.3,
+      "flow": 30800,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1985-10-06T00:00:00Z",
+      "stage": 22,
+      "flow": 28900,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1981-05-22T00:00:00Z",
+      "stage": 21.51,
+      "flow": 27600,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "2024-08-14T14:00:00Z",
+      "stage": 21.36,
+      "flow": 16200,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1985-05-17T00:00:00Z",
+      "stage": 21.1,
+      "flow": 26500,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1965-08-10T00:00:00Z",
+      "stage": 20.9,
+      "flow": 27000,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "2017-09-20T00:00:00Z",
+      "stage": 20.24,
+      "flow": 0,
+      "preliminary": "P",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1970-08-27T00:00:00Z",
+      "stage": 17.31,
+      "flow": 18100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1969-05-21T00:00:00Z",
+      "stage": 15.48,
+      "flow": 14100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1978-10-26T00:00:00Z",
+      "stage": 15.29,
+      "flow": 13200,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1973-08-15T00:00:00Z",
+      "stage": 15.25,
+      "flow": 13600,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1962-08-22T00:00:00Z",
+      "stage": 14.69,
+      "flow": 12400,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1962-10-15T00:00:00Z",
+      "stage": 14.58,
+      "flow": 11100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1983-06-16T00:00:00Z",
+      "stage": 14.38,
+      "flow": 11430,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1966-05-28T00:00:00Z",
+      "stage": 13.48,
+      "flow": 8960,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1981-12-27T00:00:00Z",
+      "stage": 13.38,
+      "flow": 9580,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1977-11-24T00:00:00Z",
+      "stage": 13.13,
+      "flow": 9760,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1973-10-11T00:00:00Z",
+      "stage": 12.82,
+      "flow": 8490,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1979-10-28T00:00:00Z",
+      "stage": 11.75,
+      "flow": 6840,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1966-12-10T00:00:00Z",
+      "stage": 11.72,
+      "flow": 6200,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1990-09-30T00:00:00Z",
+      "stage": 11.66,
+      "flow": 6690,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1971-11-08T00:00:00Z",
+      "stage": 11.39,
+      "flow": 5630,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1990-10-21T00:00:00Z",
+      "stage": 10.97,
+      "flow": 5100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1984-07-05T00:00:00Z",
+      "stage": 10.92,
+      "flow": 5370,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1989-02-17T00:00:00Z",
+      "stage": 10.9,
+      "flow": 5400,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1964-07-12T00:00:00Z",
+      "stage": 10.77,
+      "flow": 2680,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1975-12-10T00:00:00Z",
+      "stage": 10.57,
+      "flow": 4170,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1986-11-17T00:00:00Z",
+      "stage": 10.43,
+      "flow": 4440,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1987-11-27T00:00:00Z",
+      "stage": 10.41,
+      "flow": 4420,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1977-09-06T00:00:00Z",
+      "stage": 10.15,
+      "flow": 2700,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1967-10-29T00:00:00Z",
+      "stage": 8.93,
+      "flow": 1150,
+      "preliminary": "O",
+      "olddatum": false
+     }
+    ],
+    "recent": [
+     {
+      "occurredTime": "2024-08-14T14:00:00Z",
+      "stage": 21.36,
+      "flow": 16200,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "2022-11-06T00:15:00Z",
+      "stage": 22.74,
+      "flow": 20100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "2022-09-18T22:40:00Z",
+      "stage": 30.51,
+      "flow": 50800,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "2017-09-20T00:00:00Z",
+      "stage": 20.24,
+      "flow": 0,
+      "preliminary": "P",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1996-09-10T00:00:00Z",
+      "stage": 34.1,
+      "flow": 66000,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1992-01-05T00:00:00Z",
+      "stage": 36.39,
+      "flow": 73600,
+      "preliminary": "R",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1990-10-21T00:00:00Z",
+      "stage": 10.97,
+      "flow": 5100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1990-09-30T00:00:00Z",
+      "stage": 11.66,
+      "flow": 6690,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1989-02-17T00:00:00Z",
+      "stage": 10.9,
+      "flow": 5400,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1987-11-27T00:00:00Z",
+      "stage": 10.41,
+      "flow": 4420,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1986-11-17T00:00:00Z",
+      "stage": 10.43,
+      "flow": 4440,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1985-10-06T00:00:00Z",
+      "stage": 22,
+      "flow": 28900,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1985-05-17T00:00:00Z",
+      "stage": 21.1,
+      "flow": 26500,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1984-07-05T00:00:00Z",
+      "stage": 10.92,
+      "flow": 5370,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1983-06-16T00:00:00Z",
+      "stage": 14.38,
+      "flow": 11430,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1981-12-27T00:00:00Z",
+      "stage": 13.38,
+      "flow": 9580,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1981-05-22T00:00:00Z",
+      "stage": 21.51,
+      "flow": 27600,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1979-10-28T00:00:00Z",
+      "stage": 11.75,
+      "flow": 6840,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1978-10-26T00:00:00Z",
+      "stage": 15.29,
+      "flow": 13200,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1977-11-24T00:00:00Z",
+      "stage": 13.13,
+      "flow": 9760,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1977-09-06T00:00:00Z",
+      "stage": 10.15,
+      "flow": 2700,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1975-12-10T00:00:00Z",
+      "stage": 10.57,
+      "flow": 4170,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1974-10-23T00:00:00Z",
+      "stage": 22.3,
+      "flow": 30800,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1973-10-11T00:00:00Z",
+      "stage": 12.82,
+      "flow": 8490,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1973-08-15T00:00:00Z",
+      "stage": 15.25,
+      "flow": 13600,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1971-11-08T00:00:00Z",
+      "stage": 11.39,
+      "flow": 5630,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1970-10-09T00:00:00Z",
+      "stage": 28.32,
+      "flow": 48000,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1970-08-27T00:00:00Z",
+      "stage": 17.31,
+      "flow": 18100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1969-05-21T00:00:00Z",
+      "stage": 15.48,
+      "flow": 14100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1967-10-29T00:00:00Z",
+      "stage": 8.93,
+      "flow": 1150,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1966-12-10T00:00:00Z",
+      "stage": 11.72,
+      "flow": 6200,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1966-05-28T00:00:00Z",
+      "stage": 13.48,
+      "flow": 8960,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1965-08-10T00:00:00Z",
+      "stage": 20.9,
+      "flow": 27000,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1964-07-12T00:00:00Z",
+      "stage": 10.77,
+      "flow": 2680,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1962-10-15T00:00:00Z",
+      "stage": 14.58,
+      "flow": 11100,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1962-08-22T00:00:00Z",
+      "stage": 14.69,
+      "flow": 12400,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1961-08-27T00:00:00Z",
+      "stage": 32.2,
+      "flow": 59600,
+      "preliminary": "O",
+      "olddatum": false
+     },
+     {
+      "occurredTime": "1960-09-06T00:00:00Z",
+      "stage": 30.5,
+      "flow": 54500,
+      "preliminary": "O",
+      "olddatum": false
+     }
+    ]
+   },
+   "lowWaters": {
+    "historic": []
+   },
+   "impacts": []
+  },
+  "images": {
+   "probability": {
+    "weekint": {
+     "stage": "",
+     "flow": "",
+     "volume": ""
+    },
+    "entperiod": {
+     "stage": "",
+     "flow": "",
+     "volume": ""
+    },
+    "shortrange": ""
+   },
+   "hydrograph": {
+    "default": "https://water.noaa.gov/resources/hydrographs/aibp4_hg.png",
+    "floodcat": "https://water.noaa.gov/resources/hydrographs/aibp4_record.png"
+   },
+   "photos": []
+  },
+  "dataAttribution": [
+   {
+    "abbrev": "USGS",
+    "text": "50043000",
+    "title": "US Geological Survey",
+    "url": "https://waterdata.usgs.gov/monitoring-location/50043000/#parameterCode=00065&period=P7D&showMedian=false"
+   },
+   {
+    "abbrev": "USGS",
+    "text": "50043000",
+    "title": "Observations courtesy of U.S. Geological Survey",
+    "url": "https://waterdata.usgs.gov/nwis/inventory/?site_no=50043000"
+   }
+  ],
+  "impactsLowWaters": [],
+  "normalThreshold": null,
+  "hydronotes": [],
+  "datums": {
+   "vertical": {
+    "value": [
+     {
+      "label": "Puerto Rico Vertical Datum of 2002",
+      "abbrev": "PRVD02",
+      "description": "Puerto Rico Vertical Datum",
+      "value": 840.13
+     }
+    ]
+   },
+   "horizontal": {
+    "value": []
+   },
+   "notes": {
+    "value": []
+   }
+  },
+  "inundation": {
+   "enabled": false,
+   "url": "",
+   "zeroDatum": null,
+   "downloads": null,
+   "siteSpecificInfo": "",
+   "dataAttribution": []
+  },
+  "upstreamLid": "",
+  "downstreamLid": "",
+  "inService": {
+   "enabled": true,
+   "message": ""
+  },
+  "lowThreshold": {
+   "units": "ft",
+   "value": 9.88
+  },
+  "forecastReliability": "Forecasts are not available. Only observed stages are available for this point.",
+  "TruncateObs": "-1",
+  "TruncateFcst": "7",
+  "ObservedFloodCategory": "no_flooding",
+  "ForecastFloodCategory": "fcst_not_current"
  },
  "luma_towns_post": "{\"San Juan\":[],\"Caguas\":[],\"Mayaguez\":[],\"Carolina\":[],\"Ponce\":[],\"Arecibo\":[],\"Bayamon\":[]}"
 }
