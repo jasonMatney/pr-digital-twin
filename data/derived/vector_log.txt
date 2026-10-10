@@ -1,0 +1,25 @@
+04:54:49 municipios offset 0 got 78 total 78
+04:54:49 municipios {"count":78,"server_count":78,"bytes":619019,"extra_simplify_deg":0}
+04:54:50 barrios offset 0 got 100 total 100
+04:54:51 barrios offset 100 got 100 total 200
+04:54:51 barrios offset 200 got 100 total 300
+04:54:52 barrios offset 300 got 100 total 400
+04:54:52 barrios offset 400 got 100 total 500
+04:54:52 barrios offset 500 got 100 total 600
+04:54:53 barrios offset 600 got 100 total 700
+04:54:53 barrios offset 700 got 100 total 800
+04:54:54 barrios offset 800 got 100 total 900
+04:54:54 barrios offset 900 got 39 total 939
+04:54:54 barrios {"count":939,"server_count":939,"bytes":2306987,"extra_simplify_deg":0}
+04:54:54 tracts offset 0 got 100 total 100
+04:54:55 tracts offset 100 got 100 total 200
+04:54:55 tracts offset 200 got 100 total 300
+04:54:55 tracts offset 300 got 100 total 400
+04:54:56 tracts offset 400 got 100 total 500
+04:54:56 tracts offset 500 got 100 total 600
+04:54:57 tracts offset 600 got 100 total 700
+04:54:57 tracts offset 700 got 100 total 800
+04:54:57 tracts offset 800 got 100 total 900
+04:54:58 tracts offset 900 got 81 total 981
+04:54:58 tracts {"count":981,"server_count":981,"bytes":2177408,"extra_simplify_deg":0}
+04:54:58 sample names: Añasco, Bayamón, Canóvanas, Cataño, Comerío, Guánica, Juana Díaz, Las Marías, Loíza, Manatí, Mayagüez, Peñuelas, Rincón, Río Grande, San Germán, San Sebastián
