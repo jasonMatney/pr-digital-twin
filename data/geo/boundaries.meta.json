@@ -62,21 +62,30 @@
   ]
  },
  "municipios": {
+  "with_pop100": 78,
+  "pop100_total": 3285874,
+  "hu100_total": 1598159,
   "count": 78,
   "server_count": 78,
-  "bytes": 619019,
+  "bytes": 621414,
   "extra_simplify_deg": 0
  },
  "barrios": {
+  "with_pop100": 936,
+  "pop100_total": 3279731,
+  "hu100_total": 1595039,
   "count": 939,
   "server_count": 939,
-  "bytes": 2306987,
+  "bytes": 2331493,
   "extra_simplify_deg": 0
  },
  "tracts": {
+  "with_pop100": 981,
+  "pop100_total": 3285874,
+  "hu100_total": 1598159,
   "count": 981,
   "server_count": 981,
-  "bytes": 2177408,
+  "bytes": 2203556,
   "extra_simplify_deg": 0
  }
 }
