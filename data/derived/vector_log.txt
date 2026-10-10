@@ -86,3 +86,35 @@ total 551080
 05:00:41 elevation {"tiles":1773,"fetched":0,"cached":1773,"failed":0}
 05:00:44 tiles written 1771 bytes 45822128 vertices clamped 0
 05:00:44 done {"buildings":1500471,"tiles":1771,"bytes":45822128,"facilities":3085,"floodAttached":false,"below_1m":8757,"zone_counts":{"0":1500471,"1":0,"2":0,"3":0}}
+05:00:46 coastline ways 1135 closed rings 908 open chains 0
+05:00:46 land rings 878 largest 17043 vertices; enclosed-water rings 0
+05:00:51 municipios_land 78 clipped 78 failed 0 bytes 1278684 extra tol 0 4.5s
+05:00:55 NFHL count 4894 ids 4894 oid field OBJECTID
+05:00:56 NFHL progress 280 / 4894 requests 10 queue 113 5s
+05:00:56 NFHL progress 680 / 4894 requests 20 queue 103 5s
+05:00:57 NFHL progress 1080 / 4894 requests 30 queue 93 6s
+05:00:57 NFHL progress 1480 / 4894 requests 40 queue 83 6s
+05:00:58 NFHL progress 1880 / 4894 requests 50 queue 73 6s
+05:00:58 NFHL progress 2280 / 4894 requests 60 queue 63 7s
+05:00:59 NFHL progress 2680 / 4894 requests 70 queue 53 8s
+05:00:59 NFHL progress 3080 / 4894 requests 80 queue 43 8s
+05:01:00 NFHL progress 3480 / 4894 requests 90 queue 33 8s
+05:01:00 NFHL progress 3880 / 4894 requests 100 queue 23 9s
+05:01:01 NFHL progress 4280 / 4894 requests 110 queue 13 9s
+05:01:02 NFHL progress 4680 / 4894 requests 120 queue 3 10s
+05:01:08 NFHL downloaded 4894 / 4894 failed 0 requests 123 
+05:01:08 nfhl_zones tolerance 0.000050 features 3830 bytes 5138271
+05:01:08 NFHL display file 3830 features 5138271 bytes; polygons by class {"0":729,"1":1648,"2":1978,"3":539}
+05:01:11 municipios 78
+05:01:18 buildings {"features":1500584,"kept":1500471,"degenerate":29,"multi":43,"simplified":279,"height_tag":203069,"height_levels":3419,"height_none":1293983,"vertices":8451048}
+05:01:18 facilities 3085 {"airport":24,"clinic":430,"fire_station":70,"hospital":87,"police_station":127,"power_plant":67,"school":1802,"seaport":15,"substation":401,"water_plant":62}
+05:01:18 zoom-14 tiles with buildings or facilities 1773
+05:01:20 elevation tiles 400 / 1773
+05:01:21 elevation tiles 800 / 1773
+05:01:23 elevation tiles 1200 / 1773
+05:01:24 elevation tiles 1600 / 1773
+05:01:25 elevation {"tiles":1773,"fetched":0,"cached":1773,"failed":0}
+05:01:25 NFHL polygons {"0":729,"1":1648,"2":1978,"3":539}
+05:01:26 flood class for 1500471 buildings in 0.4 s
+05:01:28 tiles written 1771 bytes 45822128 vertices clamped 0
+05:01:28 done {"buildings":1500471,"tiles":1771,"bytes":45822128,"facilities":3085,"floodAttached":true,"below_1m":8757,"zone_counts":{"0":1306623,"1":54600,"2":135886,"3":3362}}
