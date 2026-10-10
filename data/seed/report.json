@@ -1,5 +1,5 @@
 {
- "startedAt": "2026-10-10T05:04:01.813Z",
+ "startedAt": "2026-10-10T05:05:21.820Z",
  "ontologyVersion": "2026.10.1",
  "sources": {
   "census_tiger": {
@@ -27,7 +27,7 @@
    },
    "links": 1882,
    "problems": [],
-   "ms": 1899
+   "ms": 2165
   },
   "hud": {
    "status": "ok",
@@ -80,7 +80,7 @@
     "159 projects had no county FIPS (not geocoded by HUD): municipio taken from the project city where it equals a municipio name, confidence 0.7",
     "4 projects without a usable county/tract FIPS: no municipio link"
    ],
-   "ms": 1738
+   "ms": 2359
   },
   "openfema": {
    "status": "ok",
@@ -122,7 +122,7 @@
     "county \"Statewide\" not matched to a municipio (1 registrations left out)",
     "disaster numbers in the PR housing data that have no PR declaration row (impact objects kept, no link to a declaration): 1561, 4337"
    ],
-   "ms": 12781
+   "ms": 1670
   },
   "coops": {
    "status": "ok",
@@ -146,10 +146,10 @@
    "links": 0,
    "problems": [
     "9752621 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9752621/floodlevels.json?units=metric",
-    "9752235 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752235&units=metric",
     "9752695 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752695&units=metric",
     "9752621 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752621&units=metric",
     "9753216 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9753216/floodlevels.json?units=metric",
+    "9752235 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9752235&units=metric",
     "9754229 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9754229/floodlevels.json?units=metric",
     "9755968 floodlevels: HTTP 404 https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9755968/floodlevels.json?units=metric",
     "9753216 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9753216&units=metric",
@@ -164,7 +164,7 @@
     "9759413 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759413&units=metric",
     "9759938 slr_projections: HTTP 500 https://api.tidesandcurrents.noaa.gov/dpapi/prod/webapi/product/slr_projections.json?station=9759938&units=metric"
    ],
-   "ms": 23253
+   "ms": 23418
   },
   "usgs": {
    "status": "ok",
@@ -189,7 +189,7 @@
    },
    "links": 142,
    "problems": [],
-   "ms": 787
+   "ms": 848
   },
   "nws": {
    "status": "ok",
@@ -227,7 +227,7 @@
    },
    "links": 78,
    "problems": [],
-   "ms": 6418
+   "ms": 6093
   },
   "cdc_svi": {
    "status": "ok",
@@ -252,7 +252,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 2653
+   "ms": 5557
   },
   "nwps": {
    "status": "ok",
@@ -277,7 +277,15 @@
    },
    "links": 117,
    "problems": [],
-   "ms": 8218
+   "ms": 8790
+  },
+  "hurdat2": {
+   "status": "ok",
+   "files": [],
+   "objects": {},
+   "links": 0,
+   "problems": [],
+   "ms": 3030
   },
   "cdbg": {
    "status": "ok",
@@ -304,15 +312,7 @@
    "problems": [
     "32 of 977 rows had no usable geography or counts"
    ],
-   "ms": 235
-  },
-  "hurdat2": {
-   "status": "ok",
-   "files": [],
-   "objects": {},
-   "links": 0,
-   "problems": [],
-   "ms": 3146
+   "ms": 2854
   },
   "luma": {
    "status": "ok",
@@ -335,7 +335,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 1217
+   "ms": 489
   },
   "ndbc": {
    "status": "ok",
@@ -358,7 +358,7 @@
    },
    "links": 0,
    "problems": [],
-   "ms": 278
+   "ms": 238
   }
  },
  "replay": [
@@ -378,7 +378,7 @@
    "bytes": 2471
   }
  ],
- "finishedAt": "2026-10-10T05:04:25.344Z",
+ "finishedAt": "2026-10-10T05:05:45.477Z",
  "requests": 253,
  "bytes": 34901301
 }
