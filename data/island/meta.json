@@ -1,0 +1,1002 @@
+{
+ "generated": "2026-10-10T04:53:08.556Z",
+ "zoom": 10,
+ "x0": 316,
+ "y0": 456,
+ "tilesX": 12,
+ "tilesY": 8,
+ "tileSize": 256,
+ "width": 3072,
+ "height": 2048,
+ "bounds": {
+  "west": -68.90625,
+  "south": 16.636191878397657,
+  "east": -64.6875,
+  "north": 19.311143355064637
+ },
+ "projection": "Web Mercator (EPSG:3857): columns are equal steps in longitude, rows equal steps in Mercator y (not latitude); row 0 is north",
+ "dem": {
+  "file": "dem_z10.png",
+  "encoding": "terrarium: metres = R*256 + G + B/256 - 32768",
+  "quantisation_m": 0.5,
+  "min_m": -7948,
+  "max_m": 2448,
+  "bytes": 4091376
+ },
+ "img": {
+  "file": "img_z10.jpg",
+  "jpegQuality": 85,
+  "bytes": 18766,
+  "fill": "Tiles the imagery service does not have (HTTP 404) are a flat colour, NOT imagery: the mean colour of the neighbouring tiles that are entirely ocean (pass 1), then of already filled neighbours; neutral deep blue rgb(11,42,74) only if no such neighbour exists.",
+  "filledTiles": [
+   {
+    "x": 316,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 456,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 316,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 457,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 316,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 458,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 316,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 459,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 316,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 460,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 316,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 461,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 316,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 462,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 316,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 317,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 318,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 319,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 320,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 321,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 322,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 323,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 324,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 325,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 326,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   },
+   {
+    "x": 327,
+    "y": 463,
+    "fill": "neutral-deep-blue",
+    "rgb": [
+     11,
+     42,
+     74
+    ]
+   }
+  ]
+ },
+ "qa": {
+  "file": "qa_hillshade.jpg",
+  "note": "hillshade (sun NW, land exaggerated 6x, sea 1.2x) of dem_z10.png, 0 m contour in red"
+ },
+ "sources": {
+  "dem": "AWS Terrain Tiles (Mapzen/Tilezen Terrarium; USGS 3DEP on land, GEBCO/ETOPO1 bathymetry), https://registry.opendata.aws/terrain-tiles/ ; re-encoded, heights quantised to 0.5 m",
+  "img": "USGS The National Map: USGSImageryOnly (public domain), https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer"
+ }
+}
