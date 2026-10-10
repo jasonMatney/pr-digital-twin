@@ -1,0 +1,19 @@
+302 census
+200 nhc
+200 ndbc
+200 terrarium
+200 luma
+HTTP/1.1 307 Temporary Redirect
+Date: Sat, 10 Oct 2026 04:24:10 GMT
+Server: Apache
+Cache-Control: max-age=600, public
+Location: https://download.geofabrik.de/north-america/us/puerto-rico-261009.osm.pbf
+Content-Type: text/html; charset=iso-8859-1
+Cache-Status: download-proxy11;fwd=stale;detail=match
+Via: 1.1 download-proxy11 (squid/6.14)
+Connection: keep-alive
+
+4
+               total        used        free      shared  buff/cache   available
+Mem:              15           1          12           0           2          14
+/dev/root       145G   59G   86G  41% /
