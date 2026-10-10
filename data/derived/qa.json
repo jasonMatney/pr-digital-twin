@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-10T05:01:28.743Z",
+ "generated": "2026-10-10T05:04:11.850Z",
  "flood_attached": true,
  "buildings": {
   "total": 1500471,
@@ -132,16 +132,39 @@
   "max_per_tile": 9148
  },
  "elevation": {
-  "tiles": 1773,
+  "tiles": 1772,
   "fetched": 0,
-  "cached": 1773,
+  "cached": 1772,
   "failed": 0,
   "unknown": 0,
   "below_0": 1368,
   "at_or_below_1m": 8757,
   "at_or_below_2m": 24543,
   "at_or_below_3m": 61520,
-  "above_10": 1272488
+  "above_10": 1272488,
+  "integer_plateaus": {
+   "note": "buildings whose sampled ground elevation is a whole metre to within 5 mm, by metre, among buildings between 0.5 and 15.5 m",
+   "by_metre": {
+    "1": 4178,
+    "2": 2071,
+    "3": 39107,
+    "4": 1304,
+    "5": 958,
+    "6": 486,
+    "7": 10530,
+    "8": 220,
+    "9": 175,
+    "10": 8090,
+    "11": 172,
+    "12": 137,
+    "13": 5694,
+    "14": 146,
+    "15": 348
+   },
+   "total": 73616,
+   "buildings_0p5_to_15p5m": 310654,
+   "share": 0.237
+  }
  },
  "flood": {
   "nfhl": {
@@ -318,7 +341,7 @@
   }
  },
  "facilities": {
-  "total": 3085,
+  "total": 3084,
   "counts": {
    "airport": 24,
    "clinic": 430,
@@ -327,11 +350,25 @@
    "police_station": 127,
    "power_plant": 67,
    "school": 1802,
-   "seaport": 15,
+   "seaport": 14,
    "substation": 401,
    "water_plant": 62
   },
-  "without_municipio": 1
+  "without_municipio": 0,
+  "dropped_outside_puerto_rico": 1,
+  "in_sfha": 391,
+  "in_sfha_by_type": {
+   "airport": 8,
+   "clinic": 53,
+   "fire_station": 7,
+   "hospital": 8,
+   "police_station": 25,
+   "power_plant": 11,
+   "school": 181,
+   "seaport": 12,
+   "substation": 70,
+   "water_plant": 16
+  }
  },
  "top5_buildings": [
   {
