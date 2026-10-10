@@ -213,17 +213,53 @@ def stage(urls, pct, tag, work):
     return ok
 
 
+def read_raster(path, work):
+    """Float32 array of band 1. Uses the GDAL python bindings when present, otherwise a raw ENVI copy."""
+    try:
+        from osgeo import gdal  # noqa: PLC0415
+        ds = gdal.Open(str(path))
+        a = ds.GetRasterBand(1).ReadAsArray().astype(np.float32)
+        ds = None
+        return a
+    except ImportError:
+        raw = work / "_read.bin"
+        p = subprocess.run(["gdal_translate", "-of", "ENVI", "-ot", "Float32", str(path), str(raw)], capture_output=True, text=True, timeout=600)
+        if p.returncode != 0:
+            raise RuntimeError(f"gdal_translate to ENVI failed rc={p.returncode}: out={p.stdout[-300:]} err={p.stderr[-500:]}")
+        hdr = open(str(raw)[:-4] + ".hdr").read()
+        ns, nl = int(re.search(r"samples\s*=\s*(\d+)", hdr).group(1)), int(re.search(r"lines\s*=\s*(\d+)", hdr).group(1))
+        return np.fromfile(raw, dtype="<f4").reshape(nl, ns).copy()
+
+
 def warp(src, z, x0, y0, x1, y1, resampling, name, work, nd, timeout=900):
     w, h = (x1 - x0 + 1) * 256, (y1 - y0 + 1) * 256
     te = merc_te(z, x0, y0, x1, y1)
-    out = work / f"{name}.bin"
+    out = work / f"{name}.tif"
     t = time.time()
-    run(["gdalwarp", "-q", "-overwrite", "-t_srs", "EPSG:3857", "-te", *[repr(v) for v in te], "-ts", w, h,
-         "-r", resampling, "-srcnodata", nd_arg(nd), "-dstnodata", "-9999", "-ot", "Float32", "-of", "ENVI",
-         "-multi", "-wo", "NUM_THREADS=ALL_CPUS", "-wm", "1500", src, out], timeout=timeout)
-    a = np.fromfile(out, dtype="<f4").reshape(h, w)
+    base = ["gdalwarp", "-overwrite", "-t_srs", "EPSG:3857", "-te", *[f"{v:.6f}" for v in te], "-ts", str(w), str(h),
+            "-r", resampling, "-srcnodata", nd_arg(nd), "-dstnodata", "-9999", "-ot", "Float32", "-of", "GTiff"]
+    variants = [
+        ["-multi", "-wo", "NUM_THREADS=ALL_CPUS", "-wm", "1500"],
+        ["-wo", "NUM_THREADS=ALL_CPUS"],
+        ["-s_srs", "EPSG:4269"],
+        ["--debug", "ON", "-s_srs", "EPSG:4269"],
+    ]
+    done = False
+    for i, v in enumerate(variants):
+        cmd = base + v + [str(src), str(out)]
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if p.returncode == 0 and out.exists():
+            done = True
+            if i:
+                log(f"  gdalwarp variant {i} ({' '.join(v)}) succeeded")
+            break
+        log(f"  gdalwarp variant {i} ({' '.join(v)}) rc={p.returncode}\n    cmd: {' '.join(cmd)}\n    stdout: {p.stdout[-600:]!r}\n    stderr: {p.stderr[-1500:]!r}")
+    if not done:
+        raise RuntimeError(f"gdalwarp failed for {name} in every variant")
+    a = read_raster(out, work)
+    if a.shape != (h, w):
+        raise RuntimeError(f"warp {name}: got {a.shape}, wanted {(h, w)}")
     bad = ~np.isfinite(a) | (a < -9000) | (a > 9000)
-    a = a.copy()
     a[bad] = np.nan
     log(f"warp {name}: {w}x{h} px z{z} {resampling} in {time.time() - t:.1f}s, valid {100 * (1 - bad.mean()):.1f}%, "
         f"min {np.nanmin(a) if (~bad).any() else None} max {np.nanmax(a) if (~bad).any() else None}")
@@ -332,13 +368,14 @@ def qa_image(m13, x0, y0, out):
 
 
 def spot_window(vrt, lat, lon, work, d=0.0004):
-    out = work / "spot.bin"
+    out = work / "spot.tif"
     try:
-        run(["gdal_translate", "-q", "-projwin", lon - d, lat + d, lon + d, lat - d, "-projwin_srs", "EPSG:4326",
-             "-of", "ENVI", "-ot", "Float32", vrt, out], timeout=120)
-        hdr = open(str(out).replace(".bin", ".hdr")).read()
-        ns, nl = int(re.search(r"samples\s*=\s*(\d+)", hdr).group(1)), int(re.search(r"lines\s*=\s*(\d+)", hdr).group(1))
-        a = np.fromfile(out, dtype="<f4").reshape(nl, ns)
+        p = subprocess.run(["gdal_translate", "-projwin", str(lon - d), str(lat + d), str(lon + d), str(lat - d), "-projwin_srs", "EPSG:4326",
+                            "-of", "GTiff", "-ot", "Float32", str(vrt), str(out)], capture_output=True, text=True, timeout=120)
+        if p.returncode != 0:
+            return dict(error=(p.stdout[-150:] + " | " + p.stderr[-300:]))
+        a = read_raster(out, work)
+        nl, ns = a.shape
         ok = np.isfinite(a) & (a > -9000) & (a < 9000)
         if not ok.any():
             return dict(n=int(a.size), valid=0.0)
@@ -347,7 +384,7 @@ def spot_window(vrt, lat, lon, work, d=0.0004):
         return dict(n=int(a.size), valid=round(float(ok.mean()), 3), centre=round(float(ctr), 2), min=round(float(v.min()), 2),
                     median=round(float(np.median(v)), 2), max=round(float(v.max()), 2))
     except Exception as e:  # noqa: BLE001
-        return dict(error=str(e)[-200:])
+        return dict(error=str(e)[-300:])
 
 
 def main():
