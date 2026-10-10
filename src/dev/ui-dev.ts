@@ -1,0 +1,31 @@
+// DEV ONLY: mounts the operations UI over a stand-in for the scene, on the fixture-backed mock store.
+// Screenshot hooks: __garita.S (core state signals), __garita.ui (UI chrome signals), __garita.store.
+import * as S from '../core/state';
+import { mountUI } from '../ui/index';
+import * as ui from '../ui/uistate';
+import { createMockStore, recordedWind } from './mock-store';
+
+const store = createMockStore();
+S.store.value = store;
+S.fixturesMode.value = true;
+
+const wind = recordedWind();
+if (wind) S.weather.value = { ...S.weather.value, ...wind, source: 'live' };
+
+// Stand-in for the engine's clock (world/engine.ts does this every frame in the real app).
+let last = performance.now();
+setInterval(() => {
+  const now = performance.now(), dt = (now - last) / 1000; last = now;
+  if (S.clockMode.value === 'live') S.sceneTime.value = Date.now();
+  else if (S.playbackRate.value) S.sceneTime.value += dt * 1000 * S.playbackRate.value;
+}, 200);
+// Stand-in for the scene's pointer readout so the bottom bar can be checked: follows the mouse over a fake extent.
+const stage = document.getElementById('scene-standin');
+stage?.addEventListener('pointermove', (e) => {
+  const r = stage.getBoundingClientRect();
+  S.cursorGeo.value = { lon: -67.4 + ((e.clientX - r.left) / r.width) * 2.2, lat: 18.75 - ((e.clientY - r.top) / r.height) * 1.1, elev: NaN };
+});
+
+const unmount = mountUI(document.getElementById('ui')!, { store });
+S.booted.value = true;
+(globalThis as any).__garita = { ready: true, debug: () => ({ selected: S.selectedId.value, panel: S.rightPanel.value, narrow: ui.narrow.value }), S, ui, store, unmount };

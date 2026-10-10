@@ -1,0 +1,162 @@
+// UI strings in English and Spanish as used in Puerto Rico. `t(key)` reads the language signal, so any
+// component that calls it re-renders when the language changes. `L()` picks a side of an ontology label.
+import { lang } from '../core/state';
+import type { L10n } from '../ontology/types';
+
+type Dict = Record<string, [en: string, es: string]>;
+
+const D: Dict = {
+  'app.subtitle': ['Puerto Rico digital twin · unofficial demo', 'Gemelo digital de Puerto Rico · demo no oficial'],
+  'app.search': ['Search places, sensors, alerts', 'Buscar lugares, sensores, avisos'],
+  'app.search.short': ['Search', 'Buscar'],
+  'app.ast': ['AST', 'AST'],
+  'app.lang': ['Language', 'Idioma'],
+  'app.quality': ['Render quality', 'Calidad gráfica'],
+  'q.low': ['Low', 'Baja'], 'q.medium': ['Med', 'Media'], 'q.high': ['High', 'Alta'],
+  'feeds.chip': ['feeds', 'fuentes'],
+  'feeds.ok': ['All live feeds reporting', 'Todas las fuentes en vivo responden'],
+  'feeds.problem': ['Some feeds are late or failing', 'Algunas fuentes están atrasadas o fallan'],
+  'feeds.none': ['No feed has reported yet', 'Ninguna fuente ha respondido aún'],
+
+  // KPI strip
+  'kpi.title': ['Island now', 'La isla ahora'],
+  'kpi.alerts': ['Weather alerts', 'Avisos del tiempo'],
+  'kpi.alerts.sub': ['active', 'vigentes'],
+  'kpi.quakes': ['Earthquakes 24 h', 'Temblores 24 h'],
+  'kpi.quakes.max': ['max', 'máx'],
+  'kpi.gauges': ['Rivers at action stage', 'Ríos en etapa de acción'],
+  'kpi.gauges.of': ['of', 'de'],
+  'kpi.power': ['Customers without power', 'Clientes sin luz'],
+  'kpi.tide': ['San Juan tide', 'Marea en San Juan'],
+  'kpi.tide.vs': ['vs pred.', 'vs. pred.'],
+  'kpi.wind': ['Wind', 'Viento'],
+  'kpi.wind.from': ['from', 'del'],
+  'kpi.cyclones': ['Tropical cyclones', 'Ciclones tropicales'],
+  'kpi.cyclones.nearest': ['nearest', 'a'],
+  'kpi.nodata': ['No reading yet', 'Sin lectura aún'],
+
+  // rail
+  'rail.layers': ['Layers', 'Capas'],
+  'grp.hazards': ['Hazards', 'Peligros'], 'grp.water': ['Water', 'Agua'], 'grp.housing': ['Housing', 'Vivienda'],
+  'grp.infrastructure': ['Infrastructure', 'Infraestructura'], 'grp.boundaries': ['Boundaries', 'Límites'],
+  'grp.atmosphere': ['Atmosphere', 'Atmósfera'], 'grp.tracks': ['Tracks', 'Tráfico'], 'grp.records': ['Records', 'Registros'],
+  'grp.scene': ['Scene', 'Escena'], 'grp.overlays': ['Overlays', 'Superposiciones'],
+  'rail.all_on': ['All on', 'Todas'], 'rail.all_off': ['All off', 'Ninguna'],
+  'rail.objects': ['objects', 'objetos'],
+  'scene.buildings': ['Buildings', 'Edificios'], 'scene.clouds': ['Clouds', 'Nubes'], 'scene.labels': ['Place labels', 'Nombres de lugares'],
+  'scene.municipios': ['Municipio outlines', 'Límites de municipios'], 'scene.ocean_detail': ['Ocean detail', 'Detalle del mar'], 'scene.markers': ['Markers', 'Marcadores'],
+  'ov.none': ['None', 'Ninguna'], 'ov.radar': ['Radar (rain)', 'Radar (lluvia)'], 'ov.goes': ['GOES satellite', 'Satélite GOES'],
+  'ov.nfhl': ['FEMA flood zones', 'Zonas inundables FEMA'], 'ov.slr': ['NOAA sea level rise inundation', 'Inundación por alza del mar (NOAA)'],
+  'ov.choropleth': ['Choropleth by municipio', 'Coropleta por municipio'], 'ov.elevation': ['Elevation', 'Elevación'],
+  'ov.opacity': ['Opacity', 'Opacidad'], 'ov.property': ['Property', 'Propiedad'],
+  'ov.one': ['One overlay is draped on the terrain at a time.', 'Se muestra una superposición a la vez sobre el terreno.'],
+
+  // dock
+  'tab.alerts': ['Alerts', 'Avisos'], 'tab.object': ['Object', 'Objeto'], 'tab.explorer': ['Explorer', 'Explorador'], 'tab.lineage': ['Lineage', 'Procedencia'],
+  'dock.collapse': ['Collapse panel', 'Contraer panel'], 'dock.expand': ['Expand panel', 'Expandir panel'], 'dock.close': ['Close panel', 'Cerrar panel'],
+
+  // alerts
+  'al.title': ['Inbox', 'Bandeja'],
+  'al.sec.weather': ['Weather watches and warnings', 'Vigilancias y avisos del tiempo'],
+  'al.sec.cyclone': ['Tropical cyclones', 'Ciclones tropicales'],
+  'al.sec.quake': ['Earthquakes M 3+ · last 7 days', 'Temblores M 3+ · últimos 7 días'],
+  'al.sec.gauge': ['Rivers at or above action stage', 'Ríos en etapa de acción o más'],
+  'al.sec.power': ['Power regions with 2% or more out', 'Regiones con 2% o más sin luz'],
+  'al.empty.weather': ['No active watches or warnings for Puerto Rico from NWS San Juan.', 'No hay vigilancias ni avisos vigentes para Puerto Rico del SNM San Juan.'],
+  'al.empty.cyclone': ['No active tropical cyclones reported by the National Hurricane Center.', 'El Centro Nacional de Huracanes no reporta ciclones tropicales activos.'],
+  'al.empty.quake': ['No earthquakes of magnitude 3 or more near Puerto Rico in the last 7 days.', 'Ningún temblor de magnitud 3 o más cerca de Puerto Rico en los últimos 7 días.'],
+  'al.empty.gauge': ['No river gauge is at or above its action stage.', 'Ningún río está en su etapa de acción o por encima.'],
+  'al.empty.power': ['No LUMA region has 2% or more of customers without power.', 'Ninguna región de LUMA tiene 2% o más de clientes sin luz.'],
+  'al.expired': ['Include expired, last 7 days', 'Incluir expirados, últimos 7 días'],
+  'al.merged': ['By severity, then newest', 'Por severidad, luego más reciente'],
+  'al.sections': ['What is watched', 'Qué se vigila'],
+  'al.affects': ['municipios', 'municipios'], 'al.affects1': ['municipio', 'municipio'],
+  'al.expires': ['until', 'hasta'], 'al.expiredAt': ['expired', 'expiró'],
+  'al.count.none': ['Nothing needs attention right now', 'Nada requiere atención ahora'],
+  'al.count': ['items', 'elementos'],
+
+  // severity
+  'sev.0': ['Info', 'Info'], 'sev.1': ['Minor', 'Menor'], 'sev.2': ['Moderate', 'Moderado'], 'sev.3': ['Severe', 'Severo'], 'sev.4': ['Extreme', 'Extremo'],
+
+  // object
+  'ob.none': ['Nothing selected', 'Nada seleccionado'],
+  'ob.none.body': ['Pick a marker on the island, a row in the Explorer, or search with', 'Escoge un marcador en la isla, una fila del Explorador, o busca con'],
+  'ob.missing': ['This object is no longer in the store.', 'Este objeto ya no está en la base de datos.'],
+  'ob.loading': ['Loading', 'Cargando'],
+  'ob.fly': ['Fly to', 'Volar a'], 'ob.copy': ['Copy id', 'Copiar id'], 'ob.copied': ['Copied', 'Copiado'],
+  'ob.note': ['Add note', 'Añadir nota'], 'ob.status': ['Set status', 'Fijar estado'],
+  'ob.note.ph': ['What did you see or decide?', '¿Qué viste o decidiste?'],
+  'ob.status.ph': ['e.g. inspected, closed, needs visit', 'p. ej. inspeccionado, cerrado, requiere visita'],
+  'ob.save': ['Save', 'Guardar'], 'ob.cancel': ['Cancel', 'Cancelar'],
+  'ob.key': ['Key facts', 'Datos clave'], 'ob.trend': ['Last 72 hours', 'Últimas 72 horas'],
+  'ob.all': ['All properties', 'Todas las propiedades'], 'ob.links': ['Links', 'Vínculos'], 'ob.ids': ['Identities', 'Identidades'],
+  'ob.notes': ['Your notes', 'Tus notas'], 'ob.audit': ['Audit log', 'Bitácora'],
+  'ob.prop': ['Property', 'Propiedad'], 'ob.value': ['Value', 'Valor'], 'ob.source': ['Source', 'Fuente'], 'ob.observed': ['Observed', 'Observado'],
+  'ob.best': ['best', 'mejor'], 'ob.disagree': ['Sources disagree', 'Las fuentes difieren'],
+  'ob.noloc': ['Area or record · no single point', 'Área o registro · sin punto único'],
+  'ob.geom': ['geometry', 'geometría'],
+  'ob.nolinks': ['No links recorded for this object.', 'No hay vínculos registrados para este objeto.'],
+  'ob.noprops': ['No properties recorded.', 'Sin propiedades registradas.'],
+  'ob.noseries': ['No observations in the last 72 hours.', 'Sin observaciones en las últimas 72 horas.'],
+  'ob.min': ['min', 'mín'], 'ob.max': ['max', 'máx'], 'ob.last': ['last', 'últ.'],
+  'ob.first': ['First seen', 'Visto por primera vez'], 'ob.updated': ['Updated', 'Actualizado'], 'ob.createdby': ['Created by', 'Creado por'],
+  'ob.valid': ['Valid', 'Vigencia'],
+  'ob.more': ['more', 'más'],
+  'ob.usernote': ['Saved in this browser only. Source: user.', 'Guardado solo en este navegador. Fuente: usuario.'],
+
+  // explorer
+  'ex.type': ['Object type', 'Tipo de objeto'], 'ex.filter': ['Filter rows', 'Filtrar filas'], 'ex.name': ['Name', 'Nombre'],
+  'ex.rows': ['rows', 'filas'], 'ex.showing': ['Showing', 'Mostrando'], 'ex.of': ['of', 'de'],
+  'ex.empty': ['No objects of this type in the store yet.', 'Aún no hay objetos de este tipo en la base de datos.'],
+  'ex.nomatch': ['No row matches the filter.', 'Ninguna fila coincide con el filtro.'],
+  'ex.expired': ['Include expired', 'Incluir expirados'],
+  'ex.status': ['Status', 'Estado'],
+
+  // lineage
+  'li.title': ['Where every number comes from', 'De dónde sale cada número'],
+  'li.lead': ['Each value in Garita keeps the source that reported it and when. Nothing is entered by hand except your own notes.', 'Cada valor en Garita guarda la fuente que lo reportó y cuándo. Nada se entra a mano excepto tus notas.'],
+  'li.kind.live': ['Live · fetched by this browser', 'En vivo · las busca este navegador'],
+  'li.kind.relay': ['Relay · snapshotted every few minutes', 'Relevo · copia cada pocos minutos'],
+  'li.kind.baked': ['Baked · compiled into the seed database', 'Compiladas · incluidas en la base inicial'],
+  'li.kind.derived': ['Derived · computed by Garita', 'Derivadas · calculadas por Garita'],
+  'li.kind.user': ['User · written in this browser', 'Usuario · escritas en este navegador'],
+  'li.licence': ['Licence', 'Licencia'], 'li.cadence': ['Expected every', 'Se espera cada'], 'li.last': ['Last run', 'Última corrida'],
+  'li.objects': ['Objects', 'Objetos'], 'li.never': ['not run yet', 'aún sin correr'], 'li.open': ['Open source page', 'Abrir página de la fuente'],
+  'li.ok': ['on time', 'al día'], 'li.stale': ['late', 'atrasada'], 'li.error': ['failing', 'fallando'], 'li.static': ['static', 'estática'], 'li.unknown': ['no run yet', 'sin corrida'],
+  'li.obs': ['observations', 'observaciones'],
+
+  // bottom bar
+  'bb.cursor': ['Cursor', 'Cursor'], 'bb.elev': ['Elev', 'Elev'], 'bb.depth': ['Depth', 'Prof'], 'bb.cam': ['Eye alt', 'Altura'],
+  'bb.fps': ['fps', 'fps'], 'bb.tiles': ['tiles', 'teselas'],
+  'bb.nocursor': ['Move over the island', 'Mueve el cursor sobre la isla'],
+  'bb.live': ['Live', 'En vivo'], 'bb.play': ['Play', 'Reproducir'], 'bb.pause': ['Pause', 'Pausa'],
+  'bb.rate': ['Playback rate', 'Velocidad'], 'bb.scrub': ['Time of day (AST)', 'Hora del día (AST)'],
+  'bb.sunrise': ['Sunrise', 'Salida del sol'], 'bb.sunset': ['Sunset', 'Puesta del sol'], 'bb.sanjuan': ['San Juan', 'San Juan'],
+  'bb.scene': ['Scene time', 'Hora de la escena'],
+  'bb.attrib.title': ['Open data lineage', 'Abrir procedencia de datos'],
+
+  // search
+  'se.ph': ['Name, id, or "18.46, -66.10"', 'Nombre, id, o "18.46, -66.10"'],
+  'se.hint': ['Type to search every object in the twin. Enter selects and flies there.', 'Escribe para buscar en todos los objetos del gemelo. Enter selecciona y vuela allí.'],
+  'se.none': ['Nothing matches', 'Nada coincide con'],
+  'se.coord': ['Fly to coordinates', 'Volar a coordenadas'],
+  'se.keys': ['↑↓ move · Enter open · Esc close', '↑↓ mover · Enter abrir · Esc cerrar'],
+  'se.outside': ['Outside the Puerto Rico area', 'Fuera del área de Puerto Rico'],
+
+  // toasts / time
+  'toast.new': ['New', 'Nuevo'], 'toast.dismiss': ['Dismiss', 'Descartar'],
+  'ago.now': ['just now', 'ahora'], 'ago.min': ['min ago', 'min'], 'ago.h': ['h ago', 'h'], 'ago.d': ['d ago', 'd'], 'ago.pre': ['', 'hace '],
+  'in.pre': ['in ', 'en '],
+  'yes': ['Yes', 'Sí'], 'no': ['No', 'No'],
+};
+
+export function t(key: string): string {
+  const e = D[key];
+  if (!e) return key;
+  return lang.value === 'es' ? e[1] : e[0];
+}
+export function L(l: L10n | undefined | null): string {
+  if (!l) return '';
+  return (lang.value === 'es' ? l.es : l.en) || l.en || '';
+}
+export const locale = () => (lang.value === 'es' ? 'es-PR' : 'en-US');

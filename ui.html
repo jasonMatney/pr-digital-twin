@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Garita · UI dev (mock store, recorded fixtures)</title>
+  <meta name="theme-color" content="#050f15">
+  <style>
+    html, body { height: 100%; margin: 0; background: #050f15; color: #e9f2ef; overflow: hidden; }
+    /* Stand-in for the 3D scene: sea, a lit patch where the island would be, a faint graticule. Not a map. */
+    #scene-standin { position: fixed; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, rgba(190,232,236,.035) 0 1px, transparent 1px 90px),
+        repeating-linear-gradient(90deg, rgba(190,232,236,.035) 0 1px, transparent 1px 90px),
+        radial-gradient(46% 20% at 46% 50%, #2f5a3c 0%, #24503f 38%, #1b5560 62%, transparent 78%),
+        radial-gradient(120% 90% at 50% 55%, #12495c 0%, #0b2f40 48%, #06161f 100%); }
+    #ui { position: fixed; inset: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="scene-standin" aria-hidden="true"></div>
+  <div id="ui"></div>
+  <script type="module" src="/src/dev/ui-dev.ts"></script>
+</body>
+</html>
