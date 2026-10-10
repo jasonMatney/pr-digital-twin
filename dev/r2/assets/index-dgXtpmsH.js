@@ -1,4 +1,4 @@
-import{C as Ft,M as xt,A as Xe,G as St,a as ut,D as ce,p as Lt,B as Et,L as Le,d as ue,E as fe,F as ne,H as U,I as R,J as $,O as Te,K as ft,N as mt,P as Ze,Q as gt,T as we,U as wt,W as Pt,X as Rt,Y as Ee,Z as Bt,_ as Gt,q as Pe,$ as Re,a0 as _e,a1 as It,a2 as Be,a3 as Ue,a4 as ge,a5 as Ge,a6 as Ie,a7 as ht,a8 as $t,a9 as xe}from"./r2-D6SpO1sY.js";const Nt=`
+import{C as Ft,M as xt,A as Xe,G as St,a as ut,D as ce,p as Lt,B as Et,L as Le,d as ue,E as fe,F as ne,H as U,I as R,J as $,O as Te,K as ft,N as mt,P as Ze,Q as gt,T as we,U as wt,W as Pt,X as Rt,Y as Ee,Z as Bt,_ as Gt,q as Pe,$ as Re,a0 as _e,a1 as It,a2 as Be,a3 as Ue,a4 as ge,a5 as Ge,a6 as Ie,a7 as ht,a8 as $t,a9 as xe}from"./r2-B-MMsYtr.js";const Nt=`
 uniform sampler2D tPhoto; uniform sampler2D tNorm; uniform sampler2D tOverlay;
 uniform vec4 uOvXf; uniform float uHasPhoto; uniform float uOvOpacity; uniform float uRelief; uniform float uLod; uniform vec3 uTint;
 uniform float uNight; uniform float uTintMode; uniform float uLightGain; uniform float uOvAbove; uniform sampler2D tDensity; uniform vec4 uDenXf;
