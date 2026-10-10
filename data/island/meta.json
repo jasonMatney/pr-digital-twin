@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-10T05:06:14.922Z",
+ "generated": "2026-10-10T05:09:22.714Z",
  "zoom": 10,
  "x0": 316,
  "y0": 456,
@@ -589,7 +589,7 @@
  "img": {
   "file": "img_z10.jpg",
   "jpegQuality": 85,
-  "bytes": 291081,
+  "bytes": 291040,
   "composition": "Resampled from the real USGSImageryOnly tiles of every mirrored zoom <= 13, painted coarse to fine (finer zoom wins where it has data; upstream transparency respected; upstream pure-white no-data areas (runs of >= 12 pixels with all channels >= 248, grown 2 px) are cut out so the coarser layer shows). The service answers 404 for zoom 10 itself, so no zoom-10 tile is used unless listed in layers.",
   "layers": [
    {
@@ -599,21 +599,21 @@
    },
    {
     "zoom": 11,
-    "tiles": 70,
+    "tiles": 54,
     "method": "each tile reduced 2x (lanczos3)",
-    "tilesWithWhiteNoDataCutOut": 36
+    "tilesWithWhiteNoDataCutOut": 34
    },
    {
     "zoom": 12,
-    "tiles": 297,
+    "tiles": 167,
     "method": "each tile reduced 4x (lanczos3)",
-    "tilesWithWhiteNoDataCutOut": 92
+    "tilesWithWhiteNoDataCutOut": 78
    },
    {
     "zoom": 13,
-    "tiles": 1170,
+    "tiles": 572,
     "method": "each tile reduced 8x (lanczos3)",
-    "tilesWithWhiteNoDataCutOut": 231
+    "tilesWithWhiteNoDataCutOut": 165
    }
   ],
   "fill": "No imagery is invented. Pixels with no imagery at any mirrored zoom are neutral deep blue rgb(11,42,74).",
