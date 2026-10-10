@@ -1,0 +1,67 @@
+name: bathy
+# Builds nearshore bathymetry tiles from NOAA NCEI CUDEM (Puerto Rico) and publishes them to gh-pages.
+# Owns on gh-pages: tiles/bathy/**, data/island/bathy_*
+on:
+  push:
+    branches: [pipe-bathy]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: bathy
+  cancel-in-progress: false
+jobs:
+  bathy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GDAL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin python3-numpy python3-pil
+      - name: Build
+        run: |
+          mkdir -p out/tiles/bathy work
+          set +e
+          timeout 17m /usr/bin/python3 pipeline/bathy/build.py --out "$PWD/out" --work "$PWD/work"
+          rc=$?
+          echo "build exit code $rc" | tee -a out/tiles/bathy/build.log
+          du -sh out/tiles/bathy || true
+          exit $rc
+      - name: Publish to gh-pages
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/tiles/bathy
+          [ -f out/tiles/bathy/build.log ] || echo "no build log was written (run ${GITHUB_RUN_ID})" > out/tiles/bathy/build.log
+          git clone --quiet --filter=blob:none --no-checkout --single-branch --branch gh-pages \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ghp
+          cd ghp
+          git sparse-checkout set --no-cone '/tiles/bathy/' '/data/island/bathy_*'
+          git checkout --quiet gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p tiles/bathy data/island
+          if [ -f ../out/tiles/bathy/index.json ]; then
+            # complete build: replace our own paths only
+            rm -rf tiles/bathy
+            cp -r ../out/tiles/bathy tiles/
+            if [ -f ../out/data/island/bathy_qa.jpg ]; then cp ../out/data/island/bathy_qa.jpg data/island/bathy_qa.jpg; fi
+          else
+            # failed build: keep whatever was published, only refresh the log
+            cp ../out/tiles/bathy/build.log tiles/bathy/build.log
+          fi
+          git add -A --sparse -- tiles/bathy
+          if [ -f data/island/bathy_qa.jpg ]; then git add --sparse -- data/island/bathy_qa.jpg; fi
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit --quiet -m "bathy: CUDEM nearshore bathymetry tiles (${GITHUB_SHA::7}, run ${GITHUB_RUN_ID})"
+          for i in 1 2 3 4 5 6 7 8; do
+            if git push --quiet origin HEAD:gh-pages; then echo "pushed on attempt $i"; git log --oneline -1; exit 0; fi
+            sleep $((i * 4))
+            git fetch --quiet origin gh-pages
+            git rebase --quiet origin/gh-pages
+          done
+          echo "could not push to gh-pages" >&2; exit 1
