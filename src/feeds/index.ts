@@ -10,13 +10,16 @@ import { fixtureFor } from './fixtures.ts';
 import { FEEDS } from './registry.ts';
 
 export { FEEDS };
+export { cycloneForecasts } from './cyclones.ts';
+export type { CycloneForecast, ForecastPoint } from './cyclones.ts';
 export type { Feed, FeedContext, FeedStatus } from './types.ts';
 
 const TIMEOUT_MS = 25_000;
 const BACKOFF_BASE_MS = 30_000;
 const BACKOFF_CAP_MS = 15 * 60_000;
 const STAGGER_MS = 450;
-const STALE_RELAY_MS = 45 * 60_000;
+/** The relay refreshes about every five minutes; a file four cycles old means the job has stopped. */
+const STALE_RELAY_MS = 20 * 60_000;
 
 export interface FeedsHandle {
   stop(): void;
@@ -37,9 +40,13 @@ export function startFeeds(store: TwinStore, opts: { fixtures?: boolean; only?: 
   const due = new Set<string>();           // came up while the tab was hidden
   const abort = new AbortController();
   let stopped = false;
+  // Fixtures mode: "now" is when the payloads were recorded, so batches are dated at the recording, not at today.
+  const recordedAt: Promise<number | null> = fixtures
+    ? fetch(dataUrl('fixtures/recorded_at.txt')).then((r) => (r.ok ? r.text() : '')).then((t) => { const ms = Date.parse(t.trim()); return Number.isFinite(ms) ? ms : null; }).catch(() => null)
+    : Promise.resolve(null);
   const hidden = () => typeof document !== 'undefined' && document.hidden;
 
-  function makeContext(counter: { bytes: number }): FeedContext {
+  function makeContext(counter: { bytes: number }, nowMs: number | null): FeedContext {
     async function get(url: string, init?: RequestInit): Promise<Response> {
       let target = url;
       if (fixtures) {
@@ -53,7 +60,8 @@ export function startFeeds(store: TwinStore, opts: { fixtures?: boolean; only?: 
       abort.signal.addEventListener('abort', onStop, { once: true });
       try {
         const res = await fetch(target, { ...(fixtures ? {} : init), signal: timeout.signal, cache: fixtures ? 'default' : 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+        // `status` lets a feed tell "this station does not exist" (4xx) from a passing failure
+        if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status} from ${new URL(url).host}`), { status: res.status });
         return res;
       } catch (e: any) {
         if (e?.name === 'TimeoutError' || e?.name === 'AbortError') throw new Error(`${new URL(url).host} did not answer in ${TIMEOUT_MS / 1000} s`);
@@ -70,7 +78,7 @@ export function startFeeds(store: TwinStore, opts: { fixtures?: boolean; only?: 
         const t = await text(url, init);
         try { return JSON.parse(t); } catch { throw new Error(`${new URL(url).host} did not return JSON`); }
       },
-      now: () => Date.now(),
+      now: () => nowMs ?? Date.now(),
       store, fixtures, signal: abort.signal,
     };
   }
@@ -80,7 +88,9 @@ export function startFeeds(store: TwinStore, opts: { fixtures?: boolean; only?: 
     clearTimeout(timers.get(feed.id));
     patch(feed.id, { nextAt: Date.now() + delayMs });
     timers.set(feed.id, setTimeout(() => {
-      if (hidden()) { due.add(feed.id); return; }
+      // Pause while the tab is hidden, except for a feed that has not delivered yet: a page opened in a
+      // background tab must still have data when it is first looked at.
+      if (hidden() && status.value[feed.id]?.lastOkAt != null) { due.add(feed.id); return; }
       void run(feed);
     }, delayMs));
   }
@@ -93,22 +103,23 @@ export function startFeeds(store: TwinStore, opts: { fixtures?: boolean; only?: 
       const counter = { bytes: 0 };
       patch(feed.id, { state: 'running', nextAt: undefined });
       try {
-        const batches = await feed.run(makeContext(counter));
+        const batches = await feed.run(makeContext(counter, await recordedAt));
         if (stopped) return;
-        let objects = 0, newest = 0;
+        let objects = 0, newest = 0, dataAt = 0;
+        const relay = relayIds.has(feed.id);
         for (let i = 0; i < batches.length; i++) {
           const b = batches[i];
           if (b.bytes == null && i === 0) b.bytes = counter.bytes;
           await store.ingest(b);
           objects += b.objects?.length ?? 0;
           newest = Math.max(newest, b.fetchedAt);
+          dataAt = Math.max(dataAt, relay ? b.fetchedAt : b.observedAt ?? b.fetchedAt);
         }
         fails.set(feed.id, 0);
         // A relay file that stopped updating still downloads fine: say so instead of showing it as fresh. Judged by
-        // the relay's fetch time (batch.fetchedAt), not the data time: NHC advisories are six hours apart. Scheduled
-        // Actions routinely start late, hence the generous threshold.
-        const stale = !fixtures && relayIds.has(feed.id) && newest > 0 && Date.now() - newest > STALE_RELAY_MS;
-        patch(feed.id, { state: stale ? 'stale' : 'ok', lastOkAt: Date.now(), lastError: undefined, lastObjects: objects, lastMs: Date.now() - started });
+        // the relay's fetch time (batch.fetchedAt), not the data time: NHC advisories are six hours apart.
+        const stale = !fixtures && relay && newest > 0 && Date.now() - newest > STALE_RELAY_MS;
+        patch(feed.id, { state: stale ? 'stale' : 'ok', lastOkAt: Date.now(), lastError: undefined, lastObjects: objects, lastMs: Date.now() - started, ...(dataAt > 0 ? { dataAt } : {}) });
         schedule(feed, feed.cadenceMs * (0.9 + Math.random() * 0.2));
       } catch (e: any) {
         if (stopped) return;
@@ -128,8 +139,16 @@ export function startFeeds(store: TwinStore, opts: { fixtures?: boolean; only?: 
 
   function onVisibility() {
     if (hidden() || stopped) return;
+    // Everything that came due while hidden runs now, most important first. Browsers also hold back timers in
+    // hidden tabs, so a feed whose time has passed is started here rather than waiting for its timer.
     let i = 0;
-    for (const f of feeds) if (due.delete(f.id)) setTimeout(() => void run(f), i++ * STAGGER_MS);
+    for (const f of feeds) {
+      const late = (status.value[f.id]?.nextAt ?? Infinity) <= Date.now();
+      if (!due.delete(f.id) && !late) continue;
+      if (fixtures && status.value[f.id]?.lastOkAt != null) continue;
+      clearTimeout(timers.get(f.id));
+      i++ === 0 ? void run(f) : timers.set(f.id, setTimeout(() => void run(f), (i - 1) * STAGGER_MS));
+    }
   }
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibility);
 

@@ -7,7 +7,7 @@ import * as S from '../core/state';
 import './tokens.css';
 import './ui.css';
 import { effect } from '@preact/signals';
-import { bindStore, storeTick, nowTick, narrow, paletteOpen, railGroup, dockCollapsed, sheetVh } from './uistate';
+import { bindStore, storeTick, nowTick, narrow, paletteOpen, railGroup, dockCollapsed, sheetVh, aboutOpen } from './uistate';
 import { TopBar } from './topbar';
 import { KpiStrip } from './kpi';
 import { Rail } from './rail';
@@ -16,6 +16,7 @@ import { BottomBar } from './bottombar';
 import { SearchPalette } from './search';
 import { Toasts } from './toasts';
 import { HoverTip, LegendCard } from './hover';
+import { AboutSheet, maybeShowAboutOnce } from './about';
 
 function App({ store }: { store: TwinStore }) {
   useEffect(() => {
@@ -43,6 +44,7 @@ function App({ store }: { store: TwinStore }) {
       <LegendCard />
       <HoverTip store={store} />
       {paletteOpen.value && <SearchPalette store={store} />}
+      {aboutOpen.value && <AboutSheet />}
     </div>
   );
 }
@@ -71,13 +73,20 @@ export function mountUI(root: HTMLElement, deps: { store: TwinStore }): () => vo
     const pad = { left: 0, right: 0, top: Math.round(Math.max(top?.bottom ?? 0, kpi?.bottom ?? 0)), bottom: Math.round(bottom ? H - bottom.top : 0) };
     if (narrow.value) { if (rail) pad.top = Math.round(Math.max(pad.top, rail.bottom)); if (dock) pad.bottom = Math.round(Math.max(pad.bottom, H - dock.top)); }
     else { if (rail) pad.left = Math.round(rail.right); if (dock && dock.height > 80) pad.right = Math.round(W - dock.left); }
+    // The same rectangles position the flyout and toasts, so a KPI strip that wraps to two rows pushes them down.
+    root.style.setProperty('--kpi-bottom', `${Math.round(kpi?.bottom ?? 0)}px`);
+    root.style.setProperty('--rail-bottom', `${Math.round(rail?.bottom ?? 0)}px`);
+    root.style.setProperty('--dock-top', `${Math.round(dock?.top ?? H)}px`);
     const cur = S.viewPadding.peek();
     if (cur.left !== pad.left || cur.right !== pad.right || cur.top !== pad.top || cur.bottom !== pad.bottom) S.viewPadding.value = pad;
   };
   const offPad = effect(() => { void S.rightPanel.value; void dockCollapsed.value; void narrow.value; void sheetVh.value; requestAnimationFrame(measure); });
   window.addEventListener('resize', measure);
+  const ro = new ResizeObserver(() => measure());
+  for (const sel of ['.kpis', '.dock', '.rail']) { const el = root.querySelector(sel); if (el) ro.observe(el); }
+  maybeShowAboutOnce();
   return () => {
-    offPad(); window.removeEventListener('resize', measure);
+    offPad(); ro.disconnect(); window.removeEventListener('resize', measure);
     offChange(); clearInterval(clock); clearTimeout(timer); mq.removeEventListener('change', onMq);
     render(null, root);
   };

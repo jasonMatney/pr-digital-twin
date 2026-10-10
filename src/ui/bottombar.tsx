@@ -53,7 +53,7 @@ function SceneClock() {
   const nowMin = (Date.now() - astDayStart(Date.now())) / 60e3;
   const sameDay = astDayStart(Date.now()) === day0;
   const set = (m: number) => { S.clockMode.value = 'manual'; S.sceneTime.value = day0 + m * 60e3; };
-  const live = () => { S.playbackRate.value = 0; S.sceneTime.value = Date.now(); S.clockMode.value = 'live'; setDrag(null); };
+  const live = () => { S.replayStormId.value = null; S.playbackRate.value = 0; S.sceneTime.value = Date.now(); S.clockMode.value = 'live'; setDrag(null); };
   const playing = mode === 'manual' && rate > 0;
   const togglePlay = () => {
     if (playing) S.playbackRate.value = 0;

@@ -10,6 +10,11 @@ export interface CreateStoreOptions {
   seedVersion?: string;
   /** Override for the location of sqlite3.wasm (the bundler normally places it next to the worker). */
   wasmUrl?: string;
+  /**
+   * Called while the database opens, for a loading screen. Stages in order: 'sqlite', 'storage', 'seed' (with the
+   * downloaded fraction 0..1, first visit only), 'import', 'open', 'ready'.
+   */
+  onProgress?: (stage: string, fraction?: number) => void;
 }
 export interface WorkerStore extends TwinStore {
   /** How the database was opened: VFS in use, where the data came from, notes on any fallback. */
@@ -38,7 +43,8 @@ export function createStore(opts: CreateStoreOptions): WorkerStore {
       if (m.error != null) p.reject(new Error(m.error)); else p.resolve(m.result);
     } else if (m.type === 'change') {
       for (const cb of [...listeners]) { try { cb(m.event); } catch (e) { console.error('store onChange listener failed', e); } }
-    } else if (m.type === 'ready') opened({ info: m.info, detail: m.detail });
+    } else if (m.type === 'progress') { try { opts.onProgress?.(m.stage, m.fraction); } catch (e) { console.error('store onProgress failed', e); } }
+    else if (m.type === 'ready') { try { opts.onProgress?.('ready', 1); } catch { /* the app's own display problem */ } opened({ info: m.info, detail: m.detail }); }
     else if (m.type === 'failed') failed(new Error(`store failed to open: ${m.error}`));
   };
   worker.onerror = (e) => {

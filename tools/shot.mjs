@@ -21,7 +21,14 @@ await page.waitForFunction(() => globalThis.__garita && globalThis.__garita.read
 const ev = opt('eval', '');
 if (ev) await page.evaluate(ev).catch((e) => logs.push('[eval] ' + e));
 await page.waitForTimeout(wait);
-await page.screenshot({ path: out, type: out.endsWith('.jpg') ? 'jpeg' : 'png', quality: out.endsWith('.jpg') ? 88 : undefined });
+// --final 1: the page loaded at a fraction of the resolution (?scale=); draw the last frames at full size.
+if (opt('final', '')) await page.evaluate(() => new Promise((res) => {
+  const g = globalThis.__garita; if (!g?.engine || !g.state?.renderScale) return res(0);
+  g.state.renderScale.value = 1;
+  let n = 0; const off = g.engine.onFrame(() => { if (++n >= 3) { off(); res(n); } });
+  setTimeout(() => { off(); res(n); }, 240000);
+})).catch(() => {});
+await page.screenshot({ path: out, type: out.endsWith('.jpg') ? 'jpeg' : 'png', quality: out.endsWith('.jpg') ? 88 : undefined, timeout: 240000 });
 const info = await page.evaluate(() => globalThis.__garita?.debug?.() ?? null).catch(() => null);
 console.log(JSON.stringify({ out, info, logs: logs.slice(0, 40) }, null, 1));
 await browser.close();

@@ -4,7 +4,7 @@ import * as S from '../core/state';
 import { t } from '../i18n/index';
 import { Icon, GaritaMark } from './icons';
 import { fmtTime, fmtDay } from './format';
-import { paletteOpen, storeTick, nowTick, useQuery } from './uistate';
+import { paletteOpen, aboutOpen, storeTick, nowTick, useQuery } from './uistate';
 
 export type Fresh = 'ok' | 'stale' | 'error' | 'static' | 'unknown';
 /** ok / stale (older than 3x the expected cadence) / error. Sources without a cadence are static. */
@@ -53,11 +53,11 @@ export function TopBar({ store }: { store: TwinStore }) {
   const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform ?? '');
   return (
     <header class="topbar panel">
-      <div class="tb-brand">
+      <button class="tb-brand" onClick={() => { aboutOpen.value = true; }} title={t('app.about')} aria-haspopup="dialog">
         <GaritaMark />
         <span class="wordmark">GARITA</span>
         <span class="tb-sub">{t('app.subtitle')}</span>
-      </div>
+      </button>
       <button class="tb-search" onClick={() => { paletteOpen.value = true; }} aria-label={t('app.search')}>
         <Icon name="search" size={14} />
         <span class="tb-search-text">{t('app.search')}</span>

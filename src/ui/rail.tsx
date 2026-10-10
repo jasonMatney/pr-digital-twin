@@ -5,7 +5,7 @@ import * as S from '../core/state';
 import { t, L } from '../i18n/index';
 import { Icon } from './icons';
 import { num, DASH } from './format';
-import { railGroup, storeTick, useQuery } from './uistate';
+import { railGroup, storeTick, useQuery, narrow, dockCollapsed } from './uistate';
 
 const GROUPS: { id: string; icon: string }[] = [
   { id: 'hazards', icon: 'alert' }, { id: 'water', icon: 'drop' }, { id: 'housing', icon: 'housing' }, { id: 'infrastructure', icon: 'bolt' },
@@ -67,7 +67,11 @@ function SceneRows() {
 function OverlayRows({ store }: { store: TwinStore }) {
   const cur = S.overlay.value;
   const muni = store.ontology.objectTypes.find((x) => x.id === 'municipio');
-  const numeric = (muni?.properties ?? []).filter((p) => p.type === 'number');
+  // Offer only properties that actually have values for municipios; fall back to every numeric one if the store cannot say.
+  const avail = useQuery(async () => {
+    try { const r = await store.query<{ key: string }>("SELECT key FROM prop WHERE object_id LIKE 'municipio:%' AND vtype = 'number' GROUP BY key"); return r.length ? new Set(r.map((x) => x.key)) : null; } catch { return null; }
+  }, [storeTick.value]);
+  const numeric = (muni?.properties ?? []).filter((p) => p.type === 'number' && (!avail || avail.has(p.id)));
   return (
     <>
       <p class="fly-help">{t('ov.one')}</p>
@@ -102,7 +106,7 @@ export function Rail({ store }: { store: TwinStore }) {
   const open = railGroup.value;
   const on = S.layerOn.value;
   const byGroup = (g: string) => store.ontology.objectTypes.filter((x) => x.group === g);
-  const toggle = (id: string) => { railGroup.value = open === id ? null : id; };
+  const toggle = (id: string) => { railGroup.value = open === id ? null : id; if (railGroup.value && narrow.value) dockCollapsed.value = true; };
   const groups = GROUPS.filter((g) => byGroup(g.id).length);
   const title = open ? t('grp.' + open) : '';
   return (

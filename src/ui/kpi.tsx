@@ -37,7 +37,7 @@ async function loadKpi(store: TwinStore, now: number): Promise<Kpi> {
   // Ephemeral types are legitimately empty; only say "0" once their feed has actually reported.
   if (alerts.length || ran('nws_alerts')) k.alerts = { count: alerts.length, maxSev: Math.max(0, ...alerts.map((a) => a.severity ?? 0)) };
   if (quakes.length || ran('usgs_quakes')) {
-    const times = await eventTimes(quakes.map((q) => q.id));
+    const times = await eventTimes(quakes as any);
     const recent = quakes.filter((q) => (times.get(q.id) ?? 0) >= now - 864e5);
     const mags = recent.map((q) => n(q.props?.magnitude)).filter((x): x is number => x != null);
     k.quakes = { count: recent.length, maxMag: mags.length ? Math.max(...mags) : null };

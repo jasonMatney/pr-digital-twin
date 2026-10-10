@@ -8,7 +8,8 @@ import { bootApp } from '../app';
 import { mountUI } from '../ui/index';
 import { createOverlays } from '../world/overlays';
 import { createBoundaries } from '../world/boundaries';
-import { createStorms, replayInfo } from '../world/storms';
+import { availableChoroplethProps } from '../world/choropleth';
+import { createStorms, liveCyclones, replayInfo, stormLegend } from '../world/storms';
 
 if (params.get('prop')) S.choroplethProp.value = params.get('prop')!;
 if (params.has('opacity')) S.overlayOpacity.value = +params.get('opacity')!;
@@ -22,6 +23,8 @@ if (storm) {
 bootApp({ layers: [createOverlays, createBoundaries, createStorms], ui: mountUI });
 if (params.get('select')) S.selectedId.value = params.get('select');
 (globalThis as any).__garita.replayInfo = replayInfo;
+(globalThis as any).__garita.choroplethProps = () => availableChoroplethProps(S.store.value!, S.lang.value);
+{ const g: any = (globalThis as any).__garita, d = g.debug; g.debug = () => ({ ...d(), w3: g.w3note ?? null, liveCyclones: liveCyclones.value, legend: S.overlayLegend.value, stormLegend: stormLegend.value && stormLegend.value.title, highlightIds: S.highlightIds.value.length, selectedId: S.selectedId.value }); }
 
 // The site's UI does not draw the legend or the hover text yet: a plain read-out so they can be checked here.
 const box = document.createElement('div');
@@ -29,7 +32,7 @@ box.style.cssText = 'position:fixed;left:10px;bottom:10px;max-width:300px;paddin
 document.body.appendChild(box);
 const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
 effect(() => {
-  const l = S.overlayLegend.value, h = S.hoverText.value, r = replayInfo.value;
+  const l = S.overlayLegend.value ?? stormLegend.value, h = S.hoverText.value, r = replayInfo.value;
   let html = '';
   if (l) {
     html += `<b>${esc(l.title)}${l.unit ? ` (${esc(l.unit)})` : ''}</b>`;

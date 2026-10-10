@@ -11,6 +11,14 @@ const KINDS = ['live', 'relay', 'baked', 'derived', 'user'] as const;
 function Card({ s, now }: { s: SourceStatus; now: number }) {
   const f = freshness(s, now);
   const run = s.lastRun;
+  // When the data itself is from (not when we fetched it): from the store if it reports it, else from the feed scheduler.
+  let dataAt: number | null = (s as any).dataAt ?? null;
+  let feedError: string | null = null;
+  try {
+    const fs = (globalThis as any).__garita?.feeds?.status?.value?.[s.source.id];
+    dataAt ??= fs?.dataAt ?? null;
+    if (fs?.state === 'error' && fs.lastError && fs.lastError !== run?.note) feedError = String(fs.lastError);
+  } catch { /* no scheduler on this page */ }
   return (
     <li class={'src-card fresh-' + f}>
       <div class="src-top">
@@ -23,11 +31,13 @@ function Card({ s, now }: { s: SourceStatus; now: number }) {
       </div>
       <dl class="src-facts">
         <div><dt class="label">{t('li.last')}</dt><dd class="num">{run ? <>{ago(run.finishedAt, now)} <i>· {fmtDateTime(run.finishedAt)}</i></> : <i>{t('li.never')}</i>}</dd></div>
+        {dataAt != null && <div><dt class="label">{t('li.dataAt')}</dt><dd class="num">{ago(dataAt, now)} <i>· {fmtDateTime(dataAt)}</i></dd></div>}
         {s.source.cadence_s != null && <div><dt class="label">{t('li.cadence')}</dt><dd class="num">{duration(s.source.cadence_s)}</dd></div>}
         <div><dt class="label">{t('li.objects')}</dt><dd class="num">{num(s.objectCount)}{run && run.obs ? <i> · {num(run.obs)} {t('li.obs')}</i> : null}</dd></div>
         <div><dt class="label">{t('li.licence')}</dt><dd>{s.source.license || '—'}</dd></div>
       </dl>
       {run?.note && <p class={'src-note' + (run.status === 'error' ? ' is-error' : '')}>{run.note}</p>}
+      {feedError && <p class="src-note is-error">{feedError}</p>}
       {s.source.note && <p class="src-note">{s.source.note}</p>}
       {s.source.url && <a class="src-link" href={s.source.url} target="_blank" rel="noopener noreferrer" title={t('li.open')}><Icon name="external" size={12} /><span class="num">{s.source.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span></a>}
     </li>

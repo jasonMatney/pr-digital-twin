@@ -162,7 +162,7 @@ export function ObjectPanel({ store }: { store: TwinStore }) {
   const now = nowTick.value;
   const data = useQuery(async () => {
     if (!id) return null;
-    const [o, links, log] = await Promise.all([store.getObject(id), store.getLinks(id, { direction: 'both', limit: 500 }), store.actionLog(200).catch(() => [])]);
+    const [o, links, log] = await Promise.all([store.getObject(id), store.getLinks(id, { direction: 'both', limit: 5000 }), store.actionLog(200).catch(() => [])]);
     return { id, o, links, log: log.filter((a) => a.objectId === id) };
   }, [id, storeTick.value]);
   const [form, setForm] = useState<null | 'note' | 'status'>(null);

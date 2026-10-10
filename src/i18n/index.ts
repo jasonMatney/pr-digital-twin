@@ -55,7 +55,8 @@ const D: Dict = {
   'tab.alerts': ['Alerts', 'Avisos'], 'tab.object': ['Object', 'Objeto'], 'tab.explorer': ['Explorer', 'Explorador'], 'tab.lineage': ['Lineage', 'Procedencia'],
   'dock.collapse': ['Collapse panel', 'Contraer panel'], 'dock.expand': ['Expand panel', 'Expandir panel'], 'dock.close': ['Close panel', 'Cerrar panel'],
 
-  'tab.scenario': ['Scenario', 'Escenario'],
+  'tab.scenario': ['Scenario', 'Escenario'], 'tab.replay': ['Replay', 'Repetición'], 'tab.graph': ['Graph', 'Grafo'], 'tab.sql': ['SQL', 'SQL'],
+  'li.dataAt': ['Data as of', 'Datos al'], 'app.about': ['About this twin', 'Sobre este gemelo'],
   'sc.level': ['Water level above mean sea level', 'Nivel del agua sobre el nivel medio del mar'],
   'sc.manual': ['manual', 'manual'], 'sc.tide': ["Add today's tide at San Juan", 'Sumar la marea de hoy en San Juan'], 'sc.tide.short': ['tide', 'marea'],
   'sc.surge': ['What-if surge', 'Marejada hipotética'], 'sc.surge.label': ['what-if surge', 'marejada hipotética'],
@@ -133,7 +134,7 @@ const D: Dict = {
   'li.title': ['Where every number comes from', 'De dónde sale cada número'],
   'li.lead': ['Each value in Garita keeps the source that reported it and when. Nothing is entered by hand except your own notes.', 'Cada valor en Garita guarda la fuente que lo reportó y cuándo. Nada se entra a mano excepto tus notas.'],
   'li.kind.live': ['Live · fetched by this browser', 'En vivo · las busca este navegador'],
-  'li.kind.relay': ['Relay · snapshotted every few minutes', 'Relevo · copia cada pocos minutos'],
+  'li.kind.relay': ['Relay · relayed about every 5 minutes by a scheduled job', 'Relevo · una tarea programada las copia cada 5 minutos aprox.'],
   'li.kind.baked': ['Baked · compiled into the seed database', 'Compiladas · incluidas en la base inicial'],
   'li.kind.derived': ['Derived · computed by Garita', 'Derivadas · calculadas por Garita'],
   'li.kind.user': ['User · written in this browser', 'Usuario · escritas en este navegador'],
@@ -172,6 +173,8 @@ export function t(key: string): string {
   if (!e) return key;
   return lang.value === 'es' ? e[1] : e[0];
 }
+/** Inline bilingual string for copy used in one place. */
+export function tr(en: string, es: string): string { return lang.value === 'es' ? es : en; }
 export function L(l: L10n | undefined | null): string {
   if (!l) return '';
   return (lang.value === 'es' ? l.es : l.en) || l.en || '';

@@ -27,6 +27,8 @@ export interface FeedStatus {
   lastObjects?: number;
   lastMs?: number;
   nextAt?: number;
+  /** Epoch ms of the newest data delivered: the relay's fetch time for relay feeds, else the newest observation time. */
+  dataAt?: number;
 }
 /** What the pure mappers need from the outside world. */
 export interface MapContext {

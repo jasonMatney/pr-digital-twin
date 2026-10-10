@@ -19,8 +19,11 @@ const debug: Record<string, any> = {};
 async function main() {
   // ?seedVersion=x opens under another version name, which exercises the carry-over from the previous file.
   const seedVersion = new URLSearchParams(location.search).get('seedVersion') ?? ontology.version;
-  const store = createStore({ ontology, seedUrl: 'data/twin.db', seedVersion });
+  const stages: string[] = [];
+  const store = createStore({ ontology, seedUrl: 'data/twin.db', seedVersion, onProgress: (stage, f) => { if (stages[stages.length - 1]?.split(' ')[0] !== stage || f === 1) stages.push(f == null ? stage : `${stage} ${f.toFixed(2)}`); } });
   const info = await store.ready;
+  debug.info = info;
+  debug.readyMs = Math.round(performance.now());   // since navigation start: what a visitor waits for
   const detail = await store.detail;
   show('DbInfo (at open)', info);
   show('how it was opened', detail);
@@ -57,7 +60,7 @@ async function main() {
 
   Object.assign(debug, {
     info, vfs: detail.vfs, persistent: info.persistent, origin: detail.origin, sqlite: detail.sqlite, notes: detail.notes, result, counts,
-    search: hits[0] ? { id: hits[0].id, name: hits[0].name } : null, strongest: strongest[0]?.name ?? null, changeEvents: changes.length, guard, actionLog: log.length, carriedOver: detail.carriedOver, file: detail.file,
+    search: hits[0] ? { id: hits[0].id, name: hits[0].name } : null, strongest: strongest[0]?.name ?? null, changeEvents: changes.length, guard, actionLog: log.length, carriedOver: detail.carriedOver, file: detail.file, timings: detail.timings, stages,
   });
 }
 

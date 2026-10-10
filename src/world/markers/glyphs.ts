@@ -44,14 +44,14 @@ export function strokeIcon(g: CanvasRenderingContext2D, name: string, cx: number
 }
 
 /** Sprite cell and disc radius, CSS px. */
-export const CELL = 36, DISC_R = 10.5;
+export const CELL = 36, DISC_R = 10.5, DOT_R = 4;
 
 export interface Atlas { canvas: HTMLCanvasElement; dpr: number; pill(n: number): HTMLCanvasElement }
 
-/** One cell per type: filled disc in the type colour, dark outline, soft shadow, icon in dark ink. */
+/** One column per type. First row: filled disc in the type colour, dark outline, soft shadow, icon in dark ink. */
 export function buildAtlas(types: { icon: string; color: string }[], dpr: number): Atlas {
   const canvas = document.createElement('canvas');
-  canvas.width = Math.ceil(CELL * types.length * dpr); canvas.height = Math.ceil(CELL * dpr);
+  canvas.width = Math.ceil(CELL * types.length * dpr); canvas.height = Math.ceil(CELL * 2 * dpr);
   const g = canvas.getContext('2d')!;
   g.scale(dpr, dpr);
   types.forEach((t, i) => {
@@ -63,6 +63,9 @@ export function buildAtlas(types: { icon: string; color: string }[], dpr: number
     g.strokeStyle = 'rgba(4,14,19,0.92)'; g.lineWidth = 1.3; g.beginPath(); g.arc(cx, cy, DISC_R + 0.4, 0, 6.2832); g.stroke();
     g.strokeStyle = INK;
     strokeIcon(g, t.icon, cx, cy, 14);
+    // Second row: the quiet dot the type is drawn as from far away.
+    g.fillStyle = t.color; g.beginPath(); g.arc(cx, cy + CELL, DOT_R, 0, 6.2832); g.fill();
+    g.strokeStyle = 'rgba(4,14,19,0.85)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy + CELL, DOT_R + 0.3, 0, 6.2832); g.stroke();
   });
   // Count pills for cluster badges, made the first time a count is seen.
   const pills = new Map<number, HTMLCanvasElement>();

@@ -1,9 +1,41 @@
 // NWS latest surface observation per station (GeoJSON, SI with unitCode) -> weather_station readings.
 import type { IngestBatch, ObjectInput, ObsInput } from '../../ontology/types.ts';
 import type { MapContext } from '../types.ts';
-import { KMH_TO_MS, num, parseTime, round, stamped } from '../util.ts';
+import { haversineKm, KMH_TO_MS, num, parseTime, round, stamped } from '../util.ts';
 
-export const NWS_OBS_STATIONS = ['TJSJ', 'TJBQ', 'TJPS', 'TJMZ', 'TJIG', 'TJNR', 'TJRV'];
+/** Used when the store has no weather stations. TJMZ and TJRV answer 404 on the live API and are not asked. */
+export const NWS_OBS_STATIONS = ['TJSJ', 'TJBQ', 'TJPS', 'TJIG', 'TJNR'];
+export const NWS_OBS_MAX = 12;
+/**
+ * Which stations to poll: every airport (id starts with TJ), then others chosen one at a time as the station
+ * farthest from all those already chosen, so the picks spread around the island. `keep` are earlier picks that
+ * still answer (kept so the set is stable); `budget` caps how many untried stations may be added this run.
+ */
+export function chooseObsStations(pool: { key: string; lon: number | null; lat: number | null }[], opts: { max?: number; keep?: string[]; budget?: number; exclude?: Iterable<string> } = {}): string[] {
+  const max = opts.max ?? NWS_OBS_MAX;
+  const exclude = new Set(opts.exclude ?? []);
+  // Open-Meteo model points share the object type; they are not NWS stations. Stay on and around the main island.
+  const ok = pool.filter((s) => /^[A-Z0-9]{3,8}$/.test(s.key) && !exclude.has(s.key) && s.lon != null && s.lat != null && s.lat >= 17.6 && s.lat <= 18.7 && s.lon >= -67.5 && s.lon <= -65.1)
+    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)) as { key: string; lon: number; lat: number }[];
+  const byKey = new Map(ok.map((s) => [s.key, s]));
+  const chosen: { key: string; lon: number; lat: number }[] = [];
+  const add = (k: string) => { const s = byKey.get(k); if (s && chosen.length < max && !chosen.includes(s)) chosen.push(s); };
+  for (const s of ok) if (s.key.startsWith('TJ')) add(s.key);
+  for (const k of opts.keep ?? []) add(k);
+  let budget = opts.budget ?? max;
+  while (chosen.length < max && budget > 0) {
+    let best: { key: string; lon: number; lat: number } | null = null, bestD = -1;
+    for (const s of ok) {
+      if (chosen.includes(s)) continue;
+      let d = Infinity;
+      for (const c of chosen) d = Math.min(d, haversineKm(s.lat, s.lon, c.lat, c.lon));
+      if (d > bestD) { bestD = d; best = s; }
+    }
+    if (!best || bestD <= 0) break;
+    chosen.push(best); budget--;
+  }
+  return chosen.map((s) => s.key);
+}
 export const nwsObsUrl = (station: string) => `https://api.weather.gov/stations/${station}/observations/latest`;
 
 /** Reads a `{ unitCode, value }` quantity and converts it to the unit we store. Null when missing or in an unknown unit. */

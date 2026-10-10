@@ -11,10 +11,11 @@ import { alertKey, mapNwsAlerts, NWS_ALERTS_URL, sameToGeoid } from '../src/feed
 import { mapUsgsQuakes, quakeSeverity, quakesUrl } from '../src/feeds/sources/usgsQuakes.ts';
 import { mapUsgsNwis, NWIS_URL } from '../src/feeds/sources/usgsNwis.ts';
 import { mapNwps, NWPS_URL, nwpsType } from '../src/feeds/sources/nwps.ts';
-import { coopsHistoryUrl, coopsLatestUrl, coopsPredictionsUrl, coopsTime, mapCoopsDetailed, predictedAt } from '../src/feeds/sources/coops.ts';
+import { coopsHistoryUrl, coopsLatestUrl, coopsOutcome, coopsPredictionsUrl, coopsTime, mapCoopsDetailed, newCoopsSession, planCoops, predictedAt } from '../src/feeds/sources/coops.ts';
 import { mapOpenMeteoDetailed, omAirUrl, omForecastUrl, omMarineUrl } from '../src/feeds/sources/openMeteo.ts';
-import { mapNwsObs, nwsObsUrl, quantity } from '../src/feeds/sources/nwsObs.ts';
+import { chooseObsStations, mapNwsObs, NWS_OBS_STATIONS, nwsObsUrl, quantity } from '../src/feeds/sources/nwsObs.ts';
 import { cycloneSeverity, mapNhc } from '../src/feeds/sources/nhc.ts';
+import { attachForecast, forecastTime, nhcForecastUrls, parseNhcForecast } from '../src/feeds/sources/nhcForecast.ts';
 import { mapNdbc, parseNdbcLatestObs } from '../src/feeds/sources/ndbc.ts';
 import { lumaTime, mapLuma, outageSeverity } from '../src/feeds/sources/luma.ts';
 import { mapAdsb } from '../src/feeds/sources/adsb.ts';
@@ -111,7 +112,9 @@ test('usgs_quakes: 30 days, M>=2', () => {
 
 test('usgs_nwis: instantaneous values in SI', () => {
   const b = valid(mapUsgsNwis(json('usgs_nwis_iv.json'), ctx), 'usgs_nwis');
-  assert.equal(b.objects!.length, 157);                                      // 158 sites; 50038100 reports only -999999
+  // 158 sites: 43 report only rain (not stream gauges: left out unless the store holds the site), 50038100 only -999999
+  assert.equal(b.objects!.length, 114);
+  assert.ok(b.objects!.every((o) => o.type === 'stream_gauge'));
   const g = obj(b, 'stream_gauge:50043800');                                 // RIO DE LA PLATA AT COMERIO: 5.42 ft, 39.5 ft3/s, 0.00 in
   assert.equal(g.name, 'RIO DE LA PLATA AT COMERIO, PR');
   assert.equal(val(g, 'stage_m'), 1.652);                                    // 5.42 * 0.3048 = 1.652016
@@ -128,18 +131,23 @@ test('usgs_nwis: instantaneous values in SI', () => {
     variable: { variableCode: [{ value: '62614' }], noDataValue: -999999 }, values: [{ value: [{ value: '100.00', dateTime: '2026-10-10T00:00:00.000-04:00' }] }] }] } }, ctx)[0];
   assert.deepEqual(validateBatch(lake, ontology), []);
   assert.equal(val(obj(lake, 'reservoir:50059000'), 'lake_elev_m'), 30.48);
-  // the store's type for a site wins: a site the seed holds as a reservoir never also appears as a gauge
-  // (50043800 is a river; it stands in here because no lake reported 62614 in the fixture)
-  const known = mapUsgsNwis(json('usgs_nwis_iv.json'), { ...ctx, knownTypes: { '50043800': 'reservoir' } })[0];
+  // The store's type for a site wins. 50043800 is a river; it stands in for a lake here because no lake reported
+  // 62614 in the fixture. As a reservoir it keeps stage and rain as values, no discharge, and no series.
+  // 175858066100200 (JUA 5 WELL) reports only rain, 0.00 in: kept only because the store has it.
+  const known = mapUsgsNwis(json('usgs_nwis_iv.json'), { ...ctx, knownTypes: { '50043800': 'reservoir', '175858066100200': 'stream_gauge' } })[0];
   assert.deepEqual(validateBatch(known, ontology), []);
-  assert.equal(known.objects!.length, 156);
-  assert.ok(!known.objects!.some((o) => o.key === '50043800') && !known.obs!.some((o) => o.object.endsWith(':50043800')));
+  assert.equal(known.objects!.length, 115);
+  const asLake = obj(known, 'reservoir:50043800');
+  assert.deepEqual([val(asLake, 'stage_m'), val(asLake, 'precip_1h_mm'), val(asLake, 'discharge_m3s')], [1.652, 0, undefined]);
+  assert.ok(!known.obs!.some((o) => o.object.endsWith(':50043800')));
+  assert.equal(val(obj(known, 'stream_gauge:175858066100200'), 'precip_1h_mm'), 0);
+  assert.ok(!b.objects!.some((o) => o.key === '175858066100200'));
 });
 
 test('nwps: flood category per gauge', () => {
   const b = valid(mapNwps(json('nwps_gauges.json'), ctx), 'nwps');
   assert.equal(b.objects!.length, 118);
-  assert.equal(count(b.objects!, (o) => o.type === 'reservoir'), 27);
+  assert.equal(count(b.objects!, (o) => o.type === 'reservoir'), 19);          // names that start with 'Lago'; the seed has the same 19
   assert.ok(b.objects!.every((o) => o.key.startsWith('nws-') && o.identities!.length === 1 && o.identities![0][0] === 'nws:lid' && 'nws-' + o.identities![0][1] === o.key));
   const c = obj(b, 'stream_gauge:nws-CRBP4');                                // action; 1.83 ft, 0.017 kcfs at 03:45Z
   assert.equal(c.severity, 1);
@@ -152,6 +160,12 @@ test('nwps: flood category per gauge', () => {
   assert.equal(q.severity, 2);
   assert.equal(q.status, 'minor');
   assert.equal(val(q, 'lake_elev_m'), 199.543);                              // 654.67 * 0.3048 = 199.543416
+  assert.deepEqual([val(q, 'flood_category'), val(q, 'forecast_category'), val(q, 'nws_lid')], ['minor', null, 'QUEP4']);
+  // the type the store holds for a lid wins over the name (the store merges on scheme + key + type)
+  const asGauge = obj(mapNwps(json('nwps_gauges.json'), { ...ctx, knownTypes: { QUEP4: 'stream_gauge' } })[0], 'stream_gauge:nws-QUEP4');
+  assert.deepEqual([val(asGauge, 'flood_category'), val(asGauge, 'lake_elev_m')], ['minor', undefined]);
+  assert.equal(nwpsType('Rio Limon above Lago Dos Bocas'), 'stream_gauge');
+  assert.equal(nwpsType('Lago Garzas nr Adjuntas'), 'reservoir');
   const stale = obj(b, 'stream_gauge:nws-NGIP4');                            // obs_not_current, primary -999
   assert.equal(stale.severity, null);
   assert.equal(val(stale, 'flood_category'), null);
@@ -185,6 +199,30 @@ test('coops: San Juan water level, prediction and residual', () => {
   // a station without a sensor answers { error }: no object, no throw
   assert.equal(mapCoopsDetailed([{ id: '9759938' }], ctx).batches[0].objects!.length, 0);
   assert.match(coopsPredictionsUrl('9755371', Date.parse('2026-10-07T04:30:00Z'), 96), /begin_date=20261007%2004%3A30&range=96&station=9755371&product=predictions/);
+});
+
+test('coops: stations without a sensor are asked once per session', () => {
+  const s = newCoopsSession();
+  const ids = ['9755371', '9759938'];
+  // first run: 72 h history + predictions per station, no separate "latest" call
+  const first = planCoops(ids, s, NOW);
+  assert.deepEqual([first.full, first.hours, first.requests.map((r) => `${r.id} ${r.product}`)], [true, 72, ['9755371 history', '9755371 predictions', '9759938 history', '9759938 predictions']]);
+  assert.match(first.requests[0].url, /range=72&station=9755371&product=water_level/);
+  assert.equal(coopsOutcome({ error: Object.assign(new Error('HTTP 400'), { status: 400 }) }), 'unavailable');
+  assert.equal(coopsOutcome({ error: new Error('did not answer in 25 s') }), 'failed');          // not remembered
+  assert.equal(coopsOutcome({ error: Object.assign(new Error('HTTP 503'), { status: 503 }) }), 'failed');
+  assert.equal(coopsOutcome({ payload: { error: { message: 'No data was found.' } } }), 'unavailable');
+  assert.equal(coopsOutcome({ payload: json('coops_latest_9755371.json') }), 'ok');
+  // what the feed records after that run: Mona Island has no water level, San Juan no predictions (say)
+  s.noLevel.add('9759938'); s.noPredictions.add('9755371'); s.historyAt = NOW;
+  const quick = planCoops(ids, s, NOW + 6 * 60_000);
+  assert.deepEqual([quick.full, quick.requests.map((r) => `${r.id} ${r.product}`)], [false, ['9755371 latest']]);
+  const hourly = planCoops(ids, s, NOW + 61 * 60_000);
+  assert.deepEqual([hourly.full, hourly.hours, hourly.requests.map((r) => `${r.id} ${r.product}`)], [true, 3, ['9755371 history']]);
+  assert.match(hourly.requests[0].url, /range=3&station=9755371&product=water_level/);
+  // predictions without a level make neither an object nor a series
+  const only = mapCoopsDetailed([{ id: '9759938', predictions: json('coops_pred_9755371.json') }], ctx).batches[0];
+  assert.deepEqual([only.objects!.length, only.obs!.length], [0, 0]);
 });
 
 test('open_meteo: named points and the scene weather', () => {
@@ -234,6 +272,27 @@ test('nws_obs: TJSJ latest observation', () => {
   assert.equal(mapNwsObs([{ properties: {} }, null], ctx)[0].objects!.length, 0);
 });
 
+test('nws_obs: which stations to poll', () => {
+  // the 149 stations of the recorded NWS list (the seed's weather_station objects), plus a model point
+  const pool = json('nws_stations_pr.json').features.map((f: any) => ({ key: f.properties.stationIdentifier, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] }));
+  pool.push({ key: 'om-san-juan', lon: -66.1, lat: 18.46 });
+  const picked = chooseObsStations(pool);
+  assert.equal(picked.length, 12);
+  assert.deepEqual(picked.slice(0, 5), ['TJBQ', 'TJIG', 'TJNR', 'TJPS', 'TJSJ']);       // the five airports in the list
+  assert.equal(new Set(picked).size, 12);
+  assert.ok(!picked.includes('om-san-juan'));
+  assert.deepEqual(chooseObsStations(pool), picked);                                    // deterministic
+  // two picks answered 404: they are not chosen again, the rest stay, and at most `budget` new ones are tried
+  const dead = [picked[5], picked[6]];
+  const next = chooseObsStations(pool, { exclude: dead, keep: picked.slice(5), budget: 1 });
+  assert.equal(next.length, 11);
+  assert.ok(!next.includes(dead[0]) && !next.includes(dead[1]));
+  assert.deepEqual(next.slice(0, 10), [...picked.slice(0, 5), ...picked.slice(7)]);
+  assert.equal(chooseObsStations(pool, { exclude: dead, keep: picked.slice(5), budget: 0 }).length, 10);
+  assert.deepEqual(NWS_OBS_STATIONS, ['TJSJ', 'TJBQ', 'TJPS', 'TJIG', 'TJNR']);          // TJMZ and TJRV answer 404 live
+  assert.deepEqual(chooseObsStations([]), []);
+});
+
 test('nhc: Atlantic storms only', () => {
   const relay = unwrapRelay(json('nhc_current.json'), NOW);
   const b = valid(mapNhc(relay.data, { ...ctx, fetchedAt: relay.fetchedAt }), 'nhc');
@@ -251,6 +310,65 @@ test('nhc: Atlantic storms only', () => {
   assert.equal(s.severity, 0);
   assert.deepEqual([[1501, 150], [1400, 80], [1400, 40], [900, 80], [900, 40], [900, 25], [400, 80], [400, 50], [400, 25]].map(([d, k]) => cycloneSeverity(d, k)), [0, 2, 1, 3, 2, 1, 4, 3, 2]);
   near(haversineKm(0, 0, 0, 1), 111.195, 0.01);
+});
+
+test('nhc forecast: HAND-MADE payload (no live query response was recorded)', () => {
+  // Field names are the recorded ones for 'AT4 Forecast Points' / 'AT4 Forecast Cone' (nhc_arcgis_layers.json).
+  // The VALUES are made up to exercise the parser: their formats (VALIDTIME 'DD/HHMM', ADVISNUM '14') follow NHC's
+  // forecast shapefiles and are an assumption about this service until checked against a live response.
+  const pt = (o: any, lon: number, lat: number) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { objectid: 1, stormname: 'Isaias', stormtype: 'HU', dvlbl: 'H', basin: 'AL',
+    advdate: '1100 PM AST Fri Oct 09 2026', advisnum: '14', fcstprd: 120, mslp: 982, ssnum: 1, tcdvlp: 'Hurricane', tcdir: 5, tcspd: 20, stormnum: 9, stormsrc: 'Tropical Cyclone', timezone: 'AST', binnumber: 'AT4', lat, lon, ...o } });
+  const points = { type: 'FeatureCollection', features: [
+    pt({ tau: 12, validtime: '10/1200', maxwind: 85, gust: 105, datelbl: '8:00 AM Sat', fldatelbl: '2026-10-10 8:00 AM Sat AST' }, -86.3, 32.9),
+    pt({ tau: 0, validtime: '10/0300', maxwind: 80, gust: 100, datelbl: '11:00 PM Fri', fldatelbl: '2026-10-09 11:00 PM Fri AST' }, -86.5, 30.8),
+    pt({ tau: 24, validtime: '11/0000', maxwind: 45, gust: null, datelbl: '8:00 PM Sat' }, -85.0, 35.5),
+    pt({ tau: 36, validtime: '11/1200', maxwind: null, gust: 9999, datelbl: '' }, -83.0, 37.0),          // no wind: dropped
+  ] };
+  const ring = [[-87, 30], [-86, 30], [-84, 36], [-87, 36], [-87, 30]];
+  const cone = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] }, properties: { stormname: 'Isaias', advisnum: '14', basin: 'AL' } }] };
+  const storm = json('nhc_current.json').activeStorms[0];                    // al092026 Isaias, lastUpdate 2026-10-10T03:00Z, binNumber AT4
+  const f = parseNhcForecast(points, cone, storm)!;
+  assert.equal(f.advisory, '14');
+  assert.deepEqual(f.points, [
+    { t: Date.parse('2026-10-10T03:00:00Z'), lat: 30.8, lon: -86.5, wind_kt: 80, gust_kt: 100, label: '11:00 PM Fri' },
+    { t: Date.parse('2026-10-10T12:00:00Z'), lat: 32.9, lon: -86.3, wind_kt: 85, gust_kt: 105, label: '8:00 AM Sat' },
+    { t: Date.parse('2026-10-11T00:00:00Z'), lat: 35.5, lon: -85, wind_kt: 45, gust_kt: null, label: '8:00 PM Sat' },
+  ]);
+  assert.deepEqual(f.cone, { type: 'Polygon', coordinates: [ring] });
+  // upper-case field names give the same result
+  const upper = (fc: any) => ({ ...fc, features: fc.features.map((x: any) => ({ ...x, properties: Object.fromEntries(Object.entries(x.properties).map(([k, v]) => [k.toUpperCase(), v])) })) });
+  assert.deepEqual(parseNhcForecast(upper(points), upper(cone), storm), f);
+  // missing cone, an ArcGIS error body, a failed request
+  for (const none of [null, undefined, { error: { code: 400, message: 'Invalid or missing input parameters.' } }, { type: 'FeatureCollection', features: [] }]) assert.equal(parseNhcForecast(points, none, storm)!.cone, null);
+  assert.equal(parseNhcForecast(null, null, storm), null);
+  // two cone parts become one MultiPolygon
+  assert.equal(parseNhcForecast(points, { features: [...cone.features, ...cone.features] }, storm)!.cone.type, 'MultiPolygon');
+  // the slot still holds another storm: nothing is attached
+  assert.equal(parseNhcForecast(points, cone, { name: 'Josephine', lastUpdate: storm.lastUpdate }), null);
+  // on the storm's object: cone as geometry, advisory and points as properties; still a valid batch
+  const b = mapNhc(json('nhc_current.json'), { ...ctx, fetchedAt: NOW })[0];
+  attachForecast(b, 'al092026', f);
+  assert.deepEqual(validateBatch(b, ontology), []);
+  const o = obj(b, 'tropical_cyclone:al092026');
+  assert.equal(o.geometry.type, 'Polygon');
+  assert.equal(val(o, 'advisory'), '14');
+  assert.deepEqual(JSON.parse(val(o, 'forecast_points')), f.points);
+  assert.deepEqual([o.lat, o.lon], [30.8, -86.5]);                           // the marker stays on the storm centre
+  attachForecast(b, 'al092026', null);                                        // no forecast: object untouched
+  assert.equal(val(o, 'advisory'), '14');
+  // times: day-of-month rolls into the next month; ISO and epoch pass through; TAU is the fallback
+  const oct30 = Date.parse('2026-10-30T21:00:00Z');
+  assert.equal(forecastTime('01/0600', 12, oct30), Date.parse('2026-11-01T06:00:00Z'));
+  assert.equal(forecastTime('30/1800', 0, Date.parse('2026-11-01T03:00:00Z')), Date.parse('2026-10-30T18:00:00Z'));
+  assert.equal(forecastTime(1791604800000, 0, oct30), 1791604800000);
+  assert.equal(forecastTime(null, 12, oct30), oct30 + 12 * 3600e3);
+  assert.equal(forecastTime('garbage', null, oct30), null);
+  // slots: the relay's binNumber names the layer group
+  const urls = nhcForecastUrls(storm.binNumber)!;
+  assert.match(urls.points, /NHC_tropical_weather\/MapServer\/84\/query\?where=1%3D1&outFields=\*&outSR=4326&f=geojson$/);
+  assert.match(urls.cone, /MapServer\/86\/query/);
+  assert.match(nhcForecastUrls('at1')!.points, /MapServer\/6\/query/);
+  assert.equal(nhcForecastUrls('EP3'), null);
 });
 
 test('ndbc: buoys in the Puerto Rico box', async () => {

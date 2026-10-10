@@ -6,7 +6,7 @@ import * as S from '../core/state';
 import { AST_OFFSET_H, ORIGIN, latToTileY, lonToTileX } from '../core/geo.ts';
 import type { LayerFactory } from './layers';
 import type { OverlaySource } from './types';
-import { NO_DATA, formatValue, loadMunicipios, makeChoropleth } from './choropleth';
+import { DERIVED_SFHA, NO_DATA, choroplethDef, choroplethValues, formatValue, loadMunicipios, makeChoropleth } from './choropleth';
 
 const tr = (en: string, es: string) => (S.lang.value === 'es' ? es : en);
 const ast = (ms: number) => { const d = new Date(ms + AST_OFFSET_H * 3600000); return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)} AST`; };
@@ -45,7 +45,7 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
       if (!j?.host || !past?.length) throw new Error('no radar frames listed');
       const f = past[past.length - 1], base = `${j.host}${f.path}/256`;
       if (my !== gen) return;
-      show({ id: `radar:rainviewer:${f.time}`, minZoom: 0, maxZoom: 7, tileSize: 256, url: (z, x, y) => `${base}/${z}/${x}/${y}/2/1_1.png` }, {
+      show({ id: `radar:rainviewer:${f.time}`, minZoom: 0, maxZoom: 7, tileSize: 256, aboveWater: true, url: (z, x, y) => `${base}/${z}/${x}/${y}/2/1_1.png` }, {
         title: tr('Rain radar', 'Radar de lluvia'), unit: 'dBZ', stops: dbz(RV_STOPS),
         note: tr(`Reflectivity, frame of ${ast(f.time * 1000)}. Refreshes every 5 minutes. Mosaic resolution is about 1 km (tiles to zoom 7).`, `Reflectividad, imagen de ${ast(f.time * 1000)}. Se actualiza cada 5 minutos. Resolución del mosaico: cerca de 1 km (teselas hasta zoom 7).`),
         source: 'RainViewer radar mosaic (rainviewer.com), from NWS NEXRAD TJUA',
@@ -54,7 +54,7 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
       lastError = 'rainviewer: ' + String(e);
       if (my !== gen) return;
       const bust = Math.floor(Date.now() / 300000);
-      show({ id: `radar:iem:${bust}`, minZoom: 0, maxZoom: 10, tileSize: 256, url: (z, x, y) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::JUA-N0Q-0/${z}/${x}/${y}.png?_=${bust}` }, {
+      show({ id: `radar:iem:${bust}`, minZoom: 0, maxZoom: 10, tileSize: 256, aboveWater: true, url: (z, x, y) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::JUA-N0Q-0/${z}/${x}/${y}.png?_=${bust}` }, {
         title: tr('Rain radar · San Juan (TJUA)', 'Radar de lluvia · San Juan (TJUA)'), unit: 'dBZ', stops: dbz(NWS_STOPS),
         note: tr(`Base reflectivity, latest scan available at ${ast(Date.now())} (the tiles carry no time stamp). Refreshes every 5 minutes.`, `Reflectividad base, último barrido disponible a las ${ast(Date.now())} (las teselas no traen hora). Se actualiza cada 5 minutos.`),
         source: 'NWS NEXRAD TJUA via Iowa Environmental Mesonet (mesonet.agron.iastate.edu)',
@@ -85,7 +85,7 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
       return;
     }
     const time = iso(found);
-    show({ id: `goes:${time}`, minZoom: 0, maxZoom: 7, tileSize: 256, url: (z, x, y) => tile(time, z, x, y) }, {
+    show({ id: `goes:${time}`, minZoom: 0, maxZoom: 7, tileSize: 256, aboveWater: true, url: (z, x, y) => tile(time, z, x, y) }, {
       title: tr('Satellite · GOES-East GeoColor', 'Satélite · GOES-East GeoColor'),
       stops: [{ color: '#f4f6f7', label: tr('Cloud (day: true colour)', 'Nubes (día: color real)') }, { color: '#9db7e0', label: tr('Night: low cloud and fog', 'Noche: nubes bajas y niebla') }, { color: '#e9ecef', label: tr('Night: high cloud (infrared)', 'Noche: nubes altas (infrarrojo)') }],
       note: tr(`Image of ${ast(found)}, about ${Math.round((Date.now() - found) / 60000)} min old. Resolution about 1 km (tiles to zoom 7). At night the land under the cloud is a static city-lights picture, not live.`, `Imagen de ${ast(found)}, de hace unos ${Math.round((Date.now() - found) / 60000)} min. Resolución cerca de 1 km (teselas hasta zoom 7). De noche el suelo es una imagen fija de luces urbanas, no en vivo.`),
@@ -141,24 +141,20 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
   }
 
   async function choropleth(my: number, prop: string) {
-    const def = store.ontology.objectTypes.find((t) => t.id === 'municipio')?.properties.find((p) => p.id === prop);
+    const def = choroplethDef(store, prop), derived = prop === DERIVED_SFHA;
     const lang = untracked(() => S.lang.value);
     const title = def?.label?.[lang] ?? prop;
     try {
-      const [list, rows] = await Promise.all([loadMunicipios(), store.listObjects('municipio', { props: [prop], limit: 100 })]);
+      const [list, got] = await Promise.all([loadMunicipios(), choroplethValues(store, prop)]);
       if (my !== gen) return;
-      const values = new Map<string, number>();
-      let sample: string | null = null;
-      for (const r of rows) {
-        const v = r.props?.[prop];
-        if (typeof v === 'number' && Number.isFinite(v)) { values.set(r.key, v); sample ??= r.id; }
-      }
+      const { values, sample } = got;
       let source: string | undefined;
       if (sample) {
         const rec = await store.getObject(sample).catch(() => null);
         if (my !== gen) return;
-        const sid = rec?.allProps.find((p) => p.key === prop)?.source, sd = store.ontology.sources.find((x) => x.id === sid);
+        const sid = rec?.allProps.find((p) => p.key === got.sourceProp)?.source, sd = store.ontology.sources.find((x) => x.id === sid);
         source = sd ? `${sd.name} · ${sd.org}` : sid;
+        if (derived) source = tr('Derived here: buildings in the 1 % zone ÷ mapped buildings × 1,000. Inputs: ', 'Derivado aquí: edificios en la zona de 1 % ÷ edificios cartografiados × 1,000. Insumos: ') + (source ?? '');
       }
       const c = makeChoropleth(list, values, prop);
       const fmt = (v: number) => formatValue(v, def, lang);
@@ -226,6 +222,6 @@ export const createOverlays: LayerFactory = ({ world, store }) => {
       if (tinted) terrain.setTint?.('none');
       terrain.setOverlay(null, 0); S.overlayLegend.value = null;
     },
-    ...({ debug: () => ({ overlay: S.overlay.value, source: cur?.id ?? null, lastError }) } as object),
+    ...({ debug: () => ({ overlay: S.overlay.value, source: cur?.id ?? null, aboveWater: !!cur?.aboveWater, lastError, legend: S.overlayLegend.value && { title: S.overlayLegend.value.title, note: S.overlayLegend.value.note, stops: S.overlayLegend.value.stops.length } }) } as object),
   };
 };

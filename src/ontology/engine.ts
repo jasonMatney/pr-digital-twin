@@ -6,7 +6,7 @@ import type {
   ChangeEvent, DbInfo, IngestBatch, IngestResult, LinkRecord, ListOptions, Neighborhood, ObjectInput, ObjectRecord,
   ObjectSummary, ObjectTypeDef, Ontology, PropRecord, PropValue, Series, SourceDef, SourceStatus, TwinStore,
 } from './types.ts';
-import { CORE_DDL, FTS_DDL, FTS_FALLBACK_DDL, RTREE_DDL, RTREE_FALLBACK_DDL, SCHEMA_DOC, SCHEMA_VERSION } from './schema.ts';
+import { CORE_DDL, FTS_DDL, FTS_FALLBACK_DDL, RTREE_DDL, RTREE_FALLBACK_DDL, SCHEMA_DOC, SCHEMA_VERSION, VIEWS_DDL } from './schema.ts';
 
 export interface SqlDb {
   /** Runs a statement for its effect. Without params the string may hold several statements (DDL). */
@@ -170,9 +170,22 @@ export function createSchema(db: SqlDb): void {
   try { db.exec(FTS_DDL); } catch { db.exec(FTS_FALLBACK_DDL); }
   try { db.exec(RTREE_DDL); } catch { db.exec(RTREE_FALLBACK_DDL); }
   capsCache.delete(db);
+  setMeta(db, 'schema_version', String(SCHEMA_VERSION));
+  upgradeInPlace(db);
+}
+
+/**
+ * Additions that an existing database (a visitor's persisted file, an older seed) can take without being rebuilt:
+ * new views, a new nullable column, the table descriptions. Guarded by a signature so a warm start writes nothing.
+ */
+export function upgradeInPlace(db: SqlDb): void {
+  const sig = `${SCHEMA_VERSION}:${VIEWS_DDL.length}:${JSON.stringify(SCHEMA_DOC).length}`;
+  if (getMeta(db, 'schema_additions') === sig) return;
+  db.exec(VIEWS_DDL);
+  if (!db.all<{ name: string }>('PRAGMA table_info(ingest_run)').some((c) => c.name === 'data_at')) db.exec('ALTER TABLE ingest_run ADD COLUMN data_at INTEGER');
   db.transaction(() => {
     for (const [name, description] of Object.entries(SCHEMA_DOC)) db.exec('INSERT OR REPLACE INTO schema_doc (name, description) VALUES (?, ?)', [name, description]);
-    setMeta(db, 'schema_version', String(SCHEMA_VERSION));
+    setMeta(db, 'schema_additions', sig);
   });
 }
 export function setMeta(db: SqlDb, key: string, value: string): void {
@@ -184,7 +197,11 @@ export function getMeta(db: SqlDb, key: string): string | null {
 
 /** Mirrors ontology.json into tables so SQL users can join labels, units and source metadata. Idempotent. */
 export function loadOntology(db: SqlDb, ontology: Ontology): void {
+  // Version plus size: the ontology is edited without a version bump during development.
+  const sig = `${ontology.version}:${JSON.stringify(ontology).length}`;
+  if (getMeta(db, 'ontology_sig') === sig) return;
   db.transaction(() => {
+    setMeta(db, 'ontology_sig', sig);
     for (const t of ['source', 'object_type', 'prop_def', 'metric_def', 'link_type']) db.exec(`DELETE FROM ${t}`);
     for (const s of ontology.sources) {
       db.exec('INSERT INTO source (id, name, org, url, license, kind, cadence_s, note) VALUES (?,?,?,?,?,?,?,?)',
@@ -245,6 +262,7 @@ function bulkInsert(db: SqlDb, head: string, width: number, rows: any[][], chunk
 
 const OBJ_COLS = 'o.rid, o.id, o.type, o.key, o.name, o.lon, o.lat, o.status, o.severity, o.valid_from, o.valid_to, o.first_seen, o.updated_at, o.source_id, o.expired';
 const SQL_FIND = `SELECT ${OBJ_COLS}, o.geometry FROM identity i JOIN object o ON o.id = i.object_id WHERE i.scheme = ? AND i.key = ? AND i.type = ?`;
+const SQL_BY_ID = `SELECT ${OBJ_COLS}, o.geometry FROM object o WHERE o.id = ?`;
 
 /** Types a batch touches, for the ChangeEvent. */
 export function batchTypes(batch: IngestBatch): string[] {
@@ -266,6 +284,13 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
   const observed = batch.observedAt ?? at;
   const res: IngestResult = { source: src, objects: 0, created: 0, changed: 0, links: 0, obs: 0, expired: 0, ms: 0 };
   let skipped = 0;
+  // Newest observation time in the batch, for the lineage panel. Forecast points lie in the future and do not count.
+  let dataAt = -Infinity;
+  // A key in the type's own scheme is the object's id; only other ids need the identity table.
+  const findOne = (scheme: string, key: string, def: ObjectTypeDef): any => {
+    if (scheme === def.keyScheme) { const r = db.all<any>(SQL_BY_ID, [`${def.id}:${key}`])[0]; if (r) return r; }
+    return db.all<any>(SQL_FIND, [scheme, key, def.id])[0];
+  };
   // canonical id as written in the batch -> id of the object it resolved to (differs after an identity merge)
   const resolved = new Map<string, string>();
   const touched = new Set<string>();
@@ -312,13 +337,13 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
     if (inChunk.has(canonical) || (ex && inChunk.has(ex.id))) {
       flush();
       fresh = true;
-      ex = db.all<any>(SQL_FIND, [def.keyScheme, key, o.type])[0];
+      ex = findOne(def.keyScheme, key, def);
     }
     let viaAlias = false;
     if (!ex && o.identities?.length) {
       flush();
       for (const [scheme, k] of o.identities) {
-        ex = db.all<any>(SQL_FIND, [scheme, String(k), o.type])[0];
+        ex = findOne(scheme, String(k), def);
         if (ex) { viaAlias = true; fresh = true; break; }
       }
     }
@@ -340,7 +365,6 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
       bFts.push([rid, fold(name), cx.typeText.get(o.type), searchText()]);
       const b = bounds ?? (lon != null && lat != null ? [lon, lat, lon, lat] : null);
       if (b) bTree.push([rid, b[0], b[2], b[1], b[3]]);
-      bIdent.push([def.keyScheme, key, o.type, id]);
       res.created++;
     } else {
       id = ex.id;
@@ -377,7 +401,7 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
       }
       if (viaAlias) bIdent.push([def.keyScheme, key, o.type, id]);
     }
-    for (const [scheme, k] of o.identities ?? []) bIdent.push([scheme, String(k), o.type, id]);
+    for (const [scheme, k] of o.identities ?? []) if (scheme !== def.keyScheme || `${o.type}:${k}` !== id) bIdent.push([scheme, String(k), o.type, id]);
     resolved.set(canonical, id);
     touched.add(id);
     inChunk.add(canonical);
@@ -400,6 +424,7 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
         const enc = encode(wrapped ? raw.value : raw);
         const unit = (wrapped ? raw.unit : undefined) ?? units?.get(k) ?? null;
         const obsAt = (wrapped ? raw.observedAt : undefined) ?? observed;
+        if (obsAt > dataAt && obsAt <= at) dataAt = obsAt;
         const conf = (wrapped ? raw.confidence : undefined) ?? null;
         const old = have?.get(k);
         if (!old) { bProp.push([id, k, enc.value, enc.vtype, unit, src, obsAt, conf]); added = true; continue; }
@@ -436,8 +461,11 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
         if (o.props) anyProps = true;
       }
       const known = new Map<string, any>();
+      const canonicalIds: string[] = [];
+      for (const [type, keys] of keysByType) for (const k of keys) canonicalIds.push(`${type}:${k}`);
+      for (const r of db.all<any>(`SELECT ${OBJ_COLS}, o.geometry FROM json_each(?1) j CROSS JOIN object o ON o.id = j.value`, [JSON.stringify(canonicalIds)])) known.set(r.id, r);
       for (const [type, keys] of keysByType) {
-        for (const r of db.all<any>(SQL_FIND_MANY, [cx.types.get(type)!.keyScheme, type, JSON.stringify(keys)])) known.set(`${type}:${r.ikey}`, r);
+        for (const r of db.all<any>(SQL_FIND_MANY, [cx.types.get(type)!.keyScheme, type, JSON.stringify(keys)])) if (!known.has(`${type}:${r.ikey}`)) known.set(`${type}:${r.ikey}`, r);
       }
       const knownProps = new Map<string, Map<string, any>>();
       if (known.size && anyProps) {
@@ -465,7 +493,11 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
 
     if (batch.obs?.length) {
       const rows: any[][] = [];
-      for (const ob of batch.obs) if (Number.isFinite(ob.t) && Number.isFinite(ob.value)) rows.push([resolve(ob.object), ob.metric, ob.t, ob.value]);
+      for (const ob of batch.obs) {
+        if (!Number.isFinite(ob.t) || !Number.isFinite(ob.value)) continue;
+        rows.push([resolve(ob.object), ob.metric, ob.t, ob.value]);
+        if (ob.t > dataAt && ob.t <= at) dataAt = ob.t;
+      }
       bulkInsert(db, 'INSERT OR REPLACE INTO obs (object_id, metric, t, value)', 4, rows, 100);
       res.obs = rows.length;
     }
@@ -480,8 +512,8 @@ export function ingest(db: SqlDb, ontology: Ontology, batch: IngestBatch, now: n
 
     res.ms = Date.now() - started;
     const note = [batch.note, skipped ? `skipped ${skipped} objects with an unknown type or empty key` : null].filter(Boolean).join('; ') || null;
-    db.exec('INSERT INTO ingest_run (source_id, started_at, finished_at, status, objects, created, changed, links, obs, expired, bytes, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-      [src, at, Math.max(now, at), 'ok', res.objects, res.created, res.changed, res.links, res.obs, res.expired, batch.bytes ?? 0, note]);
+    db.exec('INSERT INTO ingest_run (source_id, started_at, finished_at, status, objects, created, changed, links, obs, expired, bytes, note, data_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [src, at, Math.max(now, at), 'ok', res.objects, res.created, res.changed, res.links, res.obs, res.expired, batch.bytes ?? 0, note, Number.isFinite(dataAt) ? dataAt : null]);
   });
   res.ms = Date.now() - started;
   return res;
@@ -493,7 +525,7 @@ export function reportRun(db: SqlDb, source: string, status: 'ok' | 'error', not
 
 // ---------- reads ----------
 function toSummary(r: any): ObjectSummary {
-  return { id: r.id, type: r.type, key: r.key, name: r.name, lon: r.lon, lat: r.lat, status: r.status, severity: r.severity, updatedAt: r.updated_at };
+  return { id: r.id, type: r.type, key: r.key, name: r.name, lon: r.lon, lat: r.lat, status: r.status, severity: r.severity, updatedAt: r.updated_at, validFrom: r.valid_from, validTo: r.valid_to };
 }
 
 function attachProps(db: SqlDb, cx: Ctx, rows: ObjectSummary[], keys?: string[]): void {
@@ -524,6 +556,10 @@ export function getObject(db: SqlDb, ontology: Ontology, id: string): ObjectReco
   if (!r) return null;
   const allProps: PropRecord[] = db.all<any>('SELECT key, value, vtype, unit, source_id, observed_at, confidence FROM prop WHERE object_id = ? ORDER BY key, observed_at DESC', [oid])
     .map((p) => ({ key: p.key, value: decode(p.value, p.vtype), unit: p.unit, source: p.source_id, observedAt: p.observed_at, confidence: p.confidence }));
+  const identities = db.all<{ scheme: string; key: string }>('SELECT scheme, key FROM identity WHERE object_id = ?', [oid]);
+  const scheme = cx.types.get(r.type)?.keyScheme;
+  if (scheme && !identities.some((i) => i.scheme === scheme && i.key === r.key)) identities.push({ scheme, key: r.key });
+  identities.sort((a, b) => (a.scheme + '\u0000' + a.key < b.scheme + '\u0000' + b.key ? -1 : 1));
   const props: Record<string, PropValue> = {};
   for (const p of db.all<any>('SELECT key, value, vtype FROM prop_best WHERE object_id = ?', [oid])) props[p.key] = decode(p.value, p.vtype);
   return {
@@ -531,7 +567,7 @@ export function getObject(db: SqlDb, ontology: Ontology, id: string): ObjectReco
     source: r.source_id, firstSeen: r.first_seen, validFrom: r.valid_from, validTo: r.valid_to,
     geometry: r.geometry ? JSON.parse(r.geometry) : null,
     allProps,
-    identities: db.all<any>('SELECT scheme, key FROM identity WHERE object_id = ? ORDER BY scheme, key', [oid]),
+    identities,
     metrics: db.all<{ metric: string }>('SELECT DISTINCT metric FROM obs WHERE object_id = ?', [oid]).map((m) => m.metric),
   };
 }
@@ -711,9 +747,19 @@ export function sources(db: SqlDb, ontology: Ontology, now: number = Date.now())
   for (const r of db.all<any>('SELECT * FROM ingest_run WHERE id IN (SELECT MAX(id) FROM ingest_run GROUP BY source_id)')) last.set(r.source_id, r);
   const counts = new Map<string, number>();
   for (const r of db.all<any>('SELECT source_id, COUNT(*) AS n FROM object WHERE expired = 0 GROUP BY source_id')) counts.set(r.source_id, r.n);
+  const dataAt = new Map<string, number>();
+  for (const r of db.all<any>('SELECT source_id, MAX(observed_at) AS t FROM prop GROUP BY source_id')) dataAt.set(r.source_id, r.t);
+  // obs rows carry no source, so their newest time is taken from the runs that wrote them.
+  for (const r of db.all<any>('SELECT source_id, MAX(data_at) AS t FROM ingest_run WHERE data_at IS NOT NULL GROUP BY source_id')) dataAt.set(r.source_id, Math.max(r.t, dataAt.get(r.source_id) ?? -Infinity));
+  const runs = new Map<string, any[]>();
+  for (const r of db.all<any>('SELECT * FROM (SELECT r.*, ROW_NUMBER() OVER (PARTITION BY source_id ORDER BY id DESC) AS rn FROM ingest_run r) WHERE rn <= 5 ORDER BY id DESC')) {
+    let list = runs.get(r.source_id);
+    if (!list) runs.set(r.source_id, list = []);
+    list.push({ startedAt: r.started_at, finishedAt: r.finished_at, status: r.status, objects: r.objects, obs: r.obs, bytes: r.bytes, note: r.note ?? undefined });
+  }
   return ontology.sources.map((source) => {
     const r = last.get(source.id);
-    const st: SourceStatus = { source, objectCount: counts.get(source.id) ?? 0 };
+    const st: SourceStatus = { source, objectCount: counts.get(source.id) ?? 0, dataAt: dataAt.get(source.id) ?? null, runs: runs.get(source.id) ?? [] };
     if (r) {
       // A feed that last succeeded long ago is not "ok": three missed cycles reads as stale.
       const stale = r.status === 'ok' && source.cadence_s != null && now - r.finished_at > 3 * source.cadence_s * 1000;
@@ -795,6 +841,8 @@ export function housekeeping(db: SqlDb, ontology: Ontology, now: number = Date.n
       db.exec('DELETE FROM object_rtree WHERE id = ?', [d.rid]);
       db.exec('DELETE FROM object WHERE rid = ?', [d.rid]);
     }
+    // Lineage of a feed polled every few minutes would otherwise grow for ever; the newest runs of each source stay.
+    db.exec('DELETE FROM ingest_run WHERE finished_at < ? AND id NOT IN (SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY source_id ORDER BY id DESC) AS rn FROM ingest_run) WHERE rn <= 5)', [now - 14 * DAY]);
     return { obs: obsBefore, objects: dead.length };
   });
 }
@@ -888,6 +936,19 @@ export function looksLikeSqlite(bytes: Uint8Array): boolean {
 /** Creates the schema if the database is empty or of another schema version, then refreshes the ontology tables. */
 export function prepareDb(db: SqlDb, ontology: Ontology, seedVersion: string): void {
   if (getMeta(db, 'schema_version') !== String(SCHEMA_VERSION)) createSchema(db);
+  else upgradeInPlace(db);
   loadOntology(db, ontology);
   if (getMeta(db, 'seed_version') == null) setMeta(db, 'seed_version', seedVersion);
+}
+
+/**
+ * Bounds a step that may neither finish nor fail (a storage call in a browser that never answers), so the caller
+ * can fall back instead of waiting for ever. The step itself is not cancelled.
+ */
+export function timed<T>(what: string, p: Promise<T> | T, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${what} did not finish within ${ms} ms`)), ms);
+    // Some steps answer synchronously (importDb with a byte array in this build of the library).
+    Promise.resolve(p).then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
+  });
 }

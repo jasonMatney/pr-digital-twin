@@ -33,7 +33,7 @@ async function load(store: TwinStore, withExpired: boolean, now: number): Promis
       n(o.props?.distance_to_pr_km) != null ? `${num(o.props!.distance_to_pr_km as number)} km` : null].filter(Boolean).map(String);
     items.push({ o, section: 'cyclone', sev: o.severity ?? 2, time: o.updatedAt, facts, affects: null });
   }
-  const times = await eventTimes(quakes.map((q) => q.id));
+  const times = await eventTimes(quakes as any);
   for (const o of quakes) {
     const m = n(o.props?.magnitude); const tm = times.get(o.id) ?? o.updatedAt;
     if (m == null || m < 3 || tm < now - 7 * 864e5) continue;

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { openNodeStore } from '../src/ontology/node.ts';
 import { SCHEMA_DOC } from '../src/ontology/schema.ts';
 import { validateBatch } from '../src/ontology/validate.ts';
-import { assertReadOnly, capabilities, fold, housekeeping, ingest, readCarryOver, writeCarryOver } from '../src/ontology/engine.ts';
+import { assertReadOnly, capabilities, fold, housekeeping, ingest, timed, readCarryOver, writeCarryOver } from '../src/ontology/engine.ts';
 import type { IngestBatch, ObjectInput, Ontology } from '../src/ontology/types.ts';
 
 const json = (rel: string) => JSON.parse(readFileSync(new URL(rel, import.meta.url), 'utf8'));
@@ -410,4 +410,92 @@ test('export, reopen from bytes, housekeeping and version carry-over', async () 
   assert.equal((await next.getObject('municipio:72127'))!.props!.shelters, 12);
   assert.equal((await next.series(id, 'water_level_m')).t.length, 1);
   for (const st of [s, again, next]) st.close();
+});
+
+test('summaries carry event times; requested props are flattened in one pass', async () => {
+  const s = await open();
+  await s.ingest(quakeBatch());
+  const f = quakes.features[0];
+  const [hit] = await s.listObjects('earthquake', { where: { key: f.id }, props: ['magnitude', 'network', 'felt_reports'] });
+  assert.equal(hit.validFrom, f.properties.time);
+  assert.equal(hit.validTo, null);
+  assert.deepEqual(hit.props, { magnitude: f.properties.mag, network: f.properties.net }, 'only requested keys that have a value');
+  const found = (await s.search(f.id)).find((o) => o.key === f.id)!;
+  assert.equal(found.validFrom, f.properties.time);
+  const newest = await s.listObjects('earthquake', { orderBy: '-validFrom', limit: 1 });
+  assert.equal(newest[0].validFrom, Math.max(...quakes.features.map((x: any) => x.properties.time)));
+  s.close();
+});
+
+test('views for the SQL console: object_props and link_named, still read-only', async () => {
+  const s = await open();
+  await s.ingest(quakeBatch());
+  await s.ingest(placesBatch());
+  const strongest = [...quakes.features].sort((a: any, b: any) => b.properties.mag - a.properties.mag)[0];
+  const top = await s.query<any>(`SELECT object_id, type, name, key, value, unit, source_id, observed_at FROM object_props WHERE key = 'magnitude' ORDER BY value DESC LIMIT 1`);
+  assert.deepEqual([top[0].type, top[0].value, top[0].source_id, top[0].observed_at], ['earthquake', strongest.properties.mag, 'usgs_quakes', strongest.properties.updated]);
+  assert.equal((await s.query<any>(`SELECT COUNT(*) AS n FROM object_props WHERE type = 'earthquake' AND key = 'magnitude'`))[0].n, quakes.features.length);
+  const named = await s.query<any>(`SELECT * FROM link_named WHERE type = 'monitors'`);
+  assert.deepEqual(named.map((l) => [l.src_name, l.src_type, l.type, l.dst, l.dst_name, l.dst_type, l.source_id, l.confidence]),
+    [[waterLevel.metadata.name, 'tide_station', 'monitors', 'municipio:72127', 'San Juan', 'municipio', 'census_tiger', 1]]);
+  const doc = await s.query<any>(`SELECT name FROM schema_doc WHERE name IN ('object_props', 'link_named', 'prop_best')`);
+  assert.equal(doc.length, 3);
+  for (const bad of ['DELETE FROM object_props', 'DROP VIEW link_named', `UPDATE link_named SET src_name = 'x'`, 'CREATE VIEW v AS SELECT 1']) await assert.rejects(s.query(bad), /query:/, bad);
+  s.close();
+});
+
+test('sources(): dataAt and the last five runs', async () => {
+  const s = await open();
+  await s.ingest(placesBatch());
+  const id = `tide_station:${waterLevel.metadata.id}`;
+  const newestQuakeUpdate = Math.max(...quakes.features.map((x: any) => x.properties.updated));
+  await s.ingest(quakeBatch());
+  for (let i = 1; i <= 6; i++) await s.ingest({ source: 'coops', fetchedAt: FETCHED + i * 360000, obs: [
+    { object: id, metric: 'water_level_m', t: FETCHED + i * 360000 - 1000, value: 0.1 * i },
+    // A prediction for tomorrow is not evidence of fresh data.
+    { object: id, metric: 'predicted_m', t: FETCHED + 86400000, value: 0.2 },
+  ] });
+  await s.reportRun('coops', 'error', 'HTTP 502');
+  const src = await s.sources();
+  const coops = src.find((x) => x.source.id === 'coops')!;
+  assert.equal(coops.dataAt, FETCHED + 6 * 360000 - 1000);
+  assert.equal(coops.runs!.length, 5);
+  assert.deepEqual([coops.runs![0].status, coops.runs![0].note, coops.runs![1].status, coops.runs![1].obs], ['error', 'HTTP 502', 'ok', 2]);
+  assert.ok(coops.runs!.every((r, i) => i === 0 || r.finishedAt <= coops.runs![i - 1].finishedAt || coops.runs![i - 1].status === 'error'));
+  const q = src.find((x) => x.source.id === 'usgs_quakes')!;
+  assert.equal(q.dataAt, Math.max(newestQuakeUpdate, FETCHED), 'newest property observation');
+  assert.equal(q.runs!.length, 1);
+  const untouched = src.find((x) => x.source.id === 'osm')!;
+  assert.deepEqual([untouched.dataAt, untouched.runs], [null, []]);
+  s.close();
+});
+
+test('compact storage: canonical ids are not repeated in identity; an older database is upgraded in place', async () => {
+  const s = await open();
+  await s.ingest(quakeBatch());
+  const aliases = quakes.features.reduce((n: number, f: any) => n + String(f.properties.ids).split(',').filter((x: string) => x && x !== f.id).length, 0);
+  assert.equal((await s.query<any>('SELECT COUNT(*) AS n FROM identity'))[0].n, aliases);
+  assert.equal((await s.query<any>('SELECT COUNT(*) AS n FROM prop_history'))[0].n, 0, 'first inserts leave no history');
+  const o = (await s.getObject(`earthquake:${quakes.features[0].id}`))!;
+  assert.ok(o.identities.some((i) => i.scheme === 'usgs:eventid' && i.key === quakes.features[0].id));
+
+  // A file written before the views and ingest_run.data_at existed, with the canonical identity rows it used to hold.
+  s.execRaw(`DROP VIEW object_props; DROP VIEW link_named; ALTER TABLE ingest_run DROP COLUMN data_at; DELETE FROM meta WHERE key IN ('schema_additions', 'ontology_sig');
+    INSERT OR IGNORE INTO identity (scheme, key, type, object_id) SELECT 'usgs:eventid', key, type, id FROM object;`);
+  const old = await openNodeStore({ ontology, bytes: s.exportBytes() });
+  assert.equal((await old.query<any>(`SELECT COUNT(*) AS n FROM object_props WHERE key = 'magnitude'`))[0].n, quakes.features.length);
+  const again = await old.ingest({ ...quakeBatch(), fetchedAt: FETCHED + 1000 });
+  assert.deepEqual([again.created, again.changed], [0, 0]);
+  assert.equal((await old.sources()).find((x) => x.source.id === 'usgs_quakes')!.runs!.length, 2);
+  assert.equal((await old.getObject(`earthquake:${quakes.features[0].id}`))!.identities.filter((i) => i.key === quakes.features[0].id).length, 1);
+  for (const st of [s, old]) st.close();
+});
+
+test('timed(): a step that never answers is given up on, a quick or synchronous one passes through', async () => {
+  const t0 = Date.now();
+  await assert.rejects(timed('installOpfsSAHPoolVfs', new Promise(() => {}), 150), /installOpfsSAHPoolVfs did not finish within 150 ms/);
+  assert.ok(Date.now() - t0 < 1000);
+  assert.equal(await timed('importDb', 42, 150), 42);
+  assert.equal(await timed('open', Promise.resolve('ok'), 150), 'ok');
+  await assert.rejects(timed('open', Promise.reject(new Error('no OPFS')), 150), /no OPFS/);
 });

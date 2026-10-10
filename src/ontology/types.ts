@@ -87,6 +87,8 @@ export interface ObjectSummary {
   status?: string | null;     // free short state: 'active', 'expired', 'unconfirmed', 'minor_flood', ...
   severity?: number | null;   // 0 none .. 4 extreme; drives colour and sorting of events and sensors
   updatedAt: number;          // last time any source touched it
+  validFrom?: number | null;  // for events: start; for records: date
+  validTo?: number | null;
   /** A few primary properties, flattened (best value per key), for tables and tooltips. */
   props?: Record<string, PropValue>;
 }
@@ -163,6 +165,10 @@ export interface SourceStatus {
   source: SourceDef;
   lastRun?: { startedAt: number; finishedAt: number; status: 'ok' | 'error' | 'stale'; objects: number; obs: number; bytes: number; note?: string };
   objectCount: number;
+  /** Newest observation time among this source's property values and observations (epoch ms): how fresh its data is. */
+  dataAt?: number | null;
+  /** The last five runs, newest first. */
+  runs?: { startedAt: number; finishedAt: number; status: 'ok' | 'error'; objects: number; obs: number; bytes: number; note?: string }[];
 }
 export interface DbInfo { persistent: boolean; seedVersion: string; objects: number; links: number; obs: number; openedMs: number }
 

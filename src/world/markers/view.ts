@@ -1,6 +1,9 @@
 // Screen projection and terrain occlusion shared by the markers and the labels. No allocations per call.
 import * as THREE from 'three';
 import type { World } from '../types';
+import { curveDrop } from '../../core/geo';
+
+const PROFILE = 28;
 
 /** Anything with a world position that can be hidden by terrain. */
 export interface OccPt { wx: number; wy: number; wz: number; dist: number; vis: number; occ: boolean; occStamp: number }
@@ -60,7 +63,18 @@ export class View {
         this.d.multiplyScalar(1 / L);
         const max = L - Math.max(10, L * 0.012);
         const hit = max > 0 ? this.world.terrain.raycast(this.o, this.d, max) : null;
-        p.occ = !!hit && hit.distanceTo(this.o) < max;
+        let occ = !!hit && hit.distanceTo(this.o) < max;
+        if (!occ && L > 2500) {
+          // The terrain's ray march stops after 300 steps: a long ray skimming the ground can run out before it
+          // reaches a far ridge or the horizon and report "clear". Check the ground profile under the ray as well.
+          const t = this.world.terrain, sea = this.world.seaLevel;
+          for (let k = 1; k <= PROFILE; k++) {
+            const q = max * k / (PROFILE + 1), x = this.cx + this.d.x * q, z = this.cz + this.d.z * q;
+            const gh = t.heightAt(x, z);
+            if (this.cy + this.d.y * q < (gh == null ? sea : Math.max(gh, sea)) - curveDrop(x, z)) { occ = true; break; }
+          }
+        }
+        p.occ = occ;
         p.occStamp = this.camStamp;
       } else this.pending = true;
     }

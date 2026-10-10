@@ -6,6 +6,7 @@ import type { TwinStore, ObjectTypeDef, SourceDef, LinkTypeDef, PropertyDef } fr
 
 export const railGroup = signal<string | null>(null);       // open flyout: a group id, 'scene' or 'overlays'
 export const paletteOpen = signal(false);
+export const aboutOpen = signal(false);
 export const dockCollapsed = signal(false);
 export const sheetVh = signal(46);                         // narrow layout: bottom sheet height, dragged by its grip                 // narrow layout: bottom sheet folded to its tab bar
 export const explorerType = signal<string>('earthquake');
@@ -50,8 +51,10 @@ export function useQuery<T>(fn: () => Promise<T>, deps: any[]): T | undefined {
 
 /** Event time of earthquakes is `validFrom` on the full record, which summaries do not carry. It never changes, so cache it. */
 const eventTimeCache = new Map<string, number>();
-export async function eventTimes(ids: string[]): Promise<Map<string, number>> {
-  const missing = ids.filter((id) => !eventTimeCache.has(id));
+export async function eventTimes(list: { id: string; validFrom?: number | null }[]): Promise<Map<string, number>> {
+  // Newer stores put validFrom on the summary; only fall back to one getObject per event when it is absent.
+  for (const o of list) if (o.validFrom != null && !eventTimeCache.has(o.id)) eventTimeCache.set(o.id, o.validFrom);
+  const missing = list.map((o) => o.id).filter((id) => !eventTimeCache.has(id));
   await Promise.all(missing.map(async (id) => {
     const o = await _store.getObject(id).catch(() => null);
     if (o) eventTimeCache.set(id, o.validFrom ?? o.firstSeen ?? o.updatedAt);

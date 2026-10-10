@@ -46,5 +46,8 @@ export function mapUsgsQuakes(payload: any, ctx: MapContext): IngestBatch[] {
       if (n && n.km <= QUAKE_LINK_KM) links.push({ src: `earthquake:${key}`, type: 'located_in', dst: n.item.id, confidence: 0.6, note: `epicentre ${n.km.toFixed(1)} km from the municipio centroid` });
     }
   }
-  return [{ source: 'usgs_quakes', fetchedAt: ctx.now, observedAt: num(payload?.metadata?.generated) ?? ctx.now, objects, links }];
+  // No `affects` links: a felt radius by magnitude would be a rule of thumb presented as data. The event's own
+  // ShakeMap / "Did You Feel It?" products (properties.detail) are the source to use for that.
+  const note = `located_in: nearest municipio centroid within ${QUAKE_LINK_KM} km of the epicentre; no felt-area links`;
+  return [{ source: 'usgs_quakes', fetchedAt: ctx.now, observedAt: num(payload?.metadata?.generated) ?? ctx.now, objects, links, note }];
 }

@@ -62,10 +62,10 @@ export function mapCoopsDetailed(stations: CoopsStationInput[], ctx: MapContext)
     const fresh = coopsSeries(s.predictions?.predictions);
     const pred = fresh.length ? fresh : s.cachedPredictions ?? [];
     const object = `tide_station:${id}`;
+    if (!observed.length) continue;       // predictions alone do not make a reading: the object stays as seeded
     let lastT = -1;
     for (const [t, v] of observed) { if (t === lastT) continue; lastT = t; obs.push({ object, metric: 'water_level_m', t, value: v }); }
     for (const [t, v] of fresh) obs.push({ object, metric: 'predicted_m', t, value: v });
-    if (!observed.length) continue;       // predictions alone do not make a reading
     const [t, level] = observed[observed.length - 1];
     const p = predictedAt(pred, t);
     const props: Record<string, { value: PropValue; observedAt: number }> = { water_level_m: { value: level, observedAt: t } };
@@ -85,4 +85,31 @@ export function mapCoopsDetailed(stations: CoopsStationInput[], ctx: MapContext)
 }
 export function mapCoops(stations: CoopsStationInput[], ctx: MapContext): IngestBatch[] {
   return mapCoopsDetailed(stations, ctx).batches;
+}
+
+/** Per-session memory of which stations answer for which product, so a station without a sensor is asked once. */
+export interface CoopsSession { noLevel: Set<string>; noPredictions: Set<string>; predictions: Map<string, [number, number][]>; historyAt: number }
+export const newCoopsSession = (): CoopsSession => ({ noLevel: new Set(), noPredictions: new Set(), predictions: new Map(), historyAt: 0 });
+export interface CoopsPlan { full: boolean; hours: number; requests: { id: string; product: 'latest' | 'history' | 'predictions'; url: string }[] }
+/**
+ * What to ask this run. Full run (first, then hourly): history + predictions per station (history ends with the
+ * latest reading, so no separate "latest" call). Between full runs: the latest reading only.
+ */
+export function planCoops(ids: string[], session: CoopsSession, now: number): CoopsPlan {
+  const HOUR = 3600e3;
+  const full = now - session.historyAt >= HOUR;
+  const hours = session.historyAt ? Math.min(72, Math.max(2, Math.ceil((now - session.historyAt) / HOUR) + 1)) : 72;
+  const requests: CoopsPlan['requests'] = [];
+  for (const id of ids) {
+    if (session.noLevel.has(id)) continue;
+    if (!full) { requests.push({ id, product: 'latest', url: coopsLatestUrl(id) }); continue; }
+    requests.push({ id, product: 'history', url: coopsHistoryUrl(id, hours) });
+    if (!session.noPredictions.has(id)) requests.push({ id, product: 'predictions', url: coopsPredictionsUrl(id, now - hours * HOUR, hours + 24) });
+  }
+  return { full, hours, requests };
+}
+/** 'unavailable' = the station does not offer the product (HTTP 4xx or an `{ error }` body): stop asking this session. */
+export function coopsOutcome(result: { payload?: any; error?: any }): 'ok' | 'unavailable' | 'failed' {
+  if (result.error) { const st = Number(result.error?.status); return st >= 400 && st < 500 ? 'unavailable' : 'failed'; }
+  return result.payload && !result.payload.error ? 'ok' : 'unavailable';
 }

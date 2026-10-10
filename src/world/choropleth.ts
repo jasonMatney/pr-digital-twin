@@ -3,7 +3,7 @@
 import { dataUrl } from '../core/config';
 import { latToTileY, lonToTileX, tileBounds } from '../core/geo.ts';
 import type { OverlaySource } from './types';
-import type { Lang, PropertyDef } from '../ontology/types';
+import type { Lang, PropertyDef, TwinStore } from '../ontology/types';
 
 export interface Municipio {
   geoid: string; name: string;
@@ -158,4 +158,42 @@ export function makeChoropleth(list: Municipio[], values: Map<string, number>, n
     },
   };
   return { source, breaks, colors, min: nums.length ? Math.min(...nums) : NaN, max: nums.length ? Math.max(...nums) : NaN, missing };
+}
+
+// ---- which properties can be mapped ----
+/** A value computed here from two stored properties, not a property of the store: labelled as derived wherever it shows. */
+export const DERIVED_SFHA = 'derived:sfha_per_1000';
+const DERIVED_DEF: PropertyDef = {
+  id: DERIVED_SFHA, type: 'number', unit: 'per 1,000 buildings', format: 'fixed1',
+  label: { en: 'Buildings in the FEMA 1 % flood zone, share of all buildings (derived)', es: 'Edificios en la zona FEMA de 1 %, proporción de todos los edificios (derivado)' },
+};
+export function choroplethDef(store: TwinStore, prop: string): PropertyDef | undefined {
+  return prop === DERIVED_SFHA ? DERIVED_DEF : store.ontology.objectTypes.find((t) => t.id === 'municipio')?.properties.find((p) => p.id === prop);
+}
+/** Value per municipio GEOID, and the stored property (and one object holding it) the legend should cite as its source. */
+export async function choroplethValues(store: TwinStore, prop: string): Promise<{ values: Map<string, number>; sample: string | null; sourceProp: string }> {
+  const derived = prop === DERIVED_SFHA, props = derived ? ['buildings_sfha', 'buildings'] : [prop];
+  const rows = await store.listObjects('municipio', { props, limit: 100 });
+  const values = new Map<string, number>();
+  let sample: string | null = null;
+  for (const r of rows) {
+    let v: unknown = r.props?.[props[0]];
+    if (derived) { const n = r.props?.buildings; v = typeof v === 'number' && typeof n === 'number' && n > 0 ? (v / n) * 1000 : null; }
+    if (typeof v === 'number' && Number.isFinite(v)) { values.set(r.key, v); sample ??= r.id; }
+  }
+  return { values, sample, sourceProp: props[0] };
+}
+export interface ChoroplethOption { id: string; label: string; unit: string; count: number; derived?: boolean }
+/** Numeric municipio properties that have a value for at least `min` municipios, plus the derived flood-zone share. */
+export async function availableChoroplethProps(store: TwinStore, lang: Lang = 'en', min = 60): Promise<ChoroplethOption[]> {
+  const defs = (store.ontology.objectTypes.find((t) => t.id === 'municipio')?.properties ?? []).filter((p) => p.type === 'number');
+  const counts = new Map<string, number>();
+  if (defs.length) {
+    const rows = await store.listObjects('municipio', { props: defs.map((d) => d.id), limit: 100 });
+    for (const r of rows) for (const d of defs) { const v = r.props?.[d.id]; if (typeof v === 'number' && Number.isFinite(v)) counts.set(d.id, (counts.get(d.id) ?? 0) + 1); }
+  }
+  const out: ChoroplethOption[] = defs.filter((d) => (counts.get(d.id) ?? 0) >= min).map((d) => ({ id: d.id, label: d.label?.[lang] ?? d.id, unit: d.unit ?? '', count: counts.get(d.id)! }));
+  const n = Math.min(counts.get('buildings_sfha') ?? 0, counts.get('buildings') ?? 0);
+  if (n >= min) out.push({ id: DERIVED_SFHA, label: DERIVED_DEF.label[lang], unit: DERIVED_DEF.unit!, count: n, derived: true });
+  return out;
 }

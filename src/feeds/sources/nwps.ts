@@ -9,18 +9,23 @@ const SEVERITY: Record<string, number> = { no_flooding: 0, not_defined: 0, low_t
 const NOT_CURRENT = new Set(['fcst_not_current', 'obs_not_current', '']);
 
 export function nwpsType(name: string): 'reservoir' | 'stream_gauge' {
-  return /\b(lago|embalse|lake|reservoir)\b/i.test(name) ? 'reservoir' : 'stream_gauge';
+  // The gauge is the lake only when its name starts with it: 'Rio Limon above Lago Dos Bocas' is a river gauge.
+  return /^\s*(lago|embalse|lake|reservoir)\b/i.test(name) ? 'reservoir' : 'stream_gauge';
 }
 const valid = (v: unknown) => { const n = num(v); return n != null && n > -900 ? n : null; };
 
-export function mapNwps(payload: any, ctx: MapContext): IngestBatch[] {
+export interface NwpsContext extends MapContext {
+  /** NWS lid -> the type the store holds for that gauge (from the seed's ['nws:lid', lid] identities). Wins over the name guess. */
+  knownTypes?: Record<string, 'stream_gauge' | 'reservoir'>;
+}
+export function mapNwps(payload: any, ctx: NwpsContext): IngestBatch[] {
   const objects: ObjectInput[] = [];
   let newest = 0;
   for (const g of payload?.gauges ?? []) {
     const lid = String(g?.lid ?? '').trim();
     if (!lid || /\s/.test(lid)) continue;
     const name = String(g.name ?? lid);
-    const type = nwpsType(name);
+    const type = ctx.knownTypes?.[lid] ?? nwpsType(name);
     const o = g.status?.observed ?? {}, f = g.status?.forecast ?? {};
     const cat = String(o.floodCategory ?? ''), fcat = String(f.floodCategory ?? '');
     const t = parseTime(o.validTime);
@@ -30,15 +35,15 @@ export function mapNwps(payload: any, ctx: MapContext): IngestBatch[] {
     const pe = String(g.pedts?.observed ?? '').slice(0, 2);   // SHEF physical element: HG stage, HP pool elevation
     const props: Record<string, PropValue | { value: PropValue; observedAt: number }> = {};
     const put = (k: string, v: PropValue) => { props[k] = at != null && v != null ? { value: v, observedAt: at } : v; };
-    if (type === 'stream_gauge') {
-      put('flood_category', NOT_CURRENT.has(cat) ? null : cat);
-      put('forecast_category', NOT_CURRENT.has(fcat) ? null : fcat);
-      props.nws_lid = lid;
-      if (at != null && primary != null && o.primaryUnit === 'ft' && pe === 'HG') put('stage_m', round(primary * FT_TO_M, 3));
-      if (at != null && secondary != null && o.secondaryUnit === 'kcfs') put('discharge_m3s', round(secondary * 1000 * CFS_TO_M3S, 4));
-    } else if (at != null && primary != null && o.primaryUnit === 'ft' && pe === 'HP') {
-      put('lake_elev_m', round(primary * FT_TO_M, 3));
+    // null clears a category that is no longer current instead of leaving yesterday's "minor" on the object
+    put('flood_category', NOT_CURRENT.has(cat) ? null : cat);
+    put('forecast_category', NOT_CURRENT.has(fcat) ? null : fcat);
+    props.nws_lid = lid;
+    if (at != null && primary != null && o.primaryUnit === 'ft') {
+      if (pe === 'HG') put('stage_m', round(primary * FT_TO_M, 3));
+      else if (pe === 'HP' && type === 'reservoir') put('lake_elev_m', round(primary * FT_TO_M, 3));
     }
+    if (type === 'stream_gauge' && at != null && secondary != null && o.secondaryUnit === 'kcfs') put('discharge_m3s', round(secondary * 1000 * CFS_TO_M3S, 4));
     const lon = num(g.longitude), lat = num(g.latitude);
     objects.push({
       type, key: 'nws-' + lid, name, identities: [['nws:lid', lid]],

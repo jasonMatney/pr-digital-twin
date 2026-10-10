@@ -5,6 +5,7 @@ import * as S from '../core/state';
 import { t, L } from '../i18n/index';
 import { Icon } from './icons';
 import { typeDef, sevClass } from './uistate';
+import { toMs } from './format';
 
 const EVENT_TYPES = ['weather_alert', 'tropical_cyclone', 'earthquake'];
 const TTL = 15000;
@@ -18,7 +19,14 @@ export function Toasts({ store }: { store: TwinStore }) {
       if (busy) { again = true; return; }
       busy = true;
       try {
-        const rows = (await store.listObjects(EVENT_TYPES, { limit: 500, orderBy: '-updatedAt' })).filter((o) => (o.severity ?? 0) >= 3);
+        const now = Date.now();
+        // Still in force and recent: an expired warning or last week's earthquake arriving late is not news.
+        const rows = (await store.listObjects(EVENT_TYPES, { limit: 500, orderBy: '-updatedAt', props: ['expires'] })).filter((o) => {
+          if ((o.severity ?? 0) < 3 || o.status === 'expired') return false;
+          const exp = toMs(o.props?.expires), from = (o as any).validFrom as number | null | undefined;
+          if (exp != null && exp < now) return false;
+          return !(o.type === 'earthquake' && from != null && from < now - 864e5);
+        });
         if (dead) return;
         // The first scan only records what is already there; arriving later is what makes an event "new".
         if (!seen.current) { seen.current = new Set(rows.map((o) => o.id)); return; }

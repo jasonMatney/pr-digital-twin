@@ -4,13 +4,22 @@ import * as S from '../core/state';
 import { mountUI } from '../ui/index';
 import * as ui from '../ui/uistate';
 import { createMockStore, recordedWind } from './mock-store';
+import { dataUrl } from '../core/config';
+import ontologyJson from '../ontology/ontology.json';
+import type { Ontology, TwinStore } from '../ontology/types';
 
-const store = createMockStore();
+// ?seed=1: the real worker store over the published seed database (no feeds, no 3D) — for checking panels that need
+// real links, coordinates and SQL. Default: the fixture-backed mock.
+const useSeed = new URLSearchParams(location.search).has('seed');
+const store: TwinStore = useSeed
+  ? (await import('../ontology/index.ts')).createStore({ ontology: ontologyJson as unknown as Ontology, seedUrl: dataUrl('data/twin.db'), seedVersion: 'ui-dev' })
+  : createMockStore();
+if (useSeed) await store.ready;
 S.store.value = store;
 S.fixturesMode.value = true;
 
 const wind = recordedWind();
-if (wind) S.weather.value = { ...S.weather.value, ...wind, source: 'live' };
+if (wind && !useSeed) S.weather.value = { ...S.weather.value, ...wind, source: 'live' };
 
 // Stand-in for the engine's clock (world/engine.ts does this every frame in the real app).
 let last = performance.now();
@@ -27,7 +36,7 @@ stage?.addEventListener('pointermove', (e) => {
 });
 
 // Recorded San Juan water level, so the dev page never shows the default 0 as if it were a reading.
-store.getObject('tide_station:9755371').then((o) => { const v = o?.props?.water_level_m; if (typeof v === 'number') S.weather.value = { ...S.weather.value, tideM: v }; });
+if (!useSeed) store.getObject('tide_station:9755371').then((o) => { const v = o?.props?.water_level_m; if (typeof v === 'number') S.weather.value = { ...S.weather.value, tideM: v }; });
 
 const unmount = mountUI(document.getElementById('ui')!, { store });
 S.booted.value = true;

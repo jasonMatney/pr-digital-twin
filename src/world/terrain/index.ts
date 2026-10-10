@@ -549,7 +549,9 @@ export function createTerrain(world: World): TerrainApi {
       camPos.setFromMatrixPosition(camera.matrixWorld);
       pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       frustum.setFromProjectionMatrix(pv);
-      sseK = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
+      // Detail follows the size the page is displayed at, not the size it is being drawn at this moment: automated
+      // screenshots load at a fraction of the resolution (S.renderScale) and must still fetch full-resolution tiles.
+      sseK = renderer.domElement.height / Math.max(0.1, S.renderScale.value) / (2 * Math.tan(camera.fov * Math.PI / 360));
       thr = S.quality.value === 'low' ? 3.4 : S.quality.value === 'high' ? 1.7 : 2.3;
       for (let i = 0; i < drawn.length; i++) drawn[i].mesh && (drawn[i].mesh!.visible = false);
       drawn.length = 0; queue.length = 0; deepest = 0;

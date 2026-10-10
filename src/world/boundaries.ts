@@ -7,13 +7,32 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import * as S from '../core/state';
 import { curveDrop, lonLatToXZ, xzToLonLat } from '../core/geo.ts';
+import { dataUrl } from '../core/config';
 import type { LayerFactory } from './layers';
 import { loadMunicipios, municipioAt, type Municipio } from './choropleth';
 
 const ACCENT = 0xff6a3d, SECOND = [1.0, 0.82, 0.36], BASE = [0.9, 0.96, 0.95];
 const BASE_A = 0.5, MAX_SEG = 320;                       // metres between draped vertices
 const SEVERITY = [0x9fb4b8, 0xf2c94c, 0xf2994a, 0xeb5757, 0xc23bd4];
-const FOOTPRINT_TYPES = new Set(['weather_alert', 'tropical_cyclone', 'earthquake']);
+const FOOTPRINT_TYPES = new Set(['weather_alert', 'tropical_cyclone', 'earthquake', 'disaster_declaration']);
+// Smaller Census areas are outlined only when selected; their boundary files load on first use.
+const AREA_FILES: Record<string, string> = { barrio: 'data/geo/barrios.geojson', tract: 'data/geo/tracts.geojson' };
+const areaCache = new Map<string, Promise<Map<string, any>>>();
+function loadAreas(type: string): Promise<Map<string, any>> {
+  let p = areaCache.get(type);
+  if (!p) {
+    p = fetch(dataUrl(AREA_FILES[type])).then((r) => { if (!r.ok) throw new Error(type + ' boundaries unavailable'); return r.json(); }).then((g) => new Map<string, any>((g.features ?? []).map((f: any) => [String(f.properties?.GEOID), f.geometry])));
+    p.catch(() => areaCache.delete(type));
+    areaCache.set(type, p);
+  }
+  return p;
+}
+function geometrySegments(g: any, maxSeg: number): number[] {
+  const polys: number[][][][] = g?.type === 'Polygon' ? [g.coordinates] : g?.type === 'MultiPolygon' ? g.coordinates : [];
+  const out: number[] = [];
+  for (const poly of polys) for (const ring of poly) if (ring.length > 1) ringSegments(ring.flat(), out, maxSeg);
+  return out;
+}
 const OVER_WATER_LAYER = 3;                              // see post/ocean.ts: drawn after the sea when post.overWater is on
 
 interface Feat { m: Municipio; off: number; count: number; cx: number; cz: number; r: number }
@@ -98,13 +117,39 @@ export const createBoundaries: LayerFactory = async ({ world, store, onHover, on
   const selLine = new LineSegments2(new LineSegmentsGeometry(), thickMat(ACCENT, 2.6, 0.98));
   for (const o of [selGlow, selLine]) { o.visible = false; o.frustumCulled = false; o.renderOrder = 22; group.add(o); }
   selGlow.renderOrder = 21;
-  let selFeat: Feat | null = null, selLift = 0;
+  // Highlighted municipios (alert or declaration footprint, hurricane-force winds, search results): a 2 px line on top
+  // of the thin one, so the set reads from island range.
+  const hiLine = new LineSegments2(new LineSegmentsGeometry(), thickMat(0xffd15c, 2.2, 0.95));
+  hiLine.visible = false; hiLine.frustumCulled = false; hiLine.renderOrder = 21; group.add(hiLine);
+  let hiFeats: Feat[] = [], hiLift = 0;
+  function buildHi() {
+    if (!hiFeats.length) { hiLine.visible = false; return; }
+    hiLift = liftU.value;
+    let n = 0;
+    for (const f of hiFeats) n += f.count;
+    const a = new Float32Array(n * 3);
+    let o = 0;
+    for (const f of hiFeats) for (let i = 0; i < f.count; i++, o += 3) { const j = (f.off + i) * 3; a[o] = pos[j]; a[o + 1] = pos[j + 1] + hiLift * 1.15 + 1; a[o + 2] = pos[j + 2]; }
+    hiLine.geometry.dispose(); hiLine.geometry = new LineSegmentsGeometry().setPositions(a); hiLine.visible = true;
+  }
+  let selFeat: Feat | null = null, selXZ: number[] | null = null, selLift = 0;
   function buildSelected() {
-    if (!selFeat) { selGlow.visible = selLine.visible = false; return; }
-    const f = selFeat, a = new Float32Array(f.count * 3);
+    if (!selFeat && !selXZ) { selGlow.visible = selLine.visible = false; return; }
     selLift = liftU.value;
-    for (let i = 0; i < f.count; i++) { const j = (f.off + i) * 3; a[i * 3] = pos[j]; a[i * 3 + 1] = pos[j + 1] + selLift * 1.3 + 2; a[i * 3 + 2] = pos[j + 2]; }
-    for (const o of [selGlow, selLine]) { o.geometry.dispose(); o.geometry = new LineSegmentsGeometry().setPositions(a); o.visible = true; }
+    let a: Float32Array;
+    if (selFeat) {
+      const f = selFeat;
+      a = new Float32Array(f.count * 3);
+      for (let i = 0; i < f.count; i++) { const j = (f.off + i) * 3; a[i * 3] = pos[j]; a[i * 3 + 1] = pos[j + 1] + selLift * 1.3 + 2; a[i * 3 + 2] = pos[j + 2]; }
+    } else {
+      const q = selXZ!, n = q.length / 2;
+      a = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { const x = q[i * 2], z = q[i * 2 + 1]; a[i * 3] = x; a[i * 3 + 1] = Math.max(terrain.heightAt(x, z) ?? 0, 0) - curveDrop(x, z) + selLift * 1.3 + 2; a[i * 3 + 2] = z; }
+    }
+    // Barrios and tracts reach into bays and lagoons (they are not clipped to land): over water the outline has to be
+    // drawn after the sea, or the water pass absorbs it.
+    for (const o of [selGlow, selLine]) { o.geometry.dispose(); o.geometry = new LineSegmentsGeometry().setPositions(a); o.visible = true; o.layers.set(selXZ ? OVER_WATER_LAYER : 0); }
+    if (selXZ) (world.post as any).overWater = true;
   }
 
   const alertLine = new LineSegments2(new LineSegmentsGeometry(), thickMat(SEVERITY[2], 2.4, 0.95, false));
@@ -126,8 +171,16 @@ export const createBoundaries: LayerFactory = async ({ world, store, onHover, on
   let wroteHighlights = false, anyHighlight = false, seq = 0;
   const stopSel = effect(() => {
     const id = S.selectedId.value, my = ++seq;
-    selFeat = id ? byId.get(id) ?? null : null;
+    selFeat = id ? byId.get(id) ?? null : null; selXZ = null;
     buildSelected();
+    const type = id ? id.slice(0, id.indexOf(':')) : '';
+    if (id && AREA_FILES[type]) {
+      loadAreas(type).then((m) => {
+        if (my !== seq) return;
+        const segs = geometrySegments(m.get(id.slice(type.length + 1)), 150);
+        if (segs.length) { selXZ = segs; buildSelected(); }
+      }).catch((e) => console.warn('[garita/boundaries]', e));
+    }
     alertXZ = null; buildAlert();
     if (wroteHighlights) { wroteHighlights = false; S.highlightIds.value = []; }
     if (!id || !FOOTPRINT_TYPES.has(id.split(':')[0])) return;
@@ -139,9 +192,7 @@ export const createBoundaries: LayerFactory = async ({ world, store, onHover, on
     }).catch(() => {});
     store.getObject(id).then((o) => {
       if (my !== seq || !o?.geometry) return;
-      const g = o.geometry, polys: number[][][][] = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
-      const out: number[] = [];
-      for (const poly of polys) for (const ring of poly) ringSegments(ring.flat(), out, 600);
+      const out = geometrySegments(o.geometry, 600);
       if (!out.length) return;
       (alertLine.material as LineMaterial).color.setHex(SEVERITY[Math.min(4, Math.max(0, Math.round(o.severity ?? 2)))]);
       alertXZ = out; buildAlert();
@@ -156,6 +207,7 @@ export const createBoundaries: LayerFactory = async ({ world, store, onHover, on
       for (let i = f.off, e = f.off + f.count; i < e; i++) { col[i * 4] = c[0]; col[i * 4 + 1] = c[1]; col[i * 4 + 2] = c[2]; col[i * 4 + 3] = a; }
     }
     colAttr.needsUpdate = true;
+    hiFeats = feats.filter((f) => on.has('municipio:' + f.m.geoid)); buildHi();
   });
 
   // ---- hover and click on the ground: lowest priority, markers and buildings come first ----
@@ -197,19 +249,22 @@ export const createBoundaries: LayerFactory = async ({ world, store, onHover, on
       while (queue.length && budget > 0) { const q = queue.pop()!; drape(q); budget -= q.count; }
       if (redraped.size) {
         posAttr.needsUpdate = true;
-        if (selFeat && redraped.has(selFeat)) buildSelected();
+        if ((selFeat && redraped.has(selFeat)) || (selXZ && f.index % 30 === 0)) buildSelected();
         if (alertXZ && f.index % 30 === 0) buildAlert();
+        if (hiFeats.length && f.index % 30 === 0) buildHi();
         redraped.clear();
       }
-      if (selFeat && Math.abs(liftU.value - selLift) > 0.2 * selLift + 1) buildSelected();
+      if ((selFeat || selXZ) && Math.abs(liftU.value - selLift) > 0.2 * selLift + 1) buildSelected();
+      if (hiFeats.length && Math.abs(liftU.value - hiLift) > 0.2 * hiLift + 1) buildHi();
+      hiLine.visible = hiFeats.length > 0 && on;
     },
     dispose() {
       stopSel(); stopHi(); offHover(); offPick();
       if (wroteHighlights) S.highlightIds.value = [];
       world.scene.remove(group);
       geo.dispose(); mat.dispose();
-      for (const o of [selGlow, selLine, alertLine]) { o.geometry.dispose(); (o.material as LineMaterial).dispose(); }
+      for (const o of [selGlow, selLine, alertLine, hiLine]) { o.geometry.dispose(); (o.material as LineMaterial).dispose(); }
     },
-    ...({ debug: () => ({ municipios: feats.length, vertices: nVert, queued: queue.length, lift: +liftU.value.toFixed(1), selected: selFeat?.m.name ?? null }) } as object),
+    ...({ debug: () => ({ municipios: feats.length, vertices: nVert, queued: queue.length, lift: +liftU.value.toFixed(1), selected: selFeat?.m.name ?? (selXZ ? `outline, ${selXZ.length / 4} segments` : null), footprint: alertXZ ? alertXZ.length / 4 : 0, highlights: S.highlightIds.value.length, selectedId: S.selectedId.value }) } as object),
   };
 };
