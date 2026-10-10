@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR Digital Twin</title><style>body{margin:0;background:#07141b;color:#dfeaea;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:32px}</style></head>
+<body><h1>PR Digital Twin</h1><p>Coming online. Build in progress.</p><pre id="o"></pre>
+<script>
+const o={ua:navigator.userAgent,dpr:devicePixelRatio,w:innerWidth,h:innerHeight,cores:navigator.hardwareConcurrency,mem:navigator.deviceMemory,gpu:!!navigator.gpu};
+try{const c=document.createElement('canvas');const g=c.getContext('webgl2');if(g){const e=g.getExtension('WEBGL_debug_renderer_info');o.webgl2=true;o.renderer=e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER);o.maxTex=g.getParameter(g.MAX_TEXTURE_SIZE);o.max3D=g.getParameter(g.MAX_3D_TEXTURE_SIZE);o.floatLinear=!!g.getExtension('OES_texture_float_linear');o.colorBufFloat=!!g.getExtension('EXT_color_buffer_float');}}catch(e){o.err=String(e)}
+window.__caps=o;document.getElementById('o').textContent=JSON.stringify(o,null,1);
+</script></body></html>
