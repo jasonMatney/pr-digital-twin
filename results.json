@@ -1,0 +1,86 @@
+{
+ "at": "2026-10-10T18:40:08.738Z",
+ "results": [
+  {
+   "id": "osj",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=medium&t=2026-10-10T15:30:00Z&cam=-66.116,18.466,1600,20,32",
+   "ok": false,
+   "error": "TimeoutError: page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n",
+   "ms": 125160,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "condado-dusk",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=medium&t=2026-10-10T21:50:00Z&cam=-66.075,18.452,2600,250,12",
+   "ok": false,
+   "error": "TimeoutError: page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n",
+   "ms": 125176,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 404 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "parguera",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=medium&t=2026-10-10T15:30:00Z&cam=-67.05,17.955,5000,0,45",
+   "ok": false,
+   "error": "TimeoutError: page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n",
+   "ms": 151381,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 404 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "island-night",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=medium&t=2026-10-10T02:00:00Z&cam=-66.2,18.2,260000,0,48",
+   "ok": false,
+   "error": "TimeoutError: page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n",
+   "ms": 160955,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+   ],
+   "failedHosts": {
+    "marine-api.open-meteo.com": 1,
+    "air-quality-api.open-meteo.com": 1
+   }
+  },
+  {
+   "id": "catano-sea2",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=medium&sea=2&t=2026-10-10T15:30:00Z&cam=-66.14,18.44,5000,0,50",
+   "ok": false,
+   "error": "TimeoutError: page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n",
+   "ms": 128215,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+   ],
+   "failedHosts": {}
+  },
+  {
+   "id": "sanjuan-9km",
+   "url": "https://jasonmatney.github.io/pr-digital-twin/?ui=0&q=medium&t=2026-10-10T15:30:00Z&cam=-66.105,18.455,9000,200,28",
+   "ok": false,
+   "error": "TimeoutError: page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n",
+   "ms": 135891,
+   "logs": [
+    "[warning] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-co",
+    "[error] Failed to load resource: the server responded with a status of 404 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+   ],
+   "failedHosts": {}
+  }
+ ]
+}
