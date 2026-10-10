@@ -215,18 +215,20 @@ async function buildImg(cov) {
         s.png++;
       } else throw new Error('not an image: ' + raw.subarray(0, 60).toString('latin1').replace(/\s+/g, ' '));
     } catch (e) { s.failed++; odd.push(`${z}/${x}/${y} ${String(e.message).slice(0, 120)}`); return; }
+    // A tile that is white all over is upstream's way of saying "no imagery here" with HTTP 200: treat it like a 404.
+    const wm = whiteMask((await flatRGB(jpg)).data, 3);
+    if (wm.c >= 65536 * 0.995) { s.allWhite = (s.allWhite || 0) + 1; return; }
     const dst = path.join(OUT, 'tiles/img', String(z), String(x), y + '.jpg');
     await fs.mkdir(path.dirname(dst), { recursive: true });
     await fs.writeFile(dst, jpg);
     s.bytes += jpg.length; s.rawBytes += raw.length;
     (present[z] ||= []).push([x, y]);
-    const wm = whiteMask((await flatRGB(jpg)).data, 3);
-    if (wm.c >= 65536 * 0.005) { (white[z] ||= []).push([x, y, Math.round(100 * wm.c / 65536)]); s.white = (s.white || 0) + 1; if (wm.c >= 65536 * 0.995) s.allWhite = (s.allWhite || 0) + 1; }
+    if (wm.c >= 65536 * 0.005) { (white[z] ||= []).push([x, y, Math.round(100 * wm.c / 65536)]); s.white = (s.white || 0) + 1; }
   });
   let total = 0;
   for (const z of Object.keys(stats)) {
     const s = stats[z]; total += s.bytes;
-    log(`img z${z}: wanted ${s.want}, written ${s.jpeg + s.png} (jpeg kept ${s.jpeg}, png->jpeg ${s.png}, of which with transparency ${s.pngAlpha}), 404 ${s.missing404}, failed ${s.failed}, with >=0.5 % pure white ${s.white || 0} (entirely white ${s.allWhite || 0}), ${mb(s.bytes)} (raw ${mb(s.rawBytes)})`);
+    log(`img z${z}: wanted ${s.want}, written ${s.jpeg + s.png - (s.allWhite || 0)} (served as jpeg ${s.jpeg}, as png ${s.png}, of which with transparency ${s.pngAlpha}), 404 ${s.missing404}, blank white not written ${s.allWhite || 0}, failed ${s.failed}, partly white (>=0.5 %) ${s.white || 0}, ${mb(s.bytes)} (raw ${mb(s.rawBytes)})`);
   }
   for (const o of odd.slice(0, 40)) log('  img odd:', o);
   log(`img: total ${mb(total)}`);
@@ -403,12 +405,14 @@ const index = {
   generated, dem: sortIdx(dem.present), img: sortIdx(img.present), sources,
   notes: {
     dem: 'tiles/dem/{z}/{x}/{y}.png, 256 px Terrarium RGB, 0.5 m steps (B is 0 or 128)',
-    img: 'tiles/img/{z}/{x}/{y}.jpg, 256 px JPEG. A tile absent from this list was HTTP 404 upstream or failed; do not request it. See imgUpstream404: whole zooms can be absent.',
+    img: 'tiles/img/{z}/{x}/{y}.jpg, 256 px JPEG. A tile absent from this list was HTTP 404 upstream, blank white upstream, or failed; do not request it, use the parent. See imgUpstream404: whole zooms can be absent.',
     imgUpstream404: Object.fromEntries(Object.entries(img.stats).map(([z, t]) => [z, `${t.missing404} of ${t.want}`])),
     imgPartlyTransparentUpstream: img.partial,
     imgPartlyTransparentNote: 'these tiles came as PNG with transparent pixels; in the mirrored JPEG those pixels are pure white, the colour upstream itself uses for no imagery (see imgWhiteNoData)',
+    imgBlankUpstream: Object.fromEntries(Object.entries(img.stats).map(([z, t]) => [z, `${t.allWhite || 0} of ${t.want}`])),
+    imgBlankNote: 'tiles the service answered with HTTP 200 but that are white all over (>= 99.5 % of pixels, i.e. no imagery: open sea) are treated like 404: not written, not listed',
     imgWhiteNoData: img.white,
-    imgWhiteNoDataNote: 'USGS paints areas outside the imagery footprint PURE WHITE in its JPEG tiles (coast and open sea at z11..13, some tiles entirely white). Listed [x, y, percent white] for tiles with >= 0.5 % of pixels >= 248 on all channels (thinner slivers exist in other coastal tiles). JPEG tiles are mirrored byte-for-byte; PNG tiles are re-encoded with their transparent pixels also white. So in every mirrored tile pure white = no imagery: mask it (e.g. fall back to the parent tile or water colour).',
+    imgWhiteNoDataNote: 'USGS paints areas outside the imagery footprint PURE WHITE in its JPEG tiles (coast and open sea, every zoom from 11 up). Listed [x, y, percent white] for tiles with >= 0.5 % of pixels >= 248 on all channels (thinner slivers exist in other coastal tiles). JPEG tiles are mirrored byte-for-byte; PNG tiles are re-encoded with their transparent pixels also white. So in every mirrored tile pure white = no imagery: mask it (e.g. fall back to the parent tile or water colour).',
     demSpikes: dem.spikes,
     demSpikesNote: 'elevation tiles containing garbage pixels upstream (more than 250 m from the median of their 4 neighbours; values from -22 km to +4 km), [x, y, pixel count]. Kept as served (round trip <= 0.25 m): despike when meshing, e.g. replace by the neighbour median.',
     demNoData: dem.noData,
