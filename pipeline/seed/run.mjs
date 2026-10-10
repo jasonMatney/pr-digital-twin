@@ -40,7 +40,6 @@ async function runSource(name) {
     for (const r of res) {
       if (r.error) { rep.status = 'partial'; rep.problems.push(`${r.file}: ${r.error.message}`); console.error(`[${name}] ${r.file} FAILED`, r.error); continue; }
       const b = r.batch;
-      b.bytes ??= undefined;
       const probs = validateBatch(b, ontology, { maxProblems: 30 });
       const errors = probs.filter((p) => p.level === 'error');
       const counts = {};
