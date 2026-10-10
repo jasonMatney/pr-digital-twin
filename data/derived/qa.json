@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-10T04:58:44.712Z",
+ "generated": "2026-10-10T04:59:24.914Z",
  "flood_attached": false,
  "buildings": {
   "total": 1500471,
@@ -133,8 +133,8 @@
  },
  "elevation": {
   "tiles": 1773,
-  "fetched": 1773,
-  "cached": 0,
+  "fetched": 0,
+  "cached": 1773,
   "failed": 0,
   "unknown": 0,
   "below_0": 1368,

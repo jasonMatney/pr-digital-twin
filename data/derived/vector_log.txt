@@ -86,3 +86,14 @@ total 551080
 04:58:42 elevation {"tiles":1773,"fetched":1773,"cached":0,"failed":0}
 04:58:44 tiles written 1771 bytes 45822128 vertices clamped 0
 04:58:44 done {"buildings":1500471,"tiles":1771,"bytes":45822128,"facilities":3085,"floodAttached":false,"below_1m":8757,"zone_counts":{"0":1500471,"1":0,"2":0,"3":0}}
+04:59:08 municipios 78
+04:59:15 buildings {"features":1500584,"kept":1500471,"degenerate":29,"multi":43,"simplified":279,"height_tag":203069,"height_levels":3419,"height_none":1293983,"vertices":8451048}
+04:59:15 facilities 3085 {"airport":24,"clinic":430,"fire_station":70,"hospital":87,"police_station":127,"power_plant":67,"school":1802,"seaport":15,"substation":401,"water_plant":62}
+04:59:15 zoom-14 tiles with buildings or facilities 1773
+04:59:17 elevation tiles 400 / 1773
+04:59:18 elevation tiles 800 / 1773
+04:59:20 elevation tiles 1200 / 1773
+04:59:21 elevation tiles 1600 / 1773
+04:59:22 elevation {"tiles":1773,"fetched":0,"cached":1773,"failed":0}
+04:59:24 tiles written 1771 bytes 45822128 vertices clamped 0
+04:59:25 done {"buildings":1500471,"tiles":1771,"bytes":45822128,"facilities":3085,"floodAttached":false,"below_1m":8757,"zone_counts":{"0":1500471,"1":0,"2":0,"3":0}}
