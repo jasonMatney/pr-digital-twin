@@ -41,7 +41,7 @@ jobs:
         run: mkdir -p "$WORK_DIR/cache" "$OUT_DIR" && node pipeline/vector/stage1_boundaries.mjs
       - name: Publish stage 1
         if: ${{ !cancelled() }}
-        run: bash pipeline/vector/publish.sh "vector: boundaries (TIGERweb) $(date -u +%FT%TZ)"
+        run: bash pipeline/vector/publish.sh "vector - boundaries (TIGERweb) $(date -u +%FT%TZ)"
       - name: Stage 2 - OSM extract
         if: ${{ !cancelled() && hashFiles('pipeline/vector/stage2_osm.sh') != '' }}
         run: bash pipeline/vector/stage2_osm.sh
@@ -50,7 +50,7 @@ jobs:
         run: NO_FLOOD=1 node --max-old-space-size=10000 pipeline/vector/build.mjs
       - name: Publish stage 2-3
         if: ${{ !cancelled() && hashFiles('pipeline/vector/build.mjs') != '' }}
-        run: bash pipeline/vector/publish.sh "vector: OSM buildings + facilities with elevation $(date -u +%FT%TZ)" --replace-tiles
+        run: bash pipeline/vector/publish.sh "vector - OSM buildings + facilities with elevation $(date -u +%FT%TZ)" --replace-tiles
       - name: Land-clipped municipios
         if: ${{ !cancelled() && hashFiles('pipeline/vector/land.mjs') != '' }}
         run: node --max-old-space-size=8000 pipeline/vector/land.mjs
@@ -68,4 +68,4 @@ jobs:
         run: node --max-old-space-size=10000 pipeline/vector/build.mjs
       - name: Publish stage 4
         if: ${{ !cancelled() }}
-        run: bash pipeline/vector/publish.sh "vector: flood zones, exposure, land-clipped municipios $(date -u +%FT%TZ)" --replace-tiles
+        run: bash pipeline/vector/publish.sh "vector - flood zones, exposure, land-clipped municipios $(date -u +%FT%TZ)" --replace-tiles
