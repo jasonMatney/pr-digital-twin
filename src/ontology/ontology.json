@@ -3090,6 +3090,22 @@
       "es": "Aviso público"
      },
      "type": "url"
+    },
+    {
+     "id": "advisory",
+     "label": {
+      "en": "Advisory",
+      "es": "Aviso"
+     },
+     "type": "string"
+    },
+    {
+     "id": "forecast_points",
+     "label": {
+      "en": "Forecast track points",
+      "es": "Puntos del pronóstico de trayectoria"
+     },
+     "type": "json"
     }
    ],
    "ephemeral": true

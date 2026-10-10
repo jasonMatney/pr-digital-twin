@@ -160,6 +160,7 @@ const objectTypes = [
     P('classification', 'Classification', 'Clasificación', 'string', null, null, true), P('intensity_kt', 'Max sustained wind', 'Viento máximo sostenido', 'number', 'kt', 'int', true),
     P('pressure_hpa', 'Minimum pressure', 'Presión mínima', 'number', 'hPa', 'int', true), P('movement_dir_deg', 'Moving toward', 'Se mueve hacia', 'number', 'deg', 'int'), P('movement_kt', 'Forward speed', 'Velocidad de traslación', 'number', 'kt', 'int'),
     P('distance_to_pr_km', 'Distance to Puerto Rico', 'Distancia a Puerto Rico', 'number', 'km', 'int', true), P('last_update', 'Last advisory', 'Último aviso', 'date', null, 'datetime'), P('advisory_url', 'Public advisory', 'Aviso público', 'url'),
+    P('advisory', 'Advisory', 'Aviso', 'string'), P('forecast_points', 'Forecast track points', 'Puntos del pronóstico de trayectoria', 'json'),
   ], { ephemeral: true }),
   T('disaster_declaration', 'event', 'records', 'Federal disaster declaration', 'Declaración federal de desastre', 'Federal disaster declarations', 'Declaraciones federales de desastre', 'fema:disaster', 'fema', '#c3a6ff', [
     P('declaration_type', 'Type', 'Tipo', 'string', null, null, true), P('incident_type', 'Incident', 'Incidente', 'string', null, null, true), P('title', 'Title', 'Título', 'string'),

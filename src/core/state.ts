@@ -19,10 +19,10 @@ export const highlightIds = signal<string[]>([]);
 export type SceneLayerId = 'buildings' | 'clouds' | 'labels' | 'municipios' | 'ocean_detail' | 'markers';
 export const layerOn = signal<Record<string, boolean>>({
   // object types shown as markers at start
-  weather_alert: true, earthquake: true, tropical_cyclone: true, stream_gauge: true, tide_station: true, buoy: true,
-  shelter: true, public_housing: true, hospital: true, power_region: true, weather_station: false, reservoir: true,
-  assisted_housing: false, school: false, fire_station: false, police_station: false, power_plant: true, substation: false,
-  water_plant: false, airport: true, seaport: true, aircraft: true, clinic: false,
+  weather_alert: true, earthquake: true, tropical_cyclone: true, stream_gauge: false, tide_station: true, buoy: false,
+  shelter: true, public_housing: true, hospital: false, power_region: true, weather_station: false, reservoir: false,
+  assisted_housing: false, school: false, fire_station: false, police_station: false, power_plant: false, substation: false,
+  water_plant: false, airport: false, seaport: false, aircraft: true, clinic: false,
   // scene
   buildings: true, clouds: true, labels: true, municipios: true, ocean_detail: true, markers: true,
 });

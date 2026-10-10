@@ -43,13 +43,15 @@ export function bootApp(opts: BootOptions = {}) {
   // ?pump=1 drives frames from a MessageChannel instead of requestAnimationFrame, so the scene keeps rendering in a
   // hidden or background tab. For automated screenshots only: it spins a core.
   if (flag('pump')) {
-    const ch = new MessageChannel(); let cb: FrameRequestCallback | null = null, last = 0;
+    const ch = new MessageChannel(); let queue: FrameRequestCallback[] = [], last = 0, armed = false;
     ch.port1.onmessage = () => {
       const now = performance.now();
       if (now - last < 15.5) { ch.port2.postMessage(0); return; }
-      last = now; const c = cb; cb = null; c?.(now);
+      last = now; armed = false;
+      const run = queue; queue = [];
+      for (const f of run) { try { f(now); } catch (e) { console.error(e); } }
     };
-    (globalThis as any).requestAnimationFrame = (f: FrameRequestCallback) => { cb = f; ch.port2.postMessage(0); return 1; };
+    (globalThis as any).requestAnimationFrame = (f: FrameRequestCallback) => { queue.push(f); if (!armed) { armed = true; ch.port2.postMessage(0); } return 1; };
   }
 
   // ---- scene ----
@@ -63,9 +65,12 @@ export function bootApp(opts: BootOptions = {}) {
   if (cam && cam.length >= 2 && cam.every(Number.isFinite)) S.flyTo.value = { lon: cam[0], lat: cam[1], range: cam[2], heading: cam[3], pitch: cam[4], seconds: 0 };
   engine.start();
 
+  // The curtain lifts as soon as the island's coarse tiles are drawn; detail streams in afterwards.
+  // `ready` (used by automated screenshots) waits until the view has nothing left to load.
   let settled = 0;
   const off = engine.onFrame((f) => {
     const s = world.terrain.stats();
+    if (!S.booted.value && s.tiles >= 6 && f.now > 1.0) { S.booted.value = true; bootEl?.classList.add('gone'); }
     settled = s.pending === 0 && s.tiles > 0 ? settled + 1 : 0;
     if ((settled > 10 && f.index > 20) || f.now > 40) { off(); g.ready = true; S.booted.value = true; bootEl?.classList.add('gone'); }
   });

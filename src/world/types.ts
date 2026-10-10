@@ -33,6 +33,10 @@ export interface OverlaySource {
   minZoom: number;
   maxZoom: number;       // deeper terrain tiles reuse the maxZoom ancestor
   tileSize?: 256 | 512;
+  /** The overlay shows something in the air (rain, cloud), so it must stay visible over the sea instead of being
+   *  absorbed by the water like a decal on the seabed. The terrain marks its coverage in the colour buffer's alpha
+   *  (alpha = 1 - coverage); the ocean pass mixes the pre-water colour back by that coverage. */
+  aboveWater?: boolean;
   /** Tiles drawn in the browser instead of fetched (choropleths): return a canvas or bitmap for the tile, or null. When present, url() is not called. */
   draw?(z: number, x: number, y: number): Promise<TexImageSource | null> | TexImageSource | null;
 }
