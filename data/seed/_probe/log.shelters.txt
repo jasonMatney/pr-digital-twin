@@ -81,20 +81,16 @@ Refugios 2026   Barceloneta
                 Barceloneta    Esc. Vicente Acevedo Ballester                   Carr. 664, km 1 hm 0, Bo. Magueyes                                    https://maps.app.goo.gl/grNL6QC9VNLh6Yvu9
                 Barranquitas   Centro Geriátrico La Hermandad                   Carr. 152 KM 6.2 Bo. Quebradilla                                      https://maps.app.goo.gl/2e3ZF9Sx4XDWwVqF7
                 Barranquitas   Esc. Antonio Vázquez Ramos - La Loma             carr. 156, km 20 hm 1, Bo. Quebrada Grande                             https://maps.app.goo.gl/X6c353v7sjuSo5FS6
-[shelters] FAILED Error: shelter list text extracted (75453 chars via pdftotext -layout) and published as data/seed/_probe/shelters_text.txt; row parser not written yet
-    at parseShelters (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/sources/shelters_parse.mjs:3:9)
-    at Module.build (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/sources/shelters.mjs:27:10)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async runSource (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:39:18)
-    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:87
-    at async Promise.all (index 7)
-    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:1
+[municipios] Counties: 78 rows; fields: MTFCC,OID,GEOID,STATE,COUNTY,COUNTYNS,BASENAME,NAME,LSADC,FUNCSTAT,COUNTYCC,AREALAND,AREAWATER,OBJECTID,STGEOMETRY,CENTLAT,CENTLON,INTPTLAT,INTPTLON
+[shelters] wrote 40-shelters: {"shelter":343,"municipio":78} links 343
 {
  "shelters": {
-  "status": "error",
-  "objects": {},
-  "links": 0,
-  "problems": 0,
-  "error": "Error: shelter list text extracted (75453 chars via pdftotext -layout) and published as data/seed/_probe/shelters_text.txt; row parser not written yet"
+  "status": "ok",
+  "objects": {
+   "shelter": 343,
+   "municipio": 78
+  },
+  "links": 343,
+  "problems": 7
  }
 }

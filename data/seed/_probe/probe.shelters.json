@@ -1,4 +1,102 @@
 {
  "shelters_pdfinfo": "Title:           DV/AVP Refugios Temporada de Huracanes 2026 \nKeywords:        DAHK45A6j68,BAFgjxmZdKs,0\nAuthor:          Vivienda\nCreator:         Canva\nProducer:        Canva\nCreationDate:    Wed May 27 19:36:51 2026 UTC\nModDate:         Wed May 27 19:36:51 2026 UTC\nCustom Metadata: no\nMetadata Stream: yes\nTagged:          yes\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           19\nEncrypted:       no\nPage size:       5685.75 x 2472 pts\nPage rot:        0\nFile size:       51061444 bytes\nOptimized:       no\nPDF version:     1.4\n",
- "shelters_text_method": "pdftotext -layout"
+ "shelters_text_method": "pdftotext -layout",
+ "shelters_link_samples": [
+  {
+   "url": "https://maps.app.goo.gl/cFmTAjJhM4iNN4zU9",
+   "lat": 18.1685602,
+   "lon": -66.7217585,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Superior+Jos%C3%A9+Emilio+Lugo+%2F+Jos%C3%A9+Emilio+Lugo+High+School/@18.1685653,-66.7243334,1033m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c02d3fc4edbad27:0xa6183df545a970c!8m2!3d18.1685602!4d-66.7217585!16s%2Fg%2F11bv3mp0qd?entry=tts&g_ep=EgoyMDI0MTAwOS4wIPu8ASoASAF"
+  },
+  {
+   "url": "https://maps.app.goo.gl/igPYAK5RTvGGb7rH6",
+   "lat": 18.1673069,
+   "lon": -66.7247314,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Intermedia+Rafael+Aparicio+Jim%C3%A9nez/@18.167312,-66.7273063,1033m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c02d3fb55f4af1b:0x9db5c05ec791877a!8m2!3d18.1673069!4d-66.7247314!16s%2Fm%2F076ptmj?entry=tts&g_ep=EgoyMDI0MTAwOS4wIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/xuFbs8ZRSCCZKsYF7",
+   "lat": 18.3614432,
+   "lon": -67.1724118,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Anselmo+Villarrubia/@18.3614225,-67.1739081,644m/data=!3m1!1e3!4m6!3m5!1s0x8c02bad8dacc94c7:0x6402652615354013!8m2!3d18.3614432!4d-67.1724118!16s%2Fm%2F076016k?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/vCbVhYLow2r6EJA9A",
+   "lat": 18.3694078,
+   "lon": -67.156056,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Superior+Eladio+Tirado+L%C3%B3pez/@18.3694078,-67.1586309,1082m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c02bb1b1bd28f15:0xab56974b421bb388!8m2!3d18.3694078!4d-67.156056!16s%2Fm%2F076pqk2?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/2ByXe4BTEZ37773D7",
+   "lat": 18.3831548,
+   "lon": -67.1835055,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Lydia+Mel%C3%A9ndez/@18.3831548,-67.1860804,1082m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c02bb33b2a72b11:0x93bc0bb9c7eb82b2!8m2!3d18.3831548!4d-67.1835055!16s%2Fm%2F076hcvm?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/bxrhv5oHovMMSd7N8",
+   "lat": 18.3762799,
+   "lon": -67.1849105,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Intermedia+Profa.+Juana+Rosario/@18.3762799,-67.1874854,1082m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c02bb320af2bbff:0x74ef15ffc06bfdc9!8m2!3d18.3762799!4d-67.1849105!16s%2Fg%2F11c1hhmf0f?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/HwFZ28PpeQssdoyU6",
+   "lat": 18.3615449,
+   "lon": -67.1996567,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+de+Segunda+Unidad+Epifanio+Estrada/@18.3616654,-67.198456,541m/data=!3m1!1e3!4m7!3m6!1s0x8c02a528d2910f87:0x848d254e6bad0b42!8m2!3d18.3615449!4d-67.1996567!15sChtFc2MuIFMuIFUuIEVwaWZhbmlvIEVzdHJhZGGSAQZzY2hvb2zgAQA!16s%2Fm%2F07689qf?entry=tts&g_ep=EgoyMDI0MT"
+  },
+  {
+   "url": "https://maps.app.goo.gl/i2SzvE5cHu92EFEV6",
+   "lat": 18.4583636,
+   "lon": -67.1549825,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Superior+Benito+Cerezo+V%C3%A1zquez/@18.4584619,-67.1557828,448m/data=!3m1!1e3!4m6!3m5!1s0x8c02bd1b19155aa5:0x4a75f5c2c33b13b2!8m2!3d18.4583636!4d-67.1549825!16s%2Fg%2F1hc3y0q7c?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/aYLRWccGAGEB8UXc7",
+   "lat": 18.4433587,
+   "lon": -67.1172277,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+de+Segunda+Unidad+Conchita+Igart%C3%BAa+de+Su%C3%A1rez/@18.4433638,-67.1198026,895m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c02bdf76ce33a99:0x62f754d1cab6bbf!8m2!3d18.4433587!4d-67.1172277!16s%2Fm%2F076nzmx?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/RQPSQtyHufuo8fC76",
+   "lat": 18.5002076,
+   "lon": -67.145693,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Intermedia+Profesora+Dra.+Esther+Feliciano+Mendoza/@18.5002127,-67.1482679,895m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c0297d38fe507e3:0x482e19a058461aa3!8m2!3d18.5002076!4d-67.145693!16s%2Fm%2F076fx24?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/PFXZ6EAHw6ZQUWKBA",
+   "lat": 18.4866854,
+   "lon": -67.0975637,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Superior+Juan+Su%C3%A1rez+Pelegrina/@18.4866905,-67.1001386,1031m/data=!3m2!1e3!4b1!4m6!3m5!1s0x8c02bdff6d149737:0x51fc4142f48f7141!8m2!3d18.4866854!4d-67.0975637!16s%2Fg%2F11bycjc1kf?entry=tts&g_ep=EgoyMDI0MTAwNy4xIPu8ASoASAFQAw%3D%3D"
+  },
+  {
+   "url": "https://maps.app.goo.gl/Ferm5tDHT58nMX69A",
+   "lat": 18.2522166,
+   "lon": -66.1014713,
+   "how": "place coordinates in the resolved URL",
+   "conf": 0.9,
+   "final": "https://www.google.com/maps/place/Escuela+Intermedia+Dr.+Pedro+Albizu+Campos/@18.2523272,-66.1022975,434m/data=!3m1!1e3!4m6!3m5!1s0x8c03446695c260b9:0x3b4d98f4610f5046!8m2!3d18.2522166!4d-66.1014713!16s%2Fg%2F11b7q15fdc?entry=tts&g_ep=EgoyMDI0MTAxMy4wIPu8ASoASAFQAw%3D%3D"
+  }
+ ]
 }
