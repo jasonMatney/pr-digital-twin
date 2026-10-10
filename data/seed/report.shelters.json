@@ -1,0 +1,19 @@
+{
+ "startedAt": "2026-10-10T04:57:22.474Z",
+ "ontologyVersion": "2026.10.1",
+ "sources": {
+  "shelters": {
+   "status": "error",
+   "files": [],
+   "objects": {},
+   "links": 0,
+   "problems": [],
+   "error": "Error: shelter list text extracted (75453 chars via pdftotext -layout) and published as data/seed/_probe/shelters_text.txt; row parser not written yet\n    at parseShelters (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/sources/shelters_parse.mjs:3:9)\n    at Module.build (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/sources/shelters.mjs:27:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async runSource (file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:39:18)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:87\n    at async Promise.all (index 7)\n    at async file:///home/runner/work/pr-digital-twin/pr-digital-twin/pipeline/seed/run.mjs:65:1",
+   "ms": 931
+  }
+ },
+ "replay": [],
+ "finishedAt": "2026-10-10T04:57:23.405Z",
+ "requests": 1,
+ "bytes": 51061444
+}
