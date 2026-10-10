@@ -56,13 +56,14 @@ function coverage() {
 async function fetchTile(url, file) {
   if (existsSync(file)) return 'cached';
   if (existsSync(file + '.404')) return 'cached404';
-  let last;
+  let last, seen404 = false;
   for (let attempt = 0; attempt < 6; attempt++) {
     if (attempt) await sleep(600 * 2 ** (attempt - 1) + Math.random() * 400);
     try {
       const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'image/*,*/*' }, signal: AbortSignal.timeout(40000) });
       if (res.status === 404) {
         await res.arrayBuffer().catch(() => {});
+        if (!seen404) { seen404 = true; last = 'HTTP 404'; attempt--; await sleep(700); continue; }   // ask twice
         await fs.mkdir(path.dirname(file), { recursive: true });
         await fs.writeFile(file + '.404', '');
         return '404';
@@ -166,7 +167,7 @@ const isPng = (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] ===
 const flatRGB = (buf) => sharp(buf).flatten({ background: DEEP_BLUE }).toColourspace('srgb').removeAlpha().raw().toBuffer({ resolveWithObject: true });
 
 async function buildImg(cov) {
-  const present = {}, z10 = new Map(), stats = {};
+  const present = {}, partial = {}, stats = {};
   const odd = [];
   const jobs = [];
   for (const z of Object.keys(cov)) for (const [x, y] of cov[z]) jobs.push({ z: +z, x, y });
@@ -184,7 +185,7 @@ async function buildImg(cov) {
       if (isJpeg(raw) && sized) { jpg = raw; s.jpeg++; }
       else if (isPng(raw) || isJpeg(raw)) {
         if (!sized) odd.push(`${z}/${x}/${y} ${meta.format} ${meta.width}x${meta.height} resized`);
-        if (meta.hasAlpha) { const st = await sharp(raw).stats(); if (st.channels[3] && st.channels[3].min < 255) s.pngAlpha++; }
+        if (meta.hasAlpha) { const st = await sharp(raw).stats(); if (st.channels[3] && st.channels[3].min < 255) { s.pngAlpha++; (partial[z] ||= []).push([x, y]); } }
         let p = sharp(raw).flatten({ background: DEEP_BLUE });
         if (!sized) p = p.resize(256, 256, { fit: 'fill' });
         jpg = await p.jpeg({ quality: JPEG_Q, mozjpeg: true }).toBuffer();
@@ -196,7 +197,6 @@ async function buildImg(cov) {
     await fs.writeFile(dst, jpg);
     s.bytes += jpg.length; s.rawBytes += raw.length;
     (present[z] ||= []).push([x, y]);
-    if (z === MOSAIC_Z) z10.set(x + '/' + y, (await flatRGB(jpg)).data);
   });
   let total = 0;
   for (const z of Object.keys(stats)) {
@@ -205,7 +205,7 @@ async function buildImg(cov) {
   }
   for (const o of odd.slice(0, 40)) log('  img odd:', o);
   log(`img: total ${mb(total)}`);
-  return { present, z10, stats, total, odd };
+  return { present, partial, stats, total, odd };
 }
 
 // ---- mosaics ----
@@ -230,54 +230,51 @@ async function buildMosaics(dem, img) {
   for (let i = 0; i < q.length; i++) { if (q[i] < hMin) hMin = q[i]; if (q[i] > hMax) hMax = q[i]; if (q[i] > 0) landPx++; }
   log(`mosaic dem_z10.png ${W}x${H} ${kb(demPng.length)}, ${hMin / 2} .. ${hMax / 2} m, land ${(100 * landPx / q.length).toFixed(1)} % of pixels`);
 
-  // photo: flat fill for tiles the service lacks = mean colour of the neighbouring all-ocean tiles, else neutral deep blue
-  const rgb = Buffer.alloc(W * H * 3);
-  const mean = new Map(), ocean = new Map(), fills = [];
-  for (let ty = 0; ty < ny; ty++) for (let tx = 0; tx < nx; tx++) {
-    const k = `${x0 + tx}/${y0 + ty}`, t = img.z10.get(k), d = dem.z10.get(k);
-    let mx = -Infinity; for (let i = 0; i < d.length; i++) if (d[i] > mx) mx = d[i];
-    ocean.set(k, mx <= 0);
-    if (!t) continue;
-    let r = 0, g = 0, b = 0;
-    for (let i = 0; i < t.length; i += 3) { r += t[i]; g += t[i + 1]; b += t[i + 2]; }
-    mean.set(k, [r / 65536, g / 65536, b / 65536]);
-    for (let row = 0; row < 256; row++) t.copy(rgb, ((ty * 256 + row) * W + tx * 256) * 3, row * 768, row * 768 + 768);
-  }
-  const todo = [];
-  for (let ty = 0; ty < ny; ty++) for (let tx = 0; tx < nx; tx++) if (!img.z10.has(`${x0 + tx}/${y0 + ty}`)) todo.push([tx, ty]);
-  const colour = new Map();
-  for (let pass = 1; todo.length && pass <= nx + ny; pass++) {
-    const got = [];
-    for (const [tx, ty] of todo) {
-      let r = 0, g = 0, b = 0, n = 0;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const k = `${x0 + tx + dx}/${y0 + ty + dy}`;
-        const c = (mean.has(k) && ocean.get(k)) ? mean.get(k) : colour.get(k);
-        if ((dx || dy) && c) { r += c[0]; g += c[1]; b += c[2]; n++; }
+  // photo: the service has no tiles at some zooms (z9 and z10 are HTTP 404 over the whole area), so the mosaic is
+  // resampled from the real tiles of every mirrored zoom up to 13, painted coarse to fine (finer wins, alpha respected).
+  const rgb = Buffer.alloc(W * H * 3), painted = new Uint8Array(W * H), layers = [];
+  for (let i = 0; i < W * H; i++) { rgb[i * 3] = DEEP_BLUE.r; rgb[i * 3 + 1] = DEEP_BLUE.g; rgb[i * 3 + 2] = DEEP_BLUE.b; }
+  const blend = (src, sw, sh, px, py) => {
+    for (let r = 0; r < sh; r++) {
+      const y = py + r; if (y < 0 || y >= H) continue;
+      for (let c = 0; c < sw; c++) {
+        const x = px + c; if (x < 0 || x >= W) continue;
+        const a = src[(r * sw + c) * 4 + 3]; if (!a) continue;
+        const o = (y * W + x) * 3, i = (r * sw + c) * 4, k = a / 255;
+        rgb[o] += (src[i] - rgb[o]) * k; rgb[o + 1] += (src[i + 1] - rgb[o + 1]) * k; rgb[o + 2] += (src[i + 2] - rgb[o + 2]) * k;
+        if (a > 127) painted[y * W + x] = 1;
       }
-      if (n) got.push([tx, ty, [r / n, g / n, b / n], pass]);
     }
-    if (!got.length) break;
-    for (const [tx, ty, c, p] of got) {
-      colour.set(`${x0 + tx}/${y0 + ty}`, c);
-      fills.push({ x: x0 + tx, y: y0 + ty, fill: p === 1 ? 'neighbour-ocean-mean' : 'neighbour-fill-mean', rgb: c.map(Math.round) });
-      todo.splice(todo.findIndex((t) => t[0] === tx && t[1] === ty), 1);
+  };
+  const rawOf = (z, x, y) => fs.readFile(path.join(CACHE, 'img', String(z), String(x), y + '.bin'));
+  const rgba = (p) => p.ensureAlpha().toColourspace('srgb').raw().toBuffer();
+  for (const z of Object.keys(img.present).map(Number).filter((z) => z <= 13).sort((a, b) => a - b)) {
+    const tiles = img.present[z];
+    if (z < MOSAIC_Z) {
+      // coarser than the mosaic: assemble at native size, then enlarge in one piece so no tile seams appear
+      const f = 2 ** (z - 8), nW = nx / 4 * f * 256, nH = ny / 4 * f * 256, native = Buffer.alloc(nW * nH * 4);
+      for (const [x, y] of tiles) {
+        const t = await rgba(sharp(await rawOf(z, x, y)));
+        const px = (x - ROOT_X0 * f) * 256, py = (y - ROOT_Y0 * f) * 256;
+        for (let r = 0; r < 256; r++) t.copy(native, ((py + r) * nW + px) * 4, r * 1024, r * 1024 + 1024);
+      }
+      blend(await sharp(native, { raw: { width: nW, height: nH, channels: 4 } }).resize(W, H, { kernel: 'cubic' }).raw().toBuffer(), W, H, 0, 0);
+      layers.push({ zoom: z, tiles: tiles.length, method: `assembled, enlarged ${2 ** (MOSAIC_Z - z)}x (bicubic)` });
+    } else {
+      const sz = 256 >> (z - MOSAIC_Z);
+      await pool(tiles, 4, async ([x, y]) => {
+        let p = sharp(await rawOf(z, x, y));
+        if (sz !== 256) p = p.ensureAlpha().resize(sz, sz, { kernel: 'lanczos3', fit: 'fill' });
+        blend(await rgba(p), sz, sz, x * sz - x0 * 256, y * sz - y0 * 256);
+      });
+      layers.push({ zoom: z, tiles: tiles.length, method: sz === 256 ? 'as served' : `each tile reduced ${256 / sz}x (lanczos3)` });
     }
   }
-  for (const [tx, ty] of todo) {
-    colour.set(`${x0 + tx}/${y0 + ty}`, [DEEP_BLUE.r, DEEP_BLUE.g, DEEP_BLUE.b]);
-    fills.push({ x: x0 + tx, y: y0 + ty, fill: 'neutral-deep-blue', rgb: [DEEP_BLUE.r, DEEP_BLUE.g, DEEP_BLUE.b] });
-  }
-  for (const f of fills) {
-    const tx = f.x - x0, ty = f.y - y0;
-    for (let row = 0; row < 256; row++) for (let c = 0; c < 256; c++) {
-      const o = ((ty * 256 + row) * W + tx * 256 + c) * 3;
-      rgb[o] = f.rgb[0]; rgb[o + 1] = f.rgb[1]; rgb[o + 2] = f.rgb[2];
-    }
-  }
+  let nPainted = 0; for (let i = 0; i < painted.length; i++) nPainted += painted[i];
+  const unpainted = 1 - nPainted / painted.length;
   const imgJpg = await sharp(rgb, { raw: { width: W, height: H, channels: 3 } }).jpeg({ quality: JPEG_Q, mozjpeg: true }).toBuffer();
   await fs.writeFile(path.join(dir, 'img_z10.jpg'), imgJpg);
-  log(`mosaic img_z10.jpg ${W}x${H} ${kb(imgJpg.length)}, synthetic fill on ${fills.length} of ${nx * ny} tiles:`, JSON.stringify(fills.map((f) => `${f.x}/${f.y}:${f.fill}`)));
+  log(`mosaic img_z10.jpg ${W}x${H} ${kb(imgJpg.length)}, layers ${JSON.stringify(layers)}, pixels with no imagery at any zoom (neutral deep blue): ${(100 * unpainted).toFixed(2)} %`);
 
   // QA hillshade with the 0 m contour
   const cs = metresPerPixel(MOSAIC_Z), qa = Buffer.alloc(W * H * 3);
@@ -315,8 +312,10 @@ async function buildMosaics(dem, img) {
     dem: { file: 'dem_z10.png', encoding: 'terrarium: metres = R*256 + G + B/256 - 32768', quantisation_m: 0.5, min_m: hMin / 2, max_m: hMax / 2, bytes: demPng.length },
     img: {
       file: 'img_z10.jpg', jpegQuality: JPEG_Q, bytes: imgJpg.length,
-      fill: 'Tiles the imagery service does not have (HTTP 404) are a flat colour, NOT imagery: the mean colour of the neighbouring tiles that are entirely ocean (pass 1), then of already filled neighbours; neutral deep blue rgb(11,42,74) only if no such neighbour exists.',
-      filledTiles: fills,
+      composition: 'Resampled from the real USGSImageryOnly tiles of every mirrored zoom <= 13, painted coarse to fine (finer zoom wins where it has data; upstream transparency respected). The service answers 404 for zoom 10 itself, so no zoom-10 tile is used unless listed in layers.',
+      layers,
+      fill: 'No imagery is invented. Pixels with no imagery at any mirrored zoom are neutral deep blue rgb(11,42,74).',
+      neutralFillFraction: Number(unpainted.toFixed(5)),
     },
     qa: { file: 'qa_hillshade.jpg', note: 'hillshade (sun NW, land exaggerated 6x, sea 1.2x) of dem_z10.png, 0 m contour in red' },
   };
@@ -346,7 +345,10 @@ const index = {
   generated, dem: sortIdx(dem.present), img: sortIdx(img.present), sources,
   notes: {
     dem: 'tiles/dem/{z}/{x}/{y}.png, 256 px Terrarium RGB, 0.5 m steps (B is 0 or 128)',
-    img: 'tiles/img/{z}/{x}/{y}.jpg, 256 px JPEG. A tile absent from this list was HTTP 404 upstream (empty ocean) or failed; do not request it.',
+    img: 'tiles/img/{z}/{x}/{y}.jpg, 256 px JPEG. A tile absent from this list was HTTP 404 upstream or failed; do not request it. See imgUpstream404: whole zooms can be absent.',
+    imgUpstream404: Object.fromEntries(Object.entries(img.stats).map(([z, t]) => [z, `${t.missing404} of ${t.want}`])),
+    imgPartlyTransparentUpstream: img.partial,
+    imgPartlyTransparentNote: 'these tiles came as PNG with transparent pixels; in the mirrored JPEG those pixels are neutral deep blue rgb(11,42,74), not imagery',
     failed: [...dl1.errors, ...dl2.errors].map((e) => e.split(' ').slice(0, 2).join(' ')),
   },
 };
