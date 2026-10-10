@@ -1,0 +1,58 @@
+name: seed
+# Builds the baked knowledge of the twin (IngestBatches under data/seed/, replay tables under data/replay/) and publishes it to gh-pages.
+on:
+  push:
+    branches: [pipe-seed]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: seed-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [core, shelters]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tools for the shelter PDF
+        if: matrix.part == 'shelters'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils tesseract-ocr tesseract-ocr-spa
+      - name: Build batches
+        run: |
+          if [ "${{ matrix.part }}" = shelters ]; then
+            node pipeline/seed/run.mjs --out out --only shelters --report report.shelters.json 2>&1 | tee seed.log
+          else
+            node pipeline/seed/run.mjs --out out --skip shelters --report report.json 2>&1 | tee seed.log
+          fi
+          cp seed.log out/data/seed/_probe/log.${{ matrix.part }}.txt
+      - name: Publish to gh-pages
+        if: always()
+        run: |
+          set -e
+          url="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git clone -q --filter=blob:none --no-checkout --depth 1 --branch gh-pages "$url" gh
+          cd gh
+          git sparse-checkout init --no-cone
+          git sparse-checkout set '/data/seed/' '/data/replay/'
+          git checkout -q gh-pages
+          mkdir -p data/seed data/replay
+          cp -r ../out/data/seed/. data/seed/
+          cp -r ../out/data/replay/. data/replay/
+          git config user.name "garita-pipeline"; git config user.email "actions@users.noreply.github.com"
+          git add --sparse data/seed data/replay
+          if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
+          git commit -q -m "seed (${{ matrix.part }}): $(date -u +%FT%TZ) from ${GITHUB_SHA::7}"
+          for i in 1 2 3 4 5 6 7 8; do
+            if git push -q origin HEAD:gh-pages; then echo "published"; exit 0; fi
+            sleep $((RANDOM % 8 + 4))
+            git fetch -q --depth 20 origin gh-pages && git rebase -q origin/gh-pages
+          done
+          echo "could not push after 8 tries"; exit 1

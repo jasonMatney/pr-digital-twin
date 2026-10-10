@@ -42,6 +42,9 @@ const objectTypes = [
     P('crowding_pct', 'Crowded housing units', 'Viviendas hacinadas', 'number', '%', 'pct'),
     P('no_health_insurance_pct', 'Without health insurance', 'Sin seguro médico', 'number', '%', 'pct'),
     P('cdbg_dr_lmi_pct', 'Low and moderate income (CDBG-DR)', 'Ingresos bajos y moderados (CDBG-DR)', 'number', '%', 'pct'),
+    P('households', 'Households', 'Hogares', 'number', 'households', 'int'),
+    P('poverty150_pct', 'Below 150% of poverty level', 'Bajo 150% del nivel de pobreza', 'number', '%', 'pct'),
+    P('svi_basis', 'Basis of the vulnerability value', 'Base del valor de vulnerabilidad', 'string'),
     P('elev_hist', 'Buildings by ground elevation, 0.25 m bins from 0 to 10 m', 'Edificios por elevación del terreno', 'json'),
     P('zone_counts', 'Buildings by FEMA flood zone', 'Edificios por zona FEMA', 'json'),
   ]),
@@ -54,6 +57,8 @@ const objectTypes = [
     P('no_vehicle_pct', 'Households without a vehicle', 'Hogares sin vehículo', 'number', '%', 'pct'), P('disability_pct', 'With a disability', 'Con discapacidad', 'number', '%', 'pct'),
     P('mobile_home_pct', 'Mobile homes', 'Casas móviles', 'number', '%', 'pct'), P('crowding_pct', 'Crowded housing units', 'Viviendas hacinadas', 'number', '%', 'pct'),
     P('cdbg_dr_lmi_pct', 'Low and moderate income (CDBG-DR)', 'Ingresos bajos y moderados (CDBG-DR)', 'number', '%', 'pct'), P('land_km2', 'Land area', 'Área de tierra', 'number', 'km2', 'fixed2'),
+    P('households', 'Households', 'Hogares', 'number', 'households', 'int'), P('svi_minority', 'SVI: racial and ethnic minority status', 'SVI: minorías raciales y étnicas', 'number', null, 'fixed2'),
+    P('no_health_insurance_pct', 'Without health insurance', 'Sin seguro médico', 'number', '%', 'pct'),
   ]),
   T('barrio', 'place', 'boundaries', 'Barrio', 'Barrio', 'Barrios', 'Barrios', 'census:geoid', 'boundary', '#7fa6c9', [
     P('municipio_name', 'Municipality', 'Municipio', 'string', null, null, true), P('population', 'Population', 'Población', 'number', 'people', 'int', true),

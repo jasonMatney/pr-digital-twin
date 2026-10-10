@@ -320,6 +320,34 @@
      "format": "pct"
     },
     {
+     "id": "households",
+     "label": {
+      "en": "Households",
+      "es": "Hogares"
+     },
+     "type": "number",
+     "unit": "households",
+     "format": "int"
+    },
+    {
+     "id": "poverty150_pct",
+     "label": {
+      "en": "Below 150% of poverty level",
+      "es": "Bajo 150% del nivel de pobreza"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
+    },
+    {
+     "id": "svi_basis",
+     "label": {
+      "en": "Basis of the vulnerability value",
+      "es": "Base del valor de vulnerabilidad"
+     },
+     "type": "string"
+    },
+    {
      "id": "elev_hist",
      "label": {
       "en": "Buildings by ground elevation, 0.25 m bins from 0 to 10 m",
@@ -501,6 +529,35 @@
      "type": "number",
      "unit": "km2",
      "format": "fixed2"
+    },
+    {
+     "id": "households",
+     "label": {
+      "en": "Households",
+      "es": "Hogares"
+     },
+     "type": "number",
+     "unit": "households",
+     "format": "int"
+    },
+    {
+     "id": "svi_minority",
+     "label": {
+      "en": "SVI: racial and ethnic minority status",
+      "es": "SVI: minorías raciales y étnicas"
+     },
+     "type": "number",
+     "format": "fixed2"
+    },
+    {
+     "id": "no_health_insurance_pct",
+     "label": {
+      "en": "Without health insurance",
+      "es": "Sin seguro médico"
+     },
+     "type": "number",
+     "unit": "%",
+     "format": "pct"
     }
    ]
   },
