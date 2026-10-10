@@ -173,7 +173,7 @@ if (fs.existsSync(path.join(OSM, 'facilities.geojsonl'))) for await (const l of 
   for (const k of KEEP_TAGS) if (t[k] !== undefined) tags[k] = t[k];
   for (const k of Object.keys(t)) if (k.startsWith('addr:')) tags[k] = t[k];
   for (const k of ['amenity', 'power', 'man_made', 'aeroway', 'landuse', 'industrial', 'harbour']) if (t[k] !== undefined) tags[k] = t[k];
-  facByRef.set(ref, { rank, rec: { type: ft[0], osm: ref, name: ft[1], lon: +lon.toFixed(6), lat: +lat.toFixed(6), tags, municipio: null, elev_m: null, flood_zone: null } });
+  facByRef.set(ref, { rank, rec: { type: ft[0], osm: ref, name: ft[1], lon: +lon.toFixed(6), lat: +lat.toFixed(6), tags, municipio: null, elev_m: null, flood_zone: null, flood_class: null, flood_subtype: null, sfha: null, coast_dist_m: null } });
 }
 const facilities = [...facByRef.values()].map((v) => v.rec).sort((a, b) => (a.type + a.osm < b.type + b.osm ? -1 : 1));
 const facCounts = {}; for (const f of facilities) facCounts[f.type] = (facCounts[f.type] || 0) + 1;
@@ -250,10 +250,28 @@ if (!NO_FLOOD && fs.existsSync(nfhlFile) && fs.existsSync(nfhlDone)) {
   for (const f of facilities) {
     let best = null; hazIdx.query(f.lon, f.lat, (v) => { if (!best || v.c > best.c) best = v; });
     if (!best) restIdx.query(f.lon, f.lat, (v) => { if (!best) best = v; });
-    f.flood_zone = best ? { class: best.c, FLD_ZONE: best.zone, ZONE_SUBTY: best.sub, SFHA_TF: best.sfha } : { class: 0, FLD_ZONE: null, ZONE_SUBTY: null, SFHA_TF: null };
+    // flood_zone is FEMA's FLD_ZONE string (ontology property flood_zone); "none" where no NFHL polygon covers the point.
+    f.flood_zone = best ? best.zone : 'none'; f.flood_class = best ? best.c : 0; f.flood_subtype = best ? best.sub : null; f.sfha = best ? best.sfha === 'T' : false;
   }
   floodAttached = true;
 }
+
+// ---- distance to the coast for facilities (OSM coastline) ----
+try {
+  const cf = path.join(OSM, 'coast.geojsonl');
+  if (fs.existsSync(cf) && facilities.length) {
+    const seg = []; // x1, y1, x2, y2 in metres (local equirectangular about 18.22 N)
+    const KX = mLon(18.22), KY = M_LAT;
+    for await (const l of lines(cf)) { const g = JSON.parse(l).geometry; if (!g) continue; for (const ls of g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : []) for (let i = 1; i < ls.length; i++) seg.push(ls[i - 1][0] * KX, ls[i - 1][1] * KY, ls[i][0] * KX, ls[i][1] * KY); }
+    const S = Float64Array.from(seg), ns = S.length / 4;
+    for (const f of facilities) {
+      const px = f.lon * KX, py = f.lat * KY; let best = Infinity;
+      for (let k = 0; k < ns; k++) { const o = k * 4, ax = S[o], ay = S[o + 1], dx = S[o + 2] - ax, dy = S[o + 3] - ay, l2 = dx * dx + dy * dy; let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0; t = t < 0 ? 0 : t > 1 ? 1 : t; const ex = px - ax - t * dx, ey = py - ay - t * dy, d = ex * ex + ey * ey; if (d < best) best = d; }
+      f.coast_dist_m = Number.isFinite(best) ? Math.round(Math.sqrt(best)) : null;
+    }
+    log('coast distance for', facilities.length, 'facilities against', ns, 'coastline segments');
+  }
+} catch (e) { log('coast distance skipped:', String(e.message || e).slice(0, 160)); }
 
 // ---- municipio of every building and facility ----
 for (let i = 0; i < NB; i++) B.muni[i] = muniIdx.first(B.cx[i], B.cy[i]);
@@ -301,15 +319,17 @@ writeOut('tiles/bld/index.json', JSON.stringify({
 log('tiles written', index.length, 'bytes', bytes, 'vertices clamped', clampedVerts);
 
 // ---- exposure ----
-const mk = () => ({ name: null, buildings: 0, elev_hist: new Array(40).fill(0), below_0: 0, above_10: 0, elev_unknown: 0, zone_counts: { 0: 0, 1: 0, 2: 0, 3: 0 }, by_kind: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }, with_height: 0 });
+const mk = () => ({ name: null, buildings: 0, elev_hist: new Array(40).fill(0), below_0: 0, above_10: 0, elev_unknown: 0, zone_counts: { 0: 0, 1: 0, 2: 0, 3: 0 }, by_kind: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }, with_height: 0, buildings_sfha: 0, at_or_below: { '0.5': 0, '1': 0, '1.5': 0, '2': 0, '3': 0, '5': 0 } });
+const LEVELS = [0.5, 1, 1.5, 2, 3, 5];
 const island = mk(); island.name = 'Puerto Rico'; const byMuni = {};
 for (const f of munis) { byMuni[f.properties.GEOID] = mk(); byMuni[f.properties.GEOID].name = f.properties.NAME; }
 let noMuni = 0;
 for (let i = 0; i < NB; i++) {
   const g = B.muni[i]; if (!g) noMuni++;
   for (const r of g ? [island, byMuni[g]] : [island]) {
-    r.buildings++; r.zone_counts[B.flood[i]]++; r.by_kind[B.kind[i]]++; if (B.h[i]) r.with_height++;
+    r.buildings++; r.zone_counts[B.flood[i]]++; r.by_kind[B.kind[i]]++; if (B.h[i]) r.with_height++; if (B.flood[i] >= 2) r.buildings_sfha++;
     const e = B.elev[i];
+    if (Number.isFinite(e)) for (const L of LEVELS) if (e <= L + 1e-6) r.at_or_below[L]++;
     if (!Number.isFinite(e)) r.elev_unknown++; else if (e < 0) r.below_0++; else if (e >= 10) r.above_10++; else r.elev_hist[Math.floor(e * 4)]++;
   }
 }
@@ -321,6 +341,7 @@ const method = [
   'Buildings: every way or multipolygon relation tagged building=* in the Geofabrik Puerto Rico extract of OpenStreetMap; one record per OSM object, outer ring only.',
   'Ground elevation: bilinear sample of the AWS Terrain Tiles Terrarium zoom-14 tile (USGS 3DEP 1/3 arc-second, about 10 m, on land) at the centroid of the outer ring; samples are clamped at the tile edge. It is the ground at one point, not the floor height.',
   floodAttached ? 'Flood class: FEMA National Flood Hazard Layer flood hazard zones (NFHL MapServer layer 28, DFIRM_ID LIKE \'72%\'), point-in-polygon at the building centroid; highest class wins where polygons overlap. 3 = V/VE, 2 = A/AE/AH/AO/A99/AR, 1 = X with 0.2 PCT subtype, 0 = anything else or no polygon.' : 'Flood class: NOT ATTACHED YET in this build (zone_counts are all class 0).',
+  'at_or_below: inclusive counts of buildings with ground elevation <= 0.5, 1, 1.5, 2, 3 and 5 m (buildings below 0 included). Use these for "at or below +X m": the histogram bins are half-open, so summing bins 0..3 gives "< 1.0 m" and leaves out the buildings sitting on the exact 1.0 m terrace. buildings_sfha = classes 2 + 3.',
   'elev_hist: counts of buildings by ground elevation in 0.25 m bins from 0 to 10 m, bin i = [i*0.25, (i+1)*0.25); below_0 and above_10 hold the rest; elev_unknown where no elevation tile was available.',
   'CAVEAT on the elevation source: in the low coastal plains (San Juan metro, Ponce and others) the Terrain Tiles surface has flat terraces at whole metres (most at exactly 3.0, 7.0, 10.0 and 13.0 m), so it is not lidar-grade there and counts near those levels are lumpy; qa.json elevation.integer_plateaus gives the numbers. Treat "at or below 1 m / 2 m" as an order of magnitude until a lidar DEM replaces it.',
   '"At or below X m" from these bins is a bathtub screen: it is not a hydrodynamic model and does not test hydrological connection to the sea.',
@@ -337,13 +358,13 @@ writeOut('data/derived/exposure.json', JSON.stringify({
 // ---- facilities ----
 writeOut('data/osm/facilities.json', JSON.stringify({
   generated, source: osmSource, flood_attached: floodAttached,
-  note: 'One record per OSM object. lon/lat is the node, or the centroid of the largest outer ring for areas. elev_m: Terrarium zoom-14 ground elevation at that point. flood_zone: { class, FLD_ZONE, ZONE_SUBTY, SFHA_TF } from FEMA NFHL (null until attached). municipio: Census county GEOID.',
+  note: 'One record per OSM object. lon/lat is the node, or the centroid of the largest outer ring for areas. elev_m: Terrarium zoom-14 ground elevation at that point. flood_zone: FEMA NFHL FLD_ZONE at that point ("none" where no polygon; null until attached), flood_class: 0 minimal/none, 1 = 0.2 % annual chance, 2 = 1 % annual chance (A zones), 3 = coastal high hazard (V zones); flood_subtype: ZONE_SUBTY; sfha: SFHA_TF as boolean. coast_dist_m: distance to the nearest OpenStreetMap coastline segment, metres (local equirectangular). municipio: Census county GEOID.',
   counts: facCounts, total: facilities.length, facilities,
 }));
 
 // ---- QA ----
 const rank = Object.entries(byMuni).map(([g, r]) => ({ geoid: g, name: r.name, buildings: r.buildings, zone2: r.zone_counts[2], zone3: r.zone_counts[3], sfha: r.zone_counts[2] + r.zone_counts[3] }));
-const pick = (g) => { const r = byMuni[g]; return r && { geoid: g, name: r.name, buildings: r.buildings, zone_counts: r.zone_counts, sfha: r.zone_counts[2] + r.zone_counts[3], sfha_share: r.buildings ? +((r.zone_counts[2] + r.zone_counts[3]) / r.buildings).toFixed(4) : null, below_1m: below(r, 1), below_2m: below(r, 2), below_3m: below(r, 3) }; };
+const pick = (g) => { const r = byMuni[g]; return r && { geoid: g, name: r.name, buildings: r.buildings, zone_counts: r.zone_counts, sfha: r.zone_counts[2] + r.zone_counts[3], sfha_share: r.buildings ? +((r.zone_counts[2] + r.zone_counts[3]) / r.buildings).toFixed(4) : null, lt_1m: below(r, 1), at_or_below_1m: r.at_or_below['1'], at_or_below_2m: r.at_or_below['2'], at_or_below_3m: r.at_or_below['3'] }; };
 const topTags = Object.entries(stats.by_building_tag).sort((a, b) => b[1] - a[1]).slice(0, 25);
 writeOut('data/derived/qa.json', JSON.stringify({
   generated, flood_attached: floodAttached,
@@ -351,14 +372,15 @@ writeOut('data/derived/qa.json', JSON.stringify({
     height_from_height_tag: stats.height_tag, height_from_levels: stats.height_levels, height_unknown: stats.height_none, share_with_height: +((stats.height_tag + stats.height_levels) / Math.max(1, NB)).toFixed(4),
     by_kind: island.by_kind, top_building_tags: topTags, outside_municipios: noMuni },
   tiles: { count: index.length, bytes, vertices_clamped: clampedVerts, max_per_tile: index.reduce((m, t) => Math.max(m, t[2]), 0) },
-  elevation: { ...elevStats, unknown: island.elev_unknown, below_0: island.below_0, at_or_below_1m: below(island, 1), at_or_below_2m: below(island, 2), at_or_below_3m: below(island, 3), above_10: island.above_10,
+  elevation: { ...elevStats, unknown: island.elev_unknown, below_0: island.below_0, lt_1m: below(island, 1), lt_2m: below(island, 2), lt_3m: below(island, 3), at_or_below: island.at_or_below, above_10: island.above_10,
+    note: 'lt_X = strictly below X m (histogram bins); at_or_below = inclusive. They differ a lot at 1, 3 m because of the whole-metre terraces in the elevation source.',
     integer_plateaus: { note: 'buildings whose sampled ground elevation is a whole metre to within 5 mm, by metre, among buildings between 0.5 and 15.5 m', by_metre: plateau, total: plateauN, buildings_0p5_to_15p5m: low15, share: +(plateauN / Math.max(1, low15)).toFixed(4) } },
   flood: { nfhl: nfhlStats, island_zone_counts: island.zone_counts,
     top5_zone2: [...rank].sort((a, b) => b.zone2 - a.zone2).slice(0, 5), top5_sfha: [...rank].sort((a, b) => b.sfha - a.sfha).slice(0, 5),
     reference: { note: 'An earlier study by the same owner (OSM building tiles, same FEMA layer) found 6,862 of 33,461 buildings in the 1 % zones in Toa Baja and 3,806 of 9,915 in Catano.', toa_baja: { in_1pct: 6862, buildings: 33461 }, catano: { in_1pct: 3806, buildings: 9915 } },
     toa_baja: pick('72137'), catano: pick('72033'), san_juan: pick('72127') },
   facilities: { total: facilities.length, counts: facCounts, without_municipio: facilities.filter((f) => !f.municipio).length, dropped_outside_puerto_rico: facOutside,
-    in_sfha: facilities.filter((f) => f.flood_zone && f.flood_zone.class >= 2).length, in_sfha_by_type: facilities.reduce((m, f) => { if (f.flood_zone && f.flood_zone.class >= 2) m[f.type] = (m[f.type] || 0) + 1; return m; }, {}) },
+    in_sfha: facilities.filter((f) => f.flood_class >= 2).length, in_sfha_by_type: facilities.reduce((m, f) => { if (f.flood_class >= 2) m[f.type] = (m[f.type] || 0) + 1; return m; }, {}) },
   top5_buildings: [...rank].sort((a, b) => b.buildings - a.buildings).slice(0, 5), bottom5_buildings: [...rank].sort((a, b) => a.buildings - b.buildings).slice(0, 5),
 }, null, 1));
-log('done', JSON.stringify({ buildings: NB, tiles: index.length, bytes, facilities: facilities.length, floodAttached, below_1m: below(island, 1), zone_counts: island.zone_counts }));
+log('done', JSON.stringify({ buildings: NB, tiles: index.length, bytes, facilities: facilities.length, floodAttached, lt_1m: below(island, 1), at_or_below: island.at_or_below, zone_counts: island.zone_counts }));
