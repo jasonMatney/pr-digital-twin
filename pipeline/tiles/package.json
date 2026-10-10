@@ -1,0 +1,9 @@
+{
+  "name": "garita-tiles-pipeline",
+  "private": true,
+  "type": "module",
+  "description": "Mirrors base map tiles (AWS Terrarium elevation, USGS imagery) for Puerto Rico onto gh-pages and builds the z10 island mosaics.",
+  "dependencies": {
+    "sharp": "^0.33.5"
+  }
+}
