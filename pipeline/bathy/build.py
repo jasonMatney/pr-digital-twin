@@ -387,6 +387,33 @@ def spot_window(vrt, lat, lon, work, d=0.0004):
         return dict(error=str(e)[-300:])
 
 
+def extra_layer(m13, prefix, pct, tag, work, grid, used):
+    """Fill cells that are still empty from another CUDEM product (never overrides existing cells). Failure is logged, not fatal."""
+    try:
+        keys, _ = s3_list(prefix)
+        tifs = sorted(k for k, _ in keys if k.endswith(".tif"))
+        use = [k for k in tifs if in_bbox(k)]
+        log(f"{prefix}: {len(tifs)} tif, {len(use)} inside the island box:", " ".join(os.path.basename(k) for k in use))
+        if not use:
+            return m13
+        i = info("/vsicurl/" + BUCKET + use[0])
+        log("gdalinfo", os.path.basename(use[0]), json.dumps({k: i[k] for k in ("size", "geoTransform", "crs", "nodata", "overviews", "metadata")}))
+        loc = stage([BUCKET + k for k in use], pct, tag, work)
+        vrt = str(work / f"local_{tag}.vrt")
+        run(["gdalbuildvrt", "-q", "-overwrite", "-srcnodata", nd_arg(i["nodata"]), "-vrtnodata", nd_arg(i["nodata"]), vrt] + loc)
+        m = warp(vrt, 13, *grid, "average", f"m13_{tag}", work, i["nodata"])
+        hole = np.isnan(m13) & ~np.isnan(m)
+        log(f"{tag} fills {100 * hole.mean():.2f}% of the z13 mosaic that was still empty")
+        if hole.any():
+            used.append({"path": "s3://noaa-nos-coastal-lidar-pds/" + prefix, "tiles": [os.path.basename(k) for k in use],
+                         "vertical": (i.get("metadata") or {}).get("TIFFTAG_IMAGEDESCRIPTION"), "share_of_mosaic": round(float(hole.mean()), 4)})
+            return np.where(np.isnan(m13), m, m13)
+        return m13
+    except Exception:  # noqa: BLE001
+        log(f"extra layer {prefix} failed, continuing without it:\n" + traceback.format_exc()[-600:])
+        return m13
+
+
 def main():
     global LOG
     ap = argparse.ArgumentParser()
@@ -473,6 +500,9 @@ def main():
     m13 = warp(lvrt19, 13, X0, Y0, X1, Y1, "average", "m13_19", work, nd19)
     src_note = "CUDEM 1/9 arc-second only"
     lvrt3 = None
+    extra_used = []
+    # the Puerto Rico 1/9" product stops at 65.25 W: the USVI 1/9" product carries the east end of Culebra and its shelf
+    m13 = extra_layer(m13, "dem/NCEI_ninth_Topobathy_USVI_9529/", 25, "u19", work, (X0, Y0, X1, Y1), extra_used)
     if use3:
         try:
             loc3 = stage([BUCKET + k for k in use3], 100, "c3", work)
@@ -487,6 +517,10 @@ def main():
         except Exception as e:  # noqa: BLE001
             log("1/3\" underlay failed, continuing with 1/9\" only:", str(e)[-300:])
             lvrt3 = None
+
+    m13 = extra_layer(m13, "dem/NCEI_third_Topobathy_USVI_9528/", 100, "u3", work, (X0, Y0, X1, Y1), extra_used)
+    if extra_used:
+        src_note += "; east of 65.25 W filled from the CUDEM USVI products (see source.also_used)"
 
     rec = {"tiles": {}, "skipped_all_nodata": {}}
     write_tiles(m13, 13, X0, Y0, t13, out, rec)
@@ -569,7 +603,10 @@ def main():
             "path": "s3://noaa-nos-coastal-lidar-pds/" + P19,
             "tiles_used": [os.path.basename(k) for k in use19],
             "third_arcsec_fill": [os.path.basename(k) for k in use3] if lvrt3 else [],
+            "third_arcsec_path": "s3://noaa-nos-coastal-lidar-pds/dem/NCEI_third_Topobathy_PuertoRico_9524/",
+            "also_used": extra_used,
             "composition": src_note,
+            "priority": "PR 1/9 arc-second, then USVI 1/9, then PR 1/3, then USVI 1/3; a lower-priority product only fills cells the higher ones leave empty",
             "horizontal_crs": "NAD83 geographic, 1/9 arc-second (~3.4 m) cells",
             "vertical_datum": "PRVD02 orthometric height (metres), used as mean sea level with no shift; CUDEM sits about +0.1 m above the 2019 NGS topobathy lidar",
             "nodata_declared": nd19,
