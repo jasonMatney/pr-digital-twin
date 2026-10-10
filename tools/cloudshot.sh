@@ -24,7 +24,7 @@ git add -A && git commit -q -m "shots $NAME $STAMP"
 BEFORE="$(git ls-remote origin "refs/heads/shots-out/$NAME" 2>/dev/null | cut -f1 || true)"
 retry git push -q -f origin "HEAD:refs/heads/shots/$NAME"
 echo "cloudshot: requested $NAME at $STAMP; waiting for the runner…"
-for i in $(seq 1 60); do
+for i in $(seq 1 200); do
   sleep 15
   NOW="$(git ls-remote origin "refs/heads/shots-out/$NAME" 2>/dev/null | cut -f1 || true)"
   if [ -n "$NOW" ] && [ "$NOW" != "$BEFORE" ]; then

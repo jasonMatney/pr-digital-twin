@@ -121,14 +121,17 @@ const FRAG_COLOR = /* glsl */`
         vec2 fw = vec2(0.09 / bayW, 0.09 / floorH);
         float outer = bCov(g.x, r.x - fw.x, r.y + fw.x, w.x) * bCov(g.y, r.z - fw.y, r.w + fw.y, w.y) * has;
         // recessed glazing: darker under the head of the opening, a mullion down the middle of the pane
-        vec3 glass = mix(vec3(0.035, 0.05, 0.065), vec3(0.085, 0.14, 0.19), glassT) * mix(0.6 + 0.8 * bHash(cell + seed * 17.0), 1.0, blur);
+        vec3 glass = mix(vec3(0.035, 0.05, 0.065), vec3(0.12, 0.17, 0.22), glassT) * mix(0.6 + 0.8 * bHash(cell + seed * 17.0), 1.0, blur);
+        // From afar a curtain wall is the sky it reflects, not a black slab: when the environment map is dim or
+        // missing (analytic-sky fallback) the reflection alone leaves towers black.
+        glass = mix(glass, vec3(0.20, 0.27, 0.33) * mix(1.0, 0.25, uBNight), blur * glassT * 0.6);
         glass *= mix(1.0, mix(1.0, 0.5, smoothstep(r.w - 0.14, r.w, f.y)), 1.0 - blur);
         float mull = 1.0 - (1.0 - bCov(g.x, 0.0, 0.48, w.x) - bCov(g.x, 0.52, 1.0, w.x)) * (1.0 - blur);
         vec3 frameC = mix(wallC, vec3(0.74), 0.65);
         vec3 det = mix(c, frameC, clamp(outer - win, 0.0, 1.0));
         c = mix(det, mix(frameC, glass, mull), win);
         gBRough = mix(0.92, mix(0.16, 0.07, glassT), win);
-        gBMetal = win * mix(0.3, 0.55, glassT);
+        gBMetal = win * mix(0.3, 0.45, glassT) * (1.0 - 0.6 * blur);
         // night: rooms lit one by one; one building is asleep, the next is busy
         float busy = clamp(uBLit * (0.25 + 1.5 * h2), 0.0, 0.95);
         float lit = mix(step(bHash(cell * 1.7 + seed * 53.0), busy), busy * 0.8, blur);
