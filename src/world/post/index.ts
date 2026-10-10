@@ -19,7 +19,7 @@ import { SceneOceanPass, SKY_GLSL, OVER_WATER_LAYER } from './ocean';
 
 // Scene lights by sun elevation (after procedural-sanjuan's tables). A sunlit white wall is about 1 in scene units.
 const DAY = { hemi: 0.45, sun: 3.4, sunColor: new THREE.Color(0xfff0dc), exposure: 0.95, bloom: 0.25 };
-const NIGHT = { hemi: 0.22, sun: 0.5, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.2, bloom: 0.5 };   // a readable night: moonlight even at new moon
+const NIGHT = { hemi: 0.16, sun: 0.38, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.2, bloom: 0.5 };   // a readable night (moonlight even at new moon), dark enough that the town lights carry it
 const SUNSET = new THREE.Color(0xff9a52);
 // Low sun: expose for the sky (a small lift only), more from orbit where the frame is all ground; richer colour.
 const LOW = { lift: 0.15, orbit: 0.3, sat: 0.2, curve: 0.3, darkPow: 2.0, shadows: 0.11 };
@@ -118,7 +118,7 @@ export function createPost(world: World): PostApi {
       const patch = (fx: any) => { // clouds shade the ground although the scene keeps its own lights
         const hook = 'radiance = inputColor.rgb;\n  #endif // defined(SUN_LIGHT) || defined(SKY_LIGHT)';
         const src: string = fx.getFragmentShader();
-        if (src.includes(hook)) fx.setFragmentShader(src.replace(hook, `radiance = inputColor.rgb * mix(${SHADE.toFixed(2)}, 1.0, sunTransmittance);\n  #endif // defined(SUN_LIGHT) || defined(SKY_LIGHT)`));
+        if (src.includes(hook)) fx.setFragmentShader(src.replace(hook, `radiance = inputColor.rgb * mix(${SHADE.toFixed(2)}, 1.0, (sunTransmittance >= 0.0 && sunTransmittance <= 1.0) ? sunTransmittance : 1.0);\n  #endif // defined(SUN_LIGHT) || defined(SKY_LIGHT)`));   // (an invalid shadow value counts as no shadow)
       };
       const make = () => {
         const fx: any = new AerialPerspectiveEffect(camera);
@@ -130,7 +130,7 @@ export function createPost(world: World): PostApi {
         if (src.includes(skyHook)) src = src.replace(skyHook, '    outputColor.rgb += inputColor.rgb;\n' + skyHook);
         // the cloud buffer is brightened: the library's clouds come out darker than sunlit sand in our units
         const ovHook = 'vec4 overlay = texture(overlayBuffer, uv);';
-        if (src.includes(ovHook)) { src = src.replace(ovHook, ovHook + '\n  overlay.rgb = overlay.rgb * garitaCloudGain + overlay.a * garitaCloudNight;').replace('uniform sampler2D overlayBuffer;', 'uniform sampler2D overlayBuffer;\nuniform float garitaCloudGain;\nuniform vec3 garitaCloudNight;'); fx.uniforms.set('garitaCloudGain', cloudGain); fx.uniforms.set('garitaCloudNight', cloudNight); }
+        if (src.includes(ovHook)) { src = src.replace(ovHook, ovHook + '\n  if (any(isnan(overlay)) || any(isinf(overlay))) overlay = vec4(0.0);   // an invalid cloud pixel is no cloud, not a black frame\n  overlay.rgb = overlay.rgb * garitaCloudGain + overlay.a * garitaCloudNight;').replace('uniform sampler2D overlayBuffer;', 'uniform sampler2D overlayBuffer;\nuniform float garitaCloudGain;\nuniform vec3 garitaCloudNight;'); fx.uniforms.set('garitaCloudGain', cloudGain); fx.uniforms.set('garitaCloudNight', cloudNight); }
         fx.setFragmentShader(src);
         return fx;
       };
@@ -164,7 +164,12 @@ export function createPost(world: World): PostApi {
     float gisland = exp(-(gw.x * gw.x) / (2.0 * 70000.0 * 70000.0) - ((gw.z - 3000.0) * (gw.z - 3000.0)) / (2.0 * 17000.0 * 17000.0));
     localWeather.rg *= mix(garitaField.y, 1.0, gfield) * (1.0 + garitaField.z * gisland);
   }
-${mask}`);
+${mask}`)
+            // A pixel that is not a number (a grazing ray at the horizon, the sun under it) must not reach the cloud
+            // pass's own history: temporal filtering spreads it one pixel a frame until the whole sky is invalid.
+            .replace('outputColor = color;', 'outputColor = (any(isnan(color)) || any(isinf(color))) ? vec4(0.0) : color;')
+            .replace('outputDepthVelocity = depthVelocity;', 'outputDepthVelocity = (any(isnan(depthVelocity)) || any(isinf(depthVelocity))) ? vec3(0.0) : depthVelocity;')
+            .replace('outputShadowLength = shadowLength * METER_TO_LENGTH_UNIT;', 'outputShadowLength = (isnan(shadowLength) || isinf(shadowLength)) ? 0.0 : shadowLength * METER_TO_LENGTH_UNIT;');
           material.uniforms.garitaField = field;
           material.needsUpdate = true;
         }

@@ -116,7 +116,10 @@ const ALBEDO = /* glsl */`
     float fw = max(length(dFdx(vWxz)), length(dFdy(vWxz)));
     float far = smoothstep(7.0, 40.0, fw);
     vec3 col = mix(mix(vec3(1.0, 0.56, 0.22), vec3(0.92, 0.90, 0.80), step(0.68, r2)), vec3(1.0, 0.68, 0.38), far);
-    gEmit = col * lit * mix(pt * (0.30 + 0.70 * wd), 0.12 + 1.7 * wd, far) * uNight * uLightGain * (1.0 - ov.a * uOvOpacity * 0.7);
+    // (the glow is at full strength only from far enough that a pixel covers a block: closer, it would wash the
+    //  whole built-up area in one flat cream instead of leaving dark ground between lights)
+    float glow = (0.12 + 1.7 * wd) * mix(0.35, 1.0, smoothstep(40.0, 220.0, fw));
+    gEmit = col * lit * mix(pt * (0.30 + 0.70 * wd), glow, far) * uNight * uLightGain * (1.0 - ov.a * uOvOpacity * 0.7);
   }
 }
 `;
