@@ -107,7 +107,12 @@ const objectTypes = [
   T('airport', 'asset', 'infrastructure', 'Airport', 'Aeropuerto', 'Airports', 'Aeropuertos', 'osm', 'plane', '#cfd8e3', facility([P('iata', 'IATA', 'IATA', 'string', null, null, true), P('icao', 'ICAO', 'OACI', 'string', null, null, true)])),
   T('seaport', 'asset', 'infrastructure', 'Port or ferry terminal', 'Puerto o terminal', 'Ports and ferry terminals', 'Puertos y terminales', 'osm', 'anchor', '#7fd8ff', facility()),
   T('reservoir', 'asset', 'water', 'Reservoir', 'Embalse', 'Reservoirs', 'Embalses', 'usgs:site_no', 'drop', '#4fb3d9', [
-    P('lake_elev_m', 'Lake elevation', 'Nivel del embalse', 'number', 'm', 'fixed2', true), P('observed_at_text', 'Observed', 'Observado', 'string'), ...addr,
+    P('lake_elev_m', 'Lake elevation', 'Nivel del embalse', 'number', 'm', 'fixed2', true), P('observed_at_text', 'Observed', 'Observado', 'string'),
+    P('stage_m', 'Gauge height', 'Altura', 'number', 'm', 'fixed2'), P('flood_category', 'Flood category', 'Categoría de inundación', 'string', null, null, true),
+    P('forecast_category', 'Forecast flood category', 'Categoría pronosticada', 'string'), P('precip_1h_mm', 'Rain, last reading', 'Lluvia, última lectura', 'number', 'mm', 'fixed1'),
+    P('action_stage_m', 'Action stage', 'Etapa de acción', 'number', 'm', 'fixed2'), P('minor_stage_m', 'Minor flood stage', 'Inundación menor', 'number', 'm', 'fixed2'),
+    P('moderate_stage_m', 'Moderate flood stage', 'Inundación moderada', 'number', 'm', 'fixed2'), P('major_stage_m', 'Major flood stage', 'Inundación mayor', 'number', 'm', 'fixed2'),
+    P('drainage_km2', 'Drainage area', 'Área de drenaje', 'number', 'km2', 'fixed1'), P('nws_lid', 'NWS gauge id', 'Identificador NWS', 'string'), ...addr,
   ], { metrics: [M('lake_elev_m', 'Lake elevation', 'Nivel del embalse', 'm')] }),
 
   // ---- sensors ----

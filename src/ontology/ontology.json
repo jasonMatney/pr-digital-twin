@@ -2064,6 +2064,101 @@
      "type": "string"
     },
     {
+     "id": "stage_m",
+     "label": {
+      "en": "Gauge height",
+      "es": "Altura"
+     },
+     "type": "number",
+     "unit": "m",
+     "format": "fixed2"
+    },
+    {
+     "id": "flood_category",
+     "label": {
+      "en": "Flood category",
+      "es": "Categoría de inundación"
+     },
+     "type": "string",
+     "primary": true
+    },
+    {
+     "id": "forecast_category",
+     "label": {
+      "en": "Forecast flood category",
+      "es": "Categoría pronosticada"
+     },
+     "type": "string"
+    },
+    {
+     "id": "precip_1h_mm",
+     "label": {
+      "en": "Rain, last reading",
+      "es": "Lluvia, última lectura"
+     },
+     "type": "number",
+     "unit": "mm",
+     "format": "fixed1"
+    },
+    {
+     "id": "action_stage_m",
+     "label": {
+      "en": "Action stage",
+      "es": "Etapa de acción"
+     },
+     "type": "number",
+     "unit": "m",
+     "format": "fixed2"
+    },
+    {
+     "id": "minor_stage_m",
+     "label": {
+      "en": "Minor flood stage",
+      "es": "Inundación menor"
+     },
+     "type": "number",
+     "unit": "m",
+     "format": "fixed2"
+    },
+    {
+     "id": "moderate_stage_m",
+     "label": {
+      "en": "Moderate flood stage",
+      "es": "Inundación moderada"
+     },
+     "type": "number",
+     "unit": "m",
+     "format": "fixed2"
+    },
+    {
+     "id": "major_stage_m",
+     "label": {
+      "en": "Major flood stage",
+      "es": "Inundación mayor"
+     },
+     "type": "number",
+     "unit": "m",
+     "format": "fixed2"
+    },
+    {
+     "id": "drainage_km2",
+     "label": {
+      "en": "Drainage area",
+      "es": "Área de drenaje"
+     },
+     "type": "number",
+     "unit": "km2",
+     "format": "fixed1"
+    },
+    {
+     "id": "nws_lid",
+     "label": {
+      "en": "NWS gauge id",
+      "es": "Identificador NWS"
+     },
+     "type": "string"
+    },
+    {
      "id": "address",
      "label": {
       "en": "Address",
