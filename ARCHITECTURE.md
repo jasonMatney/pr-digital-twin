@@ -26,7 +26,7 @@ aerial perspective, clouds, buildings).
 |---|---|---|
 | `main` | source, pipeline, tests, docs | developers |
 | `gh-pages` | the site: `index.html`, `assets/` (app build), `tiles/`, `data/`, `fixtures/` | app deploy + pipeline |
-| `relay` | `nhc.json`, `ndbc.json`, `luma.json`, ... refreshed every ~10 min | `relay.yml` cron |
+| `relay` | `nhc.json`, `ndbc.json`, `luma.json`, ... refreshed every 5 min | `relay.yml` cron |
 
 Local checkout of `gh-pages` lives at `site/` (git worktree, ignored by `main`). Vite serves it as `publicDir`
 so `fetch('tiles/dem/9/160/229.png')` works the same in dev and in production. All URLs in the app are
@@ -59,7 +59,7 @@ zoom-8 tiles x 79..81, y 114..115.
 | `tiles/img/{z}/{x}/{y}.jpg` | aerial photo, 256 px; z 8..10 everywhere, z 11..13 where land | USGS The National Map `USGSImageryOnly` (public domain) |
 | `tiles/bld/{z}/{x}/{y}.bin` | building footprints + heights, z 14 | OpenStreetMap (ODbL) |
 | `data/twin.db` | seed SQLite database (objects, links, properties, sources) | `pipeline/build-db.mjs` |
-| `data/manifest.json` | versions, counts, build time, tile index | pipeline |
+| `data/manifest.json` | seed version and build time | pipeline |
 
 Deeper zooms are streamed at run time from the upstream services (terrain to z 15, imagery to z 16).
 
@@ -71,7 +71,7 @@ Deeper zooms are streamed at run time from the upstream services (terrain to z 1
   number, NOAA CO-OPS id, NWS alert id, USGS event id, OSM `way/123`, HUD id). Other ids go in `identity` so two
   sources naming the same thing merge instead of duplicating.
 - **Property**: one row per (object, key, source) with `observedAt` and `confidence`. Sources may disagree; the
-  UI shows all of them and the "best" value is the newest from the highest-ranked source.
+  UI shows all of them and the "best" value is a user's if there is one, otherwise the most recently observed.
 - **Link**: typed, directed, with source and confidence (`located_in`, `affects`, `monitors`, `serves`, ...).
 - **Observation**: `(object, metric, t, value)` time series (gauge stage, water level, customers out).
 - **Source / ingest_run**: lineage. Every fetch writes a run row (ok, error, rows, bytes).

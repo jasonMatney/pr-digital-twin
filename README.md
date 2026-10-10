@@ -22,16 +22,19 @@ store; [`clear-Vieques`](https://github.com/webgpu-demos/clear-Vieques) for wate
   Juan time.
 - **Buildings.** 1,500,471 OpenStreetMap footprints, each with its ground elevation and FEMA flood class, roofed
   with the aerial photo itself.
-- **A database, not a pile of layers.** About 7,000 seeded objects of 29 types (municipios, barrios, tracts,
-  public housing, shelters, hospitals, gauges, tide stations, disaster declarations…), 12,800 typed links and
-  58,000 property values, every value carrying its source and observation time. SQLite compiled to WebAssembly,
+- **A database, not a pile of layers.** About 7,000 seeded objects of 25 types (municipios, barrios, tracts,
+  public housing, shelters, hospitals, gauges, tide stations, disaster declarations…; four more types are filled
+  only by live feeds), 12,800 typed links and 58,000 property values. Every value carries its source and a time:
+  the measurement's own time for live feeds, the time it was fetched for most baked sources. A fifth of the
+  values are computed by Garita (ground elevation, flood zone, counts) and are marked as derived. SQLite compiled to WebAssembly,
   persisted in the browser, queryable from a SQL console in the app.
 - **Live feeds** written into that same store: weather alerts, earthquakes, stream and reservoir gauges, flood
   stages, tides, weather and sea state, power outages, buoys, tropical cyclones with forecast cones, aircraft.
 - **Questions the Department would ask.** Raise the sea and count what sits at or below it, by municipio, with
   NOAA's scenarios for San Juan as presets and NOAA's own inundation mapping as a comparison overlay. Replay
-  María or any of 30 historical storms and see which municipios, how many people, which public housing
-  developments and shelters were inside each wind radius, hour by hour. Open any object and walk its links.
+  María or any of 29 other storms since 1980. For the 19 with wind radii in the record (2004 on), see which
+  municipios and how many of today's residents fall inside each wind radius, and which of today's public housing
+  developments and listed shelters fall inside the 64 kt radius, hour by hour. Open any object and walk its links.
 
 ## What is real, what is modelled, what is procedural
 
@@ -44,16 +47,16 @@ store; [`clear-Vieques`](https://github.com/webgpu-demos/clear-Vieques) for wate
 | Aerial photo | USGS The National Map orthoimagery | Public domain; mirrored to zoom 13, streamed to zoom 16 |
 | Building footprints | OpenStreetMap (Geofabrik Puerto Rico extract), ODbL | 1,500,471; 13.8 % carry a height |
 | Ground elevation per building | 3DEP at the footprint centroid | One point per building; the source terraces at whole metres in coastal plains |
-| Flood class per building | FEMA National Flood Hazard Layer, 4,894 zones | Point in polygon at the centroid |
-| Municipios, barrios, tracts | US Census TIGERweb | 78 / 939 / 981 |
+| Flood class per building | FEMA National Flood Hazard Layer, 4,894 zone polygons | Point in polygon at the centroid. Facilities, housing and shelters use a reduced file of 3,830 polygons |
+| Municipios, barrios, tracts | US Census TIGERweb | 78 / 901 / 981. The Census counts 939 county subdivisions; the 38 that are water only are left out. 42 of the tracts are water only |
 | Vulnerability and housing stock | CDC/ATSDR SVI 2022; ACS 5-year through Esri Living Atlas | Municipio and tract level |
 | Public and assisted housing | HUD: Public Housing Developments (304), Multifamily Assisted (196), LIHTC (231) | |
 | Low and moderate income areas | HUD, Puerto Rico CDBG-DR | |
-| Emergency shelters | Departamento de la Vivienda, *Refugios, Temporada de Huracanes 2026* | 343 listed, 336 located from the list's own map links |
+| Emergency shelters | Departamento de la Vivienda, *Refugios, Temporada de Huracanes 2026* | 343 listed; 332 located from the list's own map links, 4 by matching the name in OpenStreetMap, 7 not located |
 | Disaster history | OpenFEMA: 51 declarations, housing assistance by disaster and municipio | |
-| Facilities | OpenStreetMap: hospitals, clinics, schools, fire, police, power, water, air and sea ports | 3,083 named |
+| Facilities | OpenStreetMap: hospitals, clinics, schools, fire, police, power, water, air and sea ports | 3,083. Only named ones are kept, except substations and power plants: 267 of those have no name in OpenStreetMap and are labelled "Unnamed" |
 | Sensors' reference data | NOAA CO-OPS, USGS, NWS/NWPS, NDBC | Datums, flood stages, sea level projections |
-| Storm tracks | NOAA HURDAT2 | 30 storms within 100 km since 1980 |
+| Storm tracks | NOAA HURDAT2 | 30 storms whose centre passed within 100 km of a municipio's interior point since 1980; 11 predate wind radii in the record |
 
 **Live** (age shown in the Lineage panel): NWS alerts and observations, USGS earthquakes and gauges, NOAA flood
 categories and tides, Open-Meteo wind, cloud, waves and Saharan dust (model output, labelled as such), RainViewer
@@ -85,7 +88,7 @@ uses it to build `data/twin.db`, the 10 MB seed the site ships. In the browser t
 history accumulates across visits; a second tab opens in memory.
 
 The in-app SQL console is read-only and comes with ten saved queries, each run against the seed before it was
-added: public housing units by municipio and the share in a FEMA flood zone, shelters at or below 3 m,
+added: public housing developments and units by municipio and the share of developments whose HUD point is in a FEMA flood zone, shelters at or below 3 m,
 María's housing assistance per registration, properties where sources disagree.
 
 ## Run it
@@ -149,9 +152,12 @@ Each round: render, find what is visibly wrong, fix the cause. Stills are in `do
 
 - **Bathtub flooding** only, on a 10 m elevation model that terraces at whole metres in the coastal plain: low
   elevation counts are order-of-magnitude until lidar-grade elevation replaces it.
-- **OpenStreetMap completeness varies by municipio.** Footprints are not a structure inventory. An earlier study
-  with the same FEMA layer found the same shares in Toa Baja and Cataño (20 % and 37–38 % of buildings in the
-  1 % zone) with about 7 % more buildings.
+- **OpenStreetMap completeness varies by municipio.** Footprints are not a structure inventory. This build puts 20.3 % of Toa Baja's buildings and 36.6 % of Cataño's in the 1 % zone.
+- **HUD points are not always the property.** 31 housing records have only a city and ZIP code for an address and
+  are geocoded to the ZIP code area; two more fall in water or below sea level. No flood zone or elevation is
+  derived for those 33, and each says why.
+- **Storm replay counts use today's inventories** (residents, housing, shelters), not those of the storm's year.
+  The best track's landfall fixes of 2004–2011 carry no wind radii; they are interpolated from the fixes either side.
 - **No parcels, cases, inspections or grants.** The ontology has room for them; the data is the Department's.
 - **LUMA's regions are not linked to municipios**: no authoritative public mapping was found, so none was made up.
 - **The NHC forecast cone** is parsed from a service response shape that was not available to test against.

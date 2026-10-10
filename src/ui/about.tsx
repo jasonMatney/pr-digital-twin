@@ -40,8 +40,8 @@ export function AboutSheet() {
               <ul>
                 <li>{tr('Terrain (USGS 3DEP) and aerial photo (USGS The National Map)', 'Terreno (USGS 3DEP) y foto aérea (USGS The National Map)')}</li>
                 <li>{tr('Nearshore bathymetry (NOAA CUDEM)', 'Batimetría costera (NOAA CUDEM)')}</li>
-                <li>{tr('Building footprints (OpenStreetMap) with FEMA flood class and ground elevation', 'Huellas de edificios (OpenStreetMap) con clase de inundación FEMA y elevación del terreno')}</li>
-                <li>{tr('Every object and property in the store, each with its source', 'Cada objeto y propiedad en la base de datos, cada uno con su fuente')}</li>
+                <li>{tr('Building footprints (OpenStreetMap)', 'Huellas de edificios (OpenStreetMap)')}</li>
+                <li>{tr('Objects and properties from public sources, each with its source. Values Garita computed (ground elevation, flood zone, building counts) are marked "derived"', 'Objetos y propiedades de fuentes públicas, cada uno con su fuente. Los valores calculados por Garita (elevación del terreno, zona inundable, conteos de edificios) se marcan como "derivados"')}</li>
                 <li>{tr('Live feeds (NWS, USGS, NOAA, FEMA, LUMA), shown with their age', 'Fuentes en vivo (SNM, USGS, NOAA, FEMA, LUMA), con su antigüedad')}</li>
               </ul>
             </section>
@@ -51,6 +51,7 @@ export function AboutSheet() {
                 <li>{tr('Clouds and waves (driven by live wind and cloud cover)', 'Nubes y oleaje (según viento y nubosidad en vivo)')}</li>
                 <li>{tr('Building heights where OpenStreetMap has none', 'Altura de edificios donde OpenStreetMap no la tiene')}</li>
                 <li>{tr('Wall colours, windows and town lights', 'Colores de paredes, ventanas y luces de pueblos')}</li>
+                <li>{tr('FEMA flood class and ground elevation per building and per facility (one point each, screening level)', 'Clase de inundación FEMA y elevación del terreno por edificio y por instalación (un punto cada uno, nivel de cribado)')}</li>
                 <li>{tr('The bathtub flood screen in the Scenario tab', 'El filtro de inundación tipo bañera en la pestaña Escenario')}</li>
               </ul>
             </section>

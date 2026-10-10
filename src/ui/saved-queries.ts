@@ -5,11 +5,13 @@ export interface SavedQuery { id: string; title: [en: string, es: string]; sql: 
 const SFHA = "(z.value LIKE 'A%' OR z.value LIKE 'V%')";
 
 export const SAVED_QUERIES: SavedQuery[] = [
-  { id: 'ph_by_muni', title: ['Public housing by municipio, share in the FEMA 1% flood zone', 'Vivienda pública por municipio, parte en la zona inundable FEMA 1%'], sql:
+  { id: 'ph_by_muni', title: ['Public housing by municipio, share of developments in the FEMA 1% flood zone', 'Vivienda pública por municipio, parte de los residenciales en la zona inundable FEMA 1%'], sql:
 `-- Public housing developments and units by municipio; share of developments whose point falls in an A or V zone
 SELECT m.value AS municipio, COUNT(*) AS developments, SUM(u.value) AS units,
        SUM(CASE WHEN ${SFHA} THEN 1 ELSE 0 END) AS in_flood_zone,
-       ROUND(100.0 * SUM(CASE WHEN ${SFHA} THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_in_flood_zone
+       ROUND(100.0 * SUM(CASE WHEN ${SFHA} THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_in_flood_zone,
+       SUM(CASE WHEN ${SFHA} THEN u.value ELSE 0 END) AS units_in_flood_zone,
+       SUM(CASE WHEN z.value IS NULL THEN 1 ELSE 0 END) AS not_assessed   -- point is approximate: no zone derived
 FROM object o
 LEFT JOIN prop_best m ON m.object_id = o.id AND m.key = 'municipio_name'
 LEFT JOIN prop_best u ON u.object_id = o.id AND u.key = 'units'
@@ -17,7 +19,7 @@ LEFT JOIN prop_best z ON z.object_id = o.id AND z.key = 'flood_zone'
 WHERE o.type = 'public_housing' AND o.expired = 0
 GROUP BY m.value ORDER BY units DESC` },
   { id: 'shelters_3m', title: ['Shelters with ground at or below 3 m', 'Refugios con terreno en o bajo 3 m'], sql:
-`-- Listed shelters whose ground elevation (one point, 10 m DEM) is at or below 3 m
+`-- Listed shelters whose ground elevation (one point; the 10 m DEM is sampled at about 38 m outside the San Juan metro; shelters without a location are not included) is at or below 3 m
 SELECT o.id, o.name, m.value AS municipio, e.value AS ground_elev_m, z.value AS flood_zone, c.value AS capacity
 FROM object o
 JOIN prop_best e ON e.object_id = o.id AND e.key = 'ground_elev_m'
@@ -35,7 +37,7 @@ JOIN prop_best b ON b.object_id = o.id AND b.key = 'buildings'
 JOIN prop_best s ON s.object_id = o.id AND s.key = 'buildings_sfha'
 WHERE o.type = 'municipio' AND b.value > 0
 ORDER BY per_1000_buildings DESC` },
-  { id: 'maria_ihp', title: ['Hurricane María (DR-4339): FEMA housing assistance per valid registration', 'Huracán María (DR-4339): asistencia de vivienda FEMA por registro válido'], sql:
+  { id: 'maria_ihp', title: ['Hurricane María (DR-4339): FEMA individual assistance (IHP) approved per valid registration', 'Huracán María (DR-4339): asistencia individual de FEMA (IHP) aprobada por registro válido'], sql:
 `-- FEMA Individuals and Households Program, DR-4339, by municipio
 SELECT m.value AS municipio, r.value AS valid_registrations, a.value AS approved_usd,
        ROUND(a.value / r.value) AS usd_per_registration, d.value AS total_damage_usd
@@ -73,7 +75,7 @@ SELECT source_id AS source, status, datetime(finished_at / 1000, 'unixepoch', '-
 FROM ingest_run ORDER BY finished_at DESC LIMIT 50` },
   { id: 'types', title: ['Objects by type', 'Objetos por tipo'], sql:
 `SELECT t.id AS type, t.label_en AS label, t.grp AS layer_group, COUNT(o.id) AS objects,
-       SUM(CASE WHEN o.lon IS NULL THEN 1 ELSE 0 END) AS without_point
+       SUM(CASE WHEN o.id IS NOT NULL AND o.lon IS NULL THEN 1 ELSE 0 END) AS without_point
 FROM object_type t LEFT JOIN object o ON o.type = t.id AND o.expired = 0
 GROUP BY t.id ORDER BY objects DESC` },
   { id: 'ph_low', title: ['Public housing residents by ground elevation band', 'Residentes de vivienda pública por franja de elevación'], sql:

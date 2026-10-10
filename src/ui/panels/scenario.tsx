@@ -44,6 +44,10 @@ function Chart({ curves, level }: { curves: Curves; level: number }) {
   );
 }
 
+/** Headline counts to two significant figures: the elevation source terraces at whole metres in the coastal plain,
+ *  so the last digits of a count are not information. The exact figure is in the tooltip and the table. */
+const approx = (n: number) => { if (n < 100) return num(n); const k = Math.pow(10, Math.floor(Math.log10(n)) - 1); return '≈ ' + num(Math.round(n / k) * k); };
+
 export function ScenarioPanel({ store }: { store: TwinStore }) {
   const sc = S.scenario.value;
   const tide = S.weather.value.source === 'live' ? S.weather.value.tideM : null;
@@ -120,7 +124,7 @@ export function ScenarioPanel({ store }: { store: TwinStore }) {
         </section>
         <section class="sec">
           <h3 class="label">{t('sc.buildings')}</h3>
-          <div class="sc-headline"><span class="num sc-big">{island != null ? num(island) : DASH}</span>
+          <div class="sc-headline"><span class="num sc-big" title={island != null ? num(island) : undefined}>{island != null ? approx(island) : DASH}</span>
             <span>{inclusive ? t('sc.atorbelow') : t('sc.below')} <b class="num">{edge.toFixed(2)} m</b>{Math.abs(edge - level) > 0.001 ? <i> · {t('sc.binned')}</i> : null}</span></div>
           {top.length > 0 && (
             <table class="grid sc-top">

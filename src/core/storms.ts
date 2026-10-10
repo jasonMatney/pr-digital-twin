@@ -16,7 +16,20 @@ export function loadStorms(): Promise<Storm[]> {
 }
 
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
-const lerpArr = (a: number[] | null, b: number[] | null, k: number) => (a && b ? a.map((v, i) => lerp(v, b[i], k)) : k < 0.5 ? a : b);
+type RadiiKey = 'r34' | 'r50' | 'r64';
+const RADII_GAP_MS = 12 * 3600e3;
+/** Wind radii at time t, where p[i] is the first fix at or after t. The best track's off-synoptic fixes (landfalls,
+ *  2004-2011) carry no radii: interpolate between the nearest fixes on each side that do, no further than 12 hours
+ *  away, or carry the one side that has them. null only when the record has none nearby (storms before 2004). */
+function radiiAt(p: StormPoint[], i: number, t: number, key: RadiiKey): number[] | null {
+  let ia = i - 1, ib = i;
+  while (ia >= 0 && !p[ia][key] && t - p[ia].t <= RADII_GAP_MS) ia--;
+  while (ib < p.length && !p[ib][key] && p[ib].t - t <= RADII_GAP_MS) ib++;
+  const fa = ia >= 0 && t - p[ia].t <= RADII_GAP_MS ? p[ia] : null, fb = ib < p.length && p[ib].t - t <= RADII_GAP_MS ? p[ib] : null;
+  const a = fa ? fa[key] : null, b = fb ? fb[key] : null;
+  if (a && b && fa && fb) { const k = fb.t === fa.t ? 0 : (t - fa.t) / (fb.t - fa.t); return a.map((v, j) => lerp(v, b[j], k)); }
+  return a ?? b;
+}
 
 /** The storm at time t: position, intensity and radii interpolated linearly between best-track fixes. null outside the track. */
 export function stormAt(storm: Storm, t: number): StormPoint | null {
@@ -28,7 +41,7 @@ export function stormAt(storm: Storm, t: number): StormPoint | null {
   return {
     t, lat: lerp(a.lat, b.lat, k), lon: lerp(a.lon, b.lon, k), status: k < 0.5 ? a.status : b.status,
     wind_kt: lerp(a.wind_kt, b.wind_kt, k), pressure_mb: a.pressure_mb != null && b.pressure_mb != null ? lerp(a.pressure_mb, b.pressure_mb, k) : (a.pressure_mb ?? b.pressure_mb),
-    r34: lerpArr(a.r34, b.r34, k), r50: lerpArr(a.r50, b.r50, k), r64: lerpArr(a.r64, b.r64, k),
+    r34: radiiAt(p, i, t, 'r34'), r50: radiiAt(p, i, t, 'r50'), r64: radiiAt(p, i, t, 'r64'),
   };
 }
 

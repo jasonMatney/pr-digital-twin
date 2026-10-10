@@ -68,7 +68,8 @@ for (const f of fac.facilities) {
   if (f.type === 'substation') { const v = num(String(t.voltage ?? '').split(';')[0]); if (v) props.voltage_kv = Math.round(v / 1000); }
   if (f.type === 'water_plant') props.plant_type = t.man_made === 'wastewater_plant' ? 'wastewater' : 'water works';
   if (f.type === 'airport') { if (t.iata) props.iata = String(t.iata); if (t.icao) props.icao = String(t.icao); }
-  const name = f.name || (f.type === 'substation' ? `Substation ${props.voltage_kv ? props.voltage_kv + ' kV' : f.osm}` : `Power plant ${props.fuel ?? f.osm}`);
+  // (OpenStreetMap has no name for most substations and many plants: say so in the name rather than make one up)
+  const name = f.name || (f.type === 'substation' ? `Unnamed substation${props.voltage_kv ? ', ' + props.voltage_kv + ' kV' : ''}` : `Unnamed power plant${props.fuel ? ', ' + props.fuel : ''}`);
   facObjs.push({ type: f.type, key: f.osm, name, lon: f.lon, lat: f.lat, identities: [['osm', f.osm]], props, text: [t['name:en'], t['name:es'], addr, props.municipio_name].filter(Boolean).join(' ') });
   if (f.municipio) facLinks.push({ src: `${f.type}:${f.osm}`, type: 'located_in', dst: `municipio:${f.municipio}` });
   const d = {};
@@ -77,7 +78,7 @@ for (const f of fac.facilities) {
   if (f.coast_dist_m != null) d.coast_dist_m = f.coast_dist_m;
   if (Object.keys(d).length) facDerived.push({ type: f.type, key: f.osm, props: d });
 }
-out('50-osm-facilities.batch.json', { source: 'osm', fetchedAt: now, objects: facObjs, links: facLinks, note: 'Named facilities from the Geofabrik Puerto Rico extract of OpenStreetMap; areas are placed at their centroid.' });
+out('50-osm-facilities.batch.json', { source: 'osm', fetchedAt: now, objects: facObjs, links: facLinks, note: 'Facilities from the Geofabrik Puerto Rico extract of OpenStreetMap; areas are placed at their centroid. Only named ones are kept, except substations and power plants, which are kept without a name and labelled "Unnamed".' });
 out('51-facility-exposure.batch.json', { source: 'garita_derived', fetchedAt: now, objects: facDerived, note: 'Ground elevation: 10 m USGS 3DEP via Terrain Tiles zoom 14, sampled at the point. Flood zone: FEMA NFHL zone containing the point. Distance to the OSM coastline. Screening values for one point per facility.' });
 
 // ---------- 52: building exposure per municipio ----------
@@ -96,12 +97,26 @@ const assets = seeded.filter((o) => ['shelter', 'public_housing', 'assisted_hous
 const sensors = seeded.filter((o) => ['stream_gauge', 'reservoir', 'tide_station', 'weather_station', 'buoy'].includes(o.type));
 const dObjs = [], dLinks = [];
 let zUsed = {};
+// A HUD record whose address is only a city and ZIP code is geocoded to the ZIP code's centre, which can be in the
+// sea: its point is not the property. Nothing is derived from such a point, nor from one that is off land or below
+// sea level; the record says why.
+const pv = (v) => (v && typeof v === 'object' ? v.value : v);
+let approx = 0;
 for (const a of assets) {
   const props = {}, e = elevAt(a.lon, a.lat), z = zoneAt(a.lon, a.lat);
+  const housing = a.type !== 'shelter', zipOnly = housing && /^[^,\d]*,\s*\d{5}(-\d{4})?$/.test(String(pv(a.props?.address) ?? ''));
+  const offLand = housing && (!muniAt(a.lon, a.lat) || (e && e.elev <= 0));
+  if (zipOnly || offLand) {
+    approx++;
+    props.location_basis = zipOnly ? 'Approximate: the address is a city and ZIP code only, so the point is the ZIP code area, not the property. Flood zone and ground elevation are not derived.' : 'Doubtful: the point is in water, or the elevation model puts it at or below sea level. Flood zone and ground elevation are not derived.';
+    dObjs.push({ type: a.type, key: a.key, props });
+    continue;
+  }
   if (e) { props.ground_elev_m = { value: e.elev, confidence: e.z >= 14 ? 0.8 : 0.5 }; zUsed[e.z] = (zUsed[e.z] ?? 0) + 1; }
   props.flood_zone = z.zone || 'X';
   dObjs.push({ type: a.type, key: a.key, props });
 }
+console.log('housing records with an approximate or doubtful point (nothing derived):', approx);
 const gauges = sensors.filter((s) => s.type === 'stream_gauge'), tides = sensors.filter((s) => s.type === 'tide_station');
 const nearest = (list, o) => { let best = null, bd = 1e9; for (const s of list) { const d = haversineKm(o.lon, o.lat, s.lon, s.lat); if (d < bd) { bd = d; best = s; } } return best ? [best, bd] : null; };
 for (const a of [...assets, ...facObjs.filter((f) => f.type === 'hospital')]) {

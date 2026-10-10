@@ -790,14 +790,6 @@
      "format": "int"
     },
     {
-     "id": "location_basis",
-     "label": {
-      "en": "How it was located",
-      "es": "Cómo se ubicó"
-     },
-     "type": "string"
-    },
-    {
      "id": "operating_status",
      "label": {
       "en": "Operating status",
@@ -852,6 +844,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
     },
     {
      "id": "map_url",
@@ -1015,6 +1015,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
     }
    ]
   },
@@ -1128,6 +1136,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
     }
    ]
   },
@@ -1223,6 +1239,14 @@
      "format": "int"
     },
     {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
+    },
+    {
      "id": "osm_url",
      "label": {
       "en": "OpenStreetMap",
@@ -1302,6 +1326,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
     },
     {
      "id": "osm_url",
@@ -1394,6 +1426,14 @@
      "format": "int"
     },
     {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
+    },
+    {
      "id": "osm_url",
      "label": {
       "en": "OpenStreetMap",
@@ -1475,6 +1515,14 @@
      "format": "int"
     },
     {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
+    },
+    {
      "id": "osm_url",
      "label": {
       "en": "OpenStreetMap",
@@ -1554,6 +1602,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
     },
     {
      "id": "osm_url",
@@ -1657,6 +1713,14 @@
      "format": "int"
     },
     {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
+    },
+    {
      "id": "osm_url",
      "label": {
       "en": "OpenStreetMap",
@@ -1749,6 +1813,14 @@
      "format": "int"
     },
     {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
+    },
+    {
      "id": "osm_url",
      "label": {
       "en": "OpenStreetMap",
@@ -1837,6 +1909,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
     },
     {
      "id": "osm_url",
@@ -1938,6 +2018,14 @@
      "format": "int"
     },
     {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
+    },
+    {
      "id": "osm_url",
      "label": {
       "en": "OpenStreetMap",
@@ -2017,6 +2105,14 @@
      "type": "number",
      "unit": "m",
      "format": "int"
+    },
+    {
+     "id": "location_basis",
+     "label": {
+      "en": "How it was located",
+      "es": "Cómo se ubicó"
+     },
+     "type": "string"
     },
     {
      "id": "osm_url",

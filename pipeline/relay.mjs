@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Snapshots the public feeds that do not send CORS headers (or are too large to parse in the browser) into small
-// JSON files. Runs on GitHub Actions every ten minutes (.github/workflows/relay.yml); the files are published
+// JSON files. Runs on GitHub Actions every five minutes (.github/workflows/relay.yml); the files are published
 // on the single-commit `relay` branch and read by src/feeds/ from raw.githubusercontent.com.
 //
 //   node pipeline/relay.mjs --out <dir>                         live

@@ -7,6 +7,11 @@ export async function fetchMunicipios(ctx) {
   const { rows, fields } = await arcgisAll(`${BASE}/${LAYER.municipio}`, { where: "STATE='72'", log: ctx.log });
   return { fields, rows };
 }
+/** GEOIDs of the current census tracts: other sources attach values only to tracts that exist here. */
+export async function fetchTractIds(ctx) {
+  const { rows } = await arcgisAll(`${BASE}/${LAYER.tract}`, { where: "STATE='72'", log: ctx.log });
+  return new Set(rows.map((r) => String(r.GEOID)));
+}
 const obj = (type, r, extra = {}) => {
   const lat = num(r.INTPTLAT ?? r.CENTLAT), lon = num(r.INTPTLON ?? r.CENTLON);
   return {

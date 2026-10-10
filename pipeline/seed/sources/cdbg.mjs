@@ -1,5 +1,6 @@
 // HUD low and moderate income areas for Puerto Rico's CDBG-DR grant, aggregated to tract and municipio.
 import { fetchJson, arcgisAll, num, round, pick } from '../lib.mjs';
+import { fetchTractIds } from './census_tiger.mjs';
 const SVC = 'https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services/LMA_PuertoRico_CDBG_DR/FeatureServer';
 export async function build(ctx) {
   const svc = await fetchJson(`${SVC}?f=json`);
@@ -20,9 +21,14 @@ export async function build(ctx) {
     if (!/^72\d{9}/.test(g) || low == null || univ == null || low > univ * 1.001) { bad++; continue; }
     for (const [m, k] of [[tr, g.slice(0, 11)], [mu, g.slice(0, 5)]]) { const a = m.get(k) || [0, 0]; a[0] += low; a[1] += univ; m.set(k, a); }
   }
-  const objects = [];
-  for (const [k, a] of tr) if (a[1] > 0) objects.push({ type: 'tract', key: k, props: { cdbg_dr_lmi_pct: round((100 * a[0]) / a[1], 1) } });
+  // The layer is on an older tract vintage. A value is attached only to a tract that exists in the current set: an
+  // id that does not would otherwise become a tract object with no place, no links and one property.
+  const objects = [], problems = bad ? [`${bad} of ${rows.length} rows had no usable geography or counts`] : [];
+  let current = null, stale = 0;
+  try { current = await fetchTractIds(ctx); } catch (e) { problems.push(`current tract list unavailable (${String(e).slice(0, 120)}): tract values left out`); }
+  for (const [k, a] of tr) if (a[1] > 0 && current) { if (current.has(k)) objects.push({ type: 'tract', key: k, props: { cdbg_dr_lmi_pct: round((100 * a[0]) / a[1], 1) } }); else stale++; }
+  if (stale) problems.push(`${stale} tract ids of the layer's vintage are not current tracts: left out`);
   for (const [k, a] of mu) if (a[1] > 0 && names.has(k)) objects.push({ type: 'municipio', key: k, name: names.get(k), props: { cdbg_dr_lmi_pct: round((100 * a[0]) / a[1], 1) } });
-  return { file: '03-cdbg-lmi', problems: bad ? [`${bad} of ${rows.length} rows had no usable geography or counts`] : [], batch: { source: 'hud_cdbg_dr', fetchedAt: Date.now(), objects,
-    note: `HUD LMA_PuertoRico_CDBG_DR layer "${name}" (${rows.length} rows, geography field ${fGeo}). cdbg_dr_lmi_pct = 100 x sum(${fLow}) / sum(${fUniv}) over the rows of each tract and each municipio. Tract ids are those of the layer's own census vintage and may not all match current (2020) tracts.` } };
+  return { file: '03-cdbg-lmi', problems, batch: { source: 'hud_cdbg_dr', fetchedAt: Date.now(), objects,
+    note: `HUD LMA_PuertoRico_CDBG_DR layer "${name}" (${rows.length} rows, geography field ${fGeo}). cdbg_dr_lmi_pct = 100 x sum(${fLow}) / sum(${fUniv}) over the rows of each tract and each municipio. Tract ids are those of the layer's own census vintage; ${stale} that are not current (2020) tracts are left out, and a tract that kept its id may have changed its boundary.` } };
 }

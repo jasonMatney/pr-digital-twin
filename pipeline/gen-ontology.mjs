@@ -6,7 +6,7 @@ const M = (id, en, es, unit) => ({ id, label: L(en, es), unit });
 const T = (id, kind, group, en, es, pen, pes, keyScheme, icon, color, properties, extra = {}) => ({ id, kind, group, label: L(en, es), plural: L(pen, pes), keyScheme, icon, color, properties, ...extra });
 
 const addr = [P('address', 'Address', 'Dirección', 'string'), P('municipio_name', 'Municipality', 'Municipio', 'string', null, null, true)];
-const elev = [P('ground_elev_m', 'Ground elevation', 'Elevación del terreno', 'number', 'm', 'fixed1', true), P('flood_zone', 'FEMA flood zone', 'Zona de inundación FEMA', 'string', null, null, true), P('coast_dist_m', 'Distance to coast', 'Distancia a la costa', 'number', 'm', 'int')];
+const elev = [P('ground_elev_m', 'Ground elevation', 'Elevación del terreno', 'number', 'm', 'fixed1', true), P('flood_zone', 'FEMA flood zone', 'Zona de inundación FEMA', 'string', null, null, true), P('coast_dist_m', 'Distance to coast', 'Distancia a la costa', 'number', 'm', 'int'), P('location_basis', 'How it was located', 'Cómo se ubicó', 'string')];
 const facility = (extra = []) => [...extra, P('operator', 'Operator', 'Operador', 'string'), ...addr, ...elev, P('osm_url', 'OpenStreetMap', 'OpenStreetMap', 'url')];
 
 const objectTypes = [
@@ -78,7 +78,7 @@ const objectTypes = [
   // ---- housing ----
   T('shelter', 'asset', 'housing', 'Emergency shelter', 'Refugio', 'Emergency shelters', 'Refugios', 'prdoh:shelter', 'shelter', '#b7f578', [
     P('capacity', 'Capacity', 'Capacidad', 'number', 'people', 'int', true), P('facility_type', 'Facility type', 'Tipo de instalación', 'string', null, null, true),
-    P('list_year', 'Listed for season', 'Listado para la temporada', 'number', null, 'int'), P('location_basis', 'How it was located', 'Cómo se ubicó', 'string'),
+    P('list_year', 'Listed for season', 'Listado para la temporada', 'number', null, 'int'),
     P('operating_status', 'Operating status', 'Estado operacional', 'string', null, null, true), ...addr, ...elev,
     P('map_url', 'Map link in the official list', 'Enlace de mapa en la lista oficial', 'url'),
   ]),
