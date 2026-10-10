@@ -1,0 +1,94 @@
+// App state shared by the UI (ui/), the scene (world/) and the feeds (feeds/). Plain signals: read `.value`
+// anywhere, write `.value` from event handlers. The scene watches these with `effect()`; it never imports ui/.
+import { signal, computed } from '@preact/signals';
+import type { Lang, TwinStore } from '../ontology/types';
+
+export const lang = signal<Lang>('en');
+
+/** The store, set once at boot. */
+export const store = signal<TwinStore | null>(null);
+
+// ---- selection ----
+export const selectedId = signal<string | null>(null);   // object id shown in the object view
+export const hoveredId = signal<string | null>(null);
+/** Objects to emphasise in the scene (search results, alert footprint, scenario exposure). */
+export const highlightIds = signal<string[]>([]);
+
+// ---- layers ----
+/** Object layers are keyed by object type id; scene layers and overlays by the ids below. */
+export type SceneLayerId = 'buildings' | 'clouds' | 'labels' | 'municipios' | 'ocean_detail' | 'markers';
+export const layerOn = signal<Record<string, boolean>>({
+  // object types shown as markers at start
+  weather_alert: true, earthquake: true, tropical_cyclone: true, stream_gauge: true, tide_station: true, buoy: true,
+  shelter: true, public_housing: true, hospital: true, power_region: true, weather_station: false, reservoir: true,
+  assisted_housing: false, school: false, fire_station: false, police_station: false, power_plant: true, substation: false,
+  water_plant: false, airport: true, seaport: true, aircraft: true, clinic: false,
+  // scene
+  buildings: true, clouds: true, labels: true, municipios: true, ocean_detail: true, markers: true,
+});
+/** One raster overlay draped on the terrain at a time. null = none. */
+export type OverlayId = 'radar' | 'goes' | 'nfhl' | 'slr' | 'choropleth' | 'elevation' | null;
+export const overlay = signal<OverlayId>(null);
+export const overlayOpacity = signal(0.75);
+/** For overlay === 'choropleth': a municipio property id (see ontology.json), e.g. 'poverty_pct'. */
+export const choroplethProp = signal<string>('vacancy_pct');
+
+// ---- scene clock ----
+/** live = follows the wall clock; manual = the timeline scrubber or a replay drives it. */
+export const clockMode = signal<'live' | 'manual'>('live');
+export const sceneTime = signal<number>(Date.now());      // epoch ms the scene is drawn for (sun, moon, tide)
+export const playbackRate = signal<number>(0);            // manual mode: scene seconds per real second
+
+// ---- scenario ----
+export interface Scenario {
+  /** Water level added on top of mean sea level, metres. Drives the ocean surface and the exposure counts. */
+  seaLevelM: number;
+  /** Where the number came from, for the legend: 'manual', 'NOAA Intermediate 2070 at San Juan', 'observed tide', ... */
+  label: string;
+  /** Use the live tide anomaly instead of 0 as the base. */
+  followTide: boolean;
+}
+export const scenario = signal<Scenario>({ seaLevelM: 0, label: 'present day', followTide: false });
+
+// ---- camera ----
+export interface CameraView { lon: number; lat: number; range: number; heading: number; pitch: number; altitude: number }
+/** Written by the scene every few frames. */
+export const cameraView = signal<CameraView>({ lon: -66.45, lat: 18.22, range: 260000, heading: 0, pitch: 55, altitude: 150000 });
+/** Written by the UI; the scene consumes it and sets it back to null. range in metres, heading/pitch in degrees (pitch 90 = straight down). */
+export interface FlyTo { lon: number; lat: number; range?: number; heading?: number; pitch?: number; seconds?: number }
+export const flyTo = signal<FlyTo | null>(null);
+/** Ground under the pointer, written by the scene. */
+export const cursorGeo = signal<{ lon: number; lat: number; elev: number } | null>(null);
+
+// ---- environment read by the scene, written by feeds ----
+export interface Weather {
+  windMs: number; windDirDeg: number;        // meteorological: direction the wind comes FROM
+  cloudCover: number;                        // 0..1
+  waveHeightM: number; wavePeriodS: number; waveDirDeg: number;
+  tideM: number;                             // observed water level relative to MSL at San Juan, metres
+  observedAt: number;
+  source: 'default' | 'live';
+}
+export const weather = signal<Weather>({ windMs: 6, windDirDeg: 80, cloudCover: 0.3, waveHeightM: 1.2, wavePeriodS: 8, waveDirDeg: 60, tideM: 0, observedAt: 0, source: 'default' });
+
+// ---- render quality ----
+export type Quality = 'low' | 'medium' | 'high';
+export const quality = signal<Quality>('medium');
+export const stats = signal<{ fps: number; tiles: number; pending: number; drawCalls: number; tris: number }>({ fps: 0, tiles: 0, pending: 0, drawCalls: 0, tris: 0 });
+
+// ---- ui chrome ----
+export type RightPanel = 'object' | 'scenario' | 'alerts' | 'explorer' | 'lineage' | 'graph' | 'sql' | null;
+export const rightPanel = signal<RightPanel>('alerts');
+export const fixturesMode = signal<boolean>(false);       // ?fixtures=1: read recorded payloads instead of the network
+export const booted = signal<boolean>(false);
+export const bootStage = signal<string>('Starting');
+
+export const isSelected = computed(() => selectedId.value != null);
+
+export function select(id: string | null, opts: { fly?: boolean } = {}) {
+  selectedId.value = id;
+  if (id) rightPanel.value = 'object';
+  if (id && opts.fly) pendingFlyToObject.value = id;
+}
+/** The scene or main resolves this to coordinates through the store, then clears it. */
+export const pendingFlyToObject = signal<string | null>(null);

@@ -1,0 +1,205 @@
+// Writes src/ontology/ontology.json from a compact definition. Run: node pipeline/gen-ontology.mjs
+import { writeFileSync } from 'node:fs';
+const L = (en, es) => ({ en, es });
+const P = (id, en, es, type = 'number', unit, format, primary) => ({ id, label: L(en, es), type, ...(unit ? { unit } : {}), ...(format ? { format } : {}), ...(primary ? { primary: true } : {}) });
+const M = (id, en, es, unit) => ({ id, label: L(en, es), unit });
+const T = (id, kind, group, en, es, pen, pes, keyScheme, icon, color, properties, extra = {}) => ({ id, kind, group, label: L(en, es), plural: L(pen, pes), keyScheme, icon, color, properties, ...extra });
+
+const addr = [P('address', 'Address', 'Dirección', 'string'), P('municipio_name', 'Municipality', 'Municipio', 'string', null, null, true)];
+const elev = [P('ground_elev_m', 'Ground elevation', 'Elevación del terreno', 'number', 'm', 'fixed1', true), P('flood_zone', 'FEMA flood zone', 'Zona de inundación FEMA', 'string', null, null, true), P('coast_dist_m', 'Distance to coast', 'Distancia a la costa', 'number', 'm', 'int')];
+const facility = (extra = []) => [...extra, P('operator', 'Operator', 'Operador', 'string'), ...addr, ...elev, P('osm_url', 'OpenStreetMap', 'OpenStreetMap', 'url')];
+
+const objectTypes = [
+  // ---- places ----
+  T('municipio', 'place', 'boundaries', 'Municipality', 'Municipio', 'Municipalities', 'Municipios', 'census:geoid', 'boundary', '#8fb8de', [
+    P('population', 'Population', 'Población', 'number', 'people', 'int', true),
+    P('housing_units', 'Housing units', 'Unidades de vivienda', 'number', 'units', 'int', true),
+    P('vacant_units', 'Vacant units', 'Unidades vacantes', 'number', 'units', 'int'),
+    P('vacancy_pct', 'Vacancy rate', 'Tasa de vacantes', 'number', '%', 'pct', true),
+    P('renter_pct', 'Renter-occupied', 'Ocupadas por inquilinos', 'number', '%', 'pct'),
+    P('median_income_usd', 'Median household income', 'Ingreso mediano del hogar', 'number', 'USD', 'usd', true),
+    P('poverty_pct', 'Below poverty level', 'Bajo nivel de pobreza', 'number', '%', 'pct', true),
+    P('age65_pct', 'Age 65 and over', '65 años o más', 'number', '%', 'pct'),
+    P('no_vehicle_pct', 'Households without a vehicle', 'Hogares sin vehículo', 'number', '%', 'pct'),
+    P('built_pre1980_pct', 'Housing built before 1980', 'Vivienda construida antes de 1980', 'number', '%', 'pct'),
+    P('median_home_value_usd', 'Median home value', 'Valor mediano de vivienda', 'number', 'USD', 'usd'),
+    P('land_km2', 'Land area', 'Área de tierra', 'number', 'km2', 'fixed1'),
+    P('buildings', 'Mapped buildings', 'Edificios cartografiados', 'number', 'buildings', 'int', true),
+    P('buildings_sfha', 'Buildings in FEMA 1% flood zone', 'Edificios en zona FEMA 1%', 'number', 'buildings', 'int'),
+    P('buildings_le_1m', 'Buildings at or below 1 m', 'Edificios a 1 m o menos', 'number', 'buildings', 'int'),
+    P('buildings_le_2m', 'Buildings at or below 2 m', 'Edificios a 2 m o menos', 'number', 'buildings', 'int'),
+    P('buildings_le_3m', 'Buildings at or below 3 m', 'Edificios a 3 m o menos', 'number', 'buildings', 'int'),
+    P('public_housing_units', 'Public housing units', 'Unidades de vivienda pública', 'number', 'units', 'int'),
+    P('shelters', 'Listed shelters', 'Refugios listados', 'number', 'shelters', 'int'),
+    P('fema_declarations', 'Federal disaster declarations', 'Declaraciones federales de desastre', 'number', 'declarations', 'int'),
+    P('ihp_registrations_maria', 'FEMA housing registrations, María', 'Solicitudes de vivienda FEMA, María', 'number', 'registrations', 'int'),
+    P('ihp_approved_usd_maria', 'FEMA housing aid approved, María', 'Asistencia de vivienda aprobada, María', 'number', 'USD', 'usd'),
+    P('nws_zone', 'NWS forecast zone', 'Zona de pronóstico NWS', 'string'),
+    P('power_region', 'LUMA region', 'Región LUMA', 'string'),
+  ]),
+  T('barrio', 'place', 'boundaries', 'Barrio', 'Barrio', 'Barrios', 'Barrios', 'census:geoid', 'boundary', '#7fa6c9', [
+    P('municipio_name', 'Municipality', 'Municipio', 'string', null, null, true), P('population', 'Population', 'Población', 'number', 'people', 'int', true),
+    P('housing_units', 'Housing units', 'Unidades de vivienda', 'number', 'units', 'int', true), P('land_km2', 'Land area', 'Área de tierra', 'number', 'km2', 'fixed1'),
+  ]),
+  T('forecast_zone', 'place', 'boundaries', 'NWS forecast zone', 'Zona de pronóstico NWS', 'NWS forecast zones', 'Zonas de pronóstico NWS', 'nws:zone', 'boundary', '#9aa7c7', [
+    P('zone_type', 'Zone type', 'Tipo de zona', 'string', null, null, true), P('forecast_office', 'Forecast office', 'Oficina de pronóstico', 'string'),
+  ]),
+  T('power_region', 'org', 'infrastructure', 'Power region', 'Región eléctrica', 'Power regions', 'Regiones eléctricas', 'luma:region', 'bolt', '#f5b31b', [
+    P('customers', 'Customers', 'Clientes', 'number', 'customers', 'int', true),
+    P('customers_out', 'Customers without service', 'Clientes sin servicio', 'number', 'customers', 'int', true),
+    P('pct_out', 'Without service', 'Sin servicio', 'number', '%', 'fixed2', true),
+    P('customers_planned', 'Affected by planned outage', 'Afectados por interrupción planificada', 'number', 'customers', 'int'),
+    P('customers_load_shed', 'Affected by load shedding', 'Afectados por relevos de carga', 'number', 'customers', 'int'),
+  ], { metrics: [M('customers_out', 'Customers without service', 'Clientes sin servicio', 'customers'), M('pct_out', 'Without service', 'Sin servicio', '%')] }),
+
+  // ---- housing ----
+  T('shelter', 'asset', 'housing', 'Emergency shelter', 'Refugio', 'Emergency shelters', 'Refugios', 'prdoh:shelter', 'shelter', '#b7f578', [
+    P('capacity', 'Capacity', 'Capacidad', 'number', 'people', 'int', true), P('facility_type', 'Facility type', 'Tipo de instalación', 'string', null, null, true),
+    P('list_year', 'Listed for season', 'Listado para la temporada', 'number', null, 'int'), P('location_basis', 'How it was located', 'Cómo se ubicó', 'string'),
+    P('operating_status', 'Operating status', 'Estado operacional', 'string', null, null, true), ...addr, ...elev,
+  ]),
+  T('public_housing', 'asset', 'housing', 'Public housing development', 'Residencial público', 'Public housing developments', 'Residenciales públicos', 'hud:development', 'housing', '#ff9f6b', [
+    P('units', 'Units', 'Unidades', 'number', 'units', 'int', true), P('occupied_units', 'Occupied units', 'Unidades ocupadas', 'number', 'units', 'int'),
+    P('occupancy_pct', 'Occupancy', 'Ocupación', 'number', '%', 'pct', true), P('residents', 'Residents', 'Residentes', 'number', 'people', 'int', true),
+    P('housing_authority', 'Housing authority', 'Autoridad de vivienda', 'string'), P('built_year', 'Year built', 'Año de construcción', 'number', null, 'int'),
+    P('avg_household_income_usd', 'Average household income', 'Ingreso promedio del hogar', 'number', 'USD', 'usd'), P('pct_elderly', 'Elderly households', 'Hogares de personas mayores', 'number', '%', 'pct'),
+    P('pct_disabled', 'Households with disability', 'Hogares con discapacidad', 'number', '%', 'pct'), ...addr, ...elev,
+  ]),
+  T('assisted_housing', 'asset', 'housing', 'Assisted housing property', 'Vivienda subsidiada', 'Assisted housing properties', 'Viviendas subsidiadas', 'hud:property', 'housing', '#e8a2c8', [
+    P('program', 'Program', 'Programa', 'string', null, null, true), P('units', 'Units', 'Unidades', 'number', 'units', 'int', true),
+    P('assisted_units', 'Assisted units', 'Unidades subsidiadas', 'number', 'units', 'int', true), P('placed_in_service', 'Placed in service', 'Año de puesta en servicio', 'number', null, 'int'),
+    P('owner', 'Owner', 'Dueño', 'string'), ...addr, ...elev,
+  ]),
+
+  // ---- infrastructure ----
+  T('hospital', 'asset', 'infrastructure', 'Hospital', 'Hospital', 'Hospitals', 'Hospitales', 'osm', 'hospital', '#ff9fbd', facility([P('beds', 'Beds', 'Camas', 'number', 'beds', 'int', true), P('emergency', 'Emergency room', 'Sala de emergencias', 'string', null, null, true)])),
+  T('clinic', 'asset', 'infrastructure', 'Clinic', 'Clínica', 'Clinics', 'Clínicas', 'osm', 'hospital', '#f7b8cd', facility()),
+  T('school', 'asset', 'infrastructure', 'School', 'Escuela', 'Schools', 'Escuelas', 'osm', 'school', '#c9b8ff', facility([P('level', 'Level', 'Nivel', 'string', null, null, true)])),
+  T('fire_station', 'asset', 'infrastructure', 'Fire station', 'Estación de bomberos', 'Fire stations', 'Estaciones de bomberos', 'osm', 'fire', '#ffad66', facility()),
+  T('police_station', 'asset', 'infrastructure', 'Police station', 'Cuartel de policía', 'Police stations', 'Cuarteles de policía', 'osm', 'police', '#9bdcff', facility()),
+  T('power_plant', 'asset', 'infrastructure', 'Power plant', 'Planta generatriz', 'Power plants', 'Plantas generatrices', 'osm', 'bolt', '#f5b31b', facility([P('fuel', 'Source', 'Fuente', 'string', null, null, true), P('capacity_mw', 'Capacity', 'Capacidad', 'number', 'MW', 'int', true)])),
+  T('substation', 'asset', 'infrastructure', 'Substation', 'Subestación', 'Substations', 'Subestaciones', 'osm', 'bolt', '#d9c06a', facility([P('voltage_kv', 'Voltage', 'Voltaje', 'number', 'kV', 'int', true)])),
+  T('water_plant', 'asset', 'infrastructure', 'Water or wastewater plant', 'Planta de agua', 'Water and wastewater plants', 'Plantas de agua', 'osm', 'drop', '#6ccfc4', facility([P('plant_type', 'Type', 'Tipo', 'string', null, null, true)])),
+  T('airport', 'asset', 'infrastructure', 'Airport', 'Aeropuerto', 'Airports', 'Aeropuertos', 'osm', 'plane', '#cfd8e3', facility([P('iata', 'IATA', 'IATA', 'string', null, null, true), P('icao', 'ICAO', 'OACI', 'string', null, null, true)])),
+  T('seaport', 'asset', 'infrastructure', 'Port or ferry terminal', 'Puerto o terminal', 'Ports and ferry terminals', 'Puertos y terminales', 'osm', 'anchor', '#7fd8ff', facility()),
+  T('reservoir', 'asset', 'water', 'Reservoir', 'Embalse', 'Reservoirs', 'Embalses', 'usgs:site_no', 'drop', '#4fb3d9', [
+    P('lake_elev_m', 'Lake elevation', 'Nivel del embalse', 'number', 'm', 'fixed2', true), P('observed_at_text', 'Observed', 'Observado', 'string'), ...addr,
+  ], { metrics: [M('lake_elev_m', 'Lake elevation', 'Nivel del embalse', 'm')] }),
+
+  // ---- sensors ----
+  T('stream_gauge', 'sensor', 'water', 'Stream gauge', 'Estación hidrológica', 'Stream gauges', 'Estaciones hidrológicas', 'usgs:site_no', 'gauge', '#28c7e8', [
+    P('stage_m', 'Gauge height', 'Altura del río', 'number', 'm', 'fixed2', true), P('discharge_m3s', 'Discharge', 'Caudal', 'number', 'm3/s', 'fixed2', true),
+    P('flood_category', 'Flood category', 'Categoría de inundación', 'string', null, null, true),
+    P('action_stage_m', 'Action stage', 'Etapa de acción', 'number', 'm', 'fixed2'), P('minor_stage_m', 'Minor flood stage', 'Inundación menor', 'number', 'm', 'fixed2'),
+    P('moderate_stage_m', 'Moderate flood stage', 'Inundación moderada', 'number', 'm', 'fixed2'), P('major_stage_m', 'Major flood stage', 'Inundación mayor', 'number', 'm', 'fixed2'),
+    P('forecast_category', 'Forecast flood category', 'Categoría pronosticada', 'string'), P('precip_1h_mm', 'Rain, last reading', 'Lluvia, última lectura', 'number', 'mm', 'fixed1'),
+    P('drainage_km2', 'Drainage area', 'Área de drenaje', 'number', 'km2', 'fixed1'), P('nws_lid', 'NWS gauge id', 'Identificador NWS', 'string'), ...addr,
+  ], { metrics: [M('stage_m', 'Gauge height', 'Altura del río', 'm'), M('discharge_m3s', 'Discharge', 'Caudal', 'm3/s'), M('precip_mm', 'Rain', 'Lluvia', 'mm')] }),
+  T('tide_station', 'sensor', 'water', 'Tide station', 'Estación de marea', 'Tide stations', 'Estaciones de marea', 'noaa:coops', 'wave', '#3fa9f5', [
+    P('water_level_m', 'Water level (MSL)', 'Nivel del mar (MSL)', 'number', 'm', 'fixed2', true), P('predicted_m', 'Predicted tide', 'Marea pronosticada', 'number', 'm', 'fixed2', true),
+    P('residual_m', 'Surge / anomaly', 'Marejada / anomalía', 'number', 'm', 'fixed2', true), P('mhhw_m', 'Mean higher high water (MSL)', 'Pleamar media superior (MSL)', 'number', 'm', 'fixed2'),
+    P('minor_flood_m', 'Minor flood threshold (MSL)', 'Umbral de inundación menor (MSL)', 'number', 'm', 'fixed2'),
+    P('slr_2050_int_m', 'Sea level 2050, Intermediate', 'Nivel del mar 2050, Intermedio', 'number', 'm', 'fixed2'), P('slr_2100_int_m', 'Sea level 2100, Intermediate', 'Nivel del mar 2100, Intermedio', 'number', 'm', 'fixed2'),
+    P('wind_ms', 'Wind', 'Viento', 'number', 'm/s', 'fixed1'), P('water_temp_c', 'Water temperature', 'Temperatura del agua', 'number', 'degC', 'fixed1'),
+  ], { metrics: [M('water_level_m', 'Water level', 'Nivel del mar', 'm'), M('predicted_m', 'Predicted tide', 'Marea pronosticada', 'm')] }),
+  T('buoy', 'sensor', 'water', 'Ocean buoy', 'Boya oceánica', 'Ocean buoys', 'Boyas oceánicas', 'ndbc', 'buoy', '#5fe0d0', [
+    P('wave_height_m', 'Significant wave height', 'Altura significativa de ola', 'number', 'm', 'fixed1', true), P('dominant_period_s', 'Dominant period', 'Período dominante', 'number', 's', 'fixed1', true),
+    P('wind_ms', 'Wind', 'Viento', 'number', 'm/s', 'fixed1', true), P('wind_dir_deg', 'Wind direction', 'Dirección del viento', 'number', 'deg', 'int'), P('gust_ms', 'Gust', 'Ráfaga', 'number', 'm/s', 'fixed1'),
+    P('pressure_hpa', 'Pressure', 'Presión', 'number', 'hPa', 'fixed1'), P('water_temp_c', 'Water temperature', 'Temperatura del agua', 'number', 'degC', 'fixed1'), P('air_temp_c', 'Air temperature', 'Temperatura del aire', 'number', 'degC', 'fixed1'),
+  ], { metrics: [M('wave_height_m', 'Wave height', 'Altura de ola', 'm'), M('wind_ms', 'Wind', 'Viento', 'm/s'), M('pressure_hpa', 'Pressure', 'Presión', 'hPa')] }),
+  T('weather_station', 'sensor', 'atmosphere', 'Weather station', 'Estación meteorológica', 'Weather stations', 'Estaciones meteorológicas', 'nws:station', 'wind', '#cfe8ff', [
+    P('temp_c', 'Temperature', 'Temperatura', 'number', 'degC', 'fixed1', true), P('wind_ms', 'Wind', 'Viento', 'number', 'm/s', 'fixed1', true), P('wind_dir_deg', 'Wind direction', 'Dirección del viento', 'number', 'deg', 'int'),
+    P('gust_ms', 'Gust', 'Ráfaga', 'number', 'm/s', 'fixed1'), P('pressure_hpa', 'Pressure', 'Presión', 'number', 'hPa', 'fixed1'), P('humidity_pct', 'Humidity', 'Humedad', 'number', '%', 'int'),
+    P('conditions', 'Conditions', 'Condiciones', 'string', null, null, true), P('visibility_km', 'Visibility', 'Visibilidad', 'number', 'km', 'fixed1'),
+    P('cloud_cover_pct', 'Cloud cover', 'Nubosidad', 'number', '%', 'int'), P('precip_mm', 'Precipitation', 'Precipitación', 'number', 'mm', 'fixed1'),
+    P('wave_height_m', 'Wave height (model)', 'Altura de ola (modelo)', 'number', 'm', 'fixed1'), P('dust_ugm3', 'Saharan dust (model)', 'Polvo del Sahara (modelo)', 'number', 'ug/m3', 'int'), P('us_aqi', 'US AQI (model)', 'AQI EE. UU. (modelo)', 'number', null, 'int'),
+  ], { metrics: [M('temp_c', 'Temperature', 'Temperatura', 'degC'), M('wind_ms', 'Wind', 'Viento', 'm/s'), M('pressure_hpa', 'Pressure', 'Presión', 'hPa')] }),
+
+  // ---- events ----
+  T('weather_alert', 'event', 'hazards', 'Weather alert', 'Alerta meteorológica', 'Weather alerts', 'Alertas meteorológicas', 'nws:alert', 'alert', '#ff5a4f', [
+    P('event', 'Event', 'Evento', 'string', null, null, true), P('severity_text', 'Severity', 'Severidad', 'string', null, null, true), P('urgency', 'Urgency', 'Urgencia', 'string'),
+    P('certainty', 'Certainty', 'Certeza', 'string'), P('headline', 'Headline', 'Titular', 'string'), P('description', 'Description', 'Descripción', 'string'),
+    P('instruction', 'Instruction', 'Instrucciones', 'string'), P('area_desc', 'Area', 'Área', 'string', null, null, true), P('sender', 'Issued by', 'Emitida por', 'string'),
+    P('onset', 'Onset', 'Inicio', 'date', null, 'datetime'), P('expires', 'Expires', 'Expira', 'date', null, 'datetime', true),
+  ], { ephemeral: true }),
+  T('earthquake', 'event', 'hazards', 'Earthquake', 'Terremoto', 'Earthquakes', 'Terremotos', 'usgs:eventid', 'quake', '#ffb14a', [
+    P('magnitude', 'Magnitude', 'Magnitud', 'number', null, 'fixed1', true), P('depth_km', 'Depth', 'Profundidad', 'number', 'km', 'fixed1', true), P('place', 'Place', 'Lugar', 'string', null, null, true),
+    P('mag_type', 'Magnitude type', 'Tipo de magnitud', 'string'), P('felt_reports', 'Felt reports', 'Reportes sentidos', 'number', 'reports', 'int'), P('tsunami', 'Tsunami flag', 'Indicador de tsunami', 'boolean'),
+    P('network', 'Network', 'Red', 'string'), P('status_text', 'Review status', 'Estado de revisión', 'string'), P('url', 'USGS event page', 'Página del evento USGS', 'url'),
+  ]),
+  T('tropical_cyclone', 'event', 'hazards', 'Tropical cyclone', 'Ciclón tropical', 'Tropical cyclones', 'Ciclones tropicales', 'nhc:id', 'cyclone', '#e040fb', [
+    P('classification', 'Classification', 'Clasificación', 'string', null, null, true), P('intensity_kt', 'Max sustained wind', 'Viento máximo sostenido', 'number', 'kt', 'int', true),
+    P('pressure_hpa', 'Minimum pressure', 'Presión mínima', 'number', 'hPa', 'int', true), P('movement_dir_deg', 'Moving toward', 'Se mueve hacia', 'number', 'deg', 'int'), P('movement_kt', 'Forward speed', 'Velocidad de traslación', 'number', 'kt', 'int'),
+    P('distance_to_pr_km', 'Distance to Puerto Rico', 'Distancia a Puerto Rico', 'number', 'km', 'int', true), P('last_update', 'Last advisory', 'Último aviso', 'date', null, 'datetime'), P('advisory_url', 'Public advisory', 'Aviso público', 'url'),
+  ], { ephemeral: true }),
+  T('disaster_declaration', 'event', 'records', 'Federal disaster declaration', 'Declaración federal de desastre', 'Federal disaster declarations', 'Declaraciones federales de desastre', 'fema:disaster', 'fema', '#c3a6ff', [
+    P('declaration_type', 'Type', 'Tipo', 'string', null, null, true), P('incident_type', 'Incident', 'Incidente', 'string', null, null, true), P('title', 'Title', 'Título', 'string'),
+    P('declared', 'Declared', 'Declarada', 'date', null, 'date', true), P('incident_begin', 'Incident began', 'Inicio del incidente', 'date', null, 'date'), P('incident_end', 'Incident ended', 'Fin del incidente', 'date', null, 'date'),
+    P('areas', 'Designated municipalities', 'Municipios designados', 'number', 'municipios', 'int', true), P('ih_program', 'Individuals and Households', 'Individuos y Familias', 'boolean'),
+    P('pa_program', 'Public Assistance', 'Asistencia Pública', 'boolean'), P('hm_program', 'Hazard Mitigation', 'Mitigación de Riesgos', 'boolean'),
+  ]),
+  T('disaster_impact', 'record', 'records', 'Housing assistance record', 'Registro de asistencia de vivienda', 'Housing assistance records', 'Registros de asistencia de vivienda', 'fema:disaster+geoid', 'fema', '#a995d9', [
+    P('disaster_number', 'Disaster', 'Desastre', 'number', null, 'int', true), P('municipio_name', 'Municipality', 'Municipio', 'string', null, null, true),
+    P('valid_registrations', 'Valid registrations', 'Solicitudes válidas', 'number', 'registrations', 'int', true), P('owner_registrations', 'Owner registrations', 'Solicitudes de dueños', 'number', 'registrations', 'int'),
+    P('renter_registrations', 'Renter registrations', 'Solicitudes de inquilinos', 'number', 'registrations', 'int'), P('total_inspected', 'Homes inspected', 'Viviendas inspeccionadas', 'number', 'homes', 'int'),
+    P('total_damage_usd', 'FEMA-verified damage', 'Daño verificado por FEMA', 'number', 'USD', 'usd', true), P('approved_usd', 'Approved for assistance', 'Aprobado para asistencia', 'number', 'USD', 'usd', true),
+    P('repair_replace_usd', 'Repair and replace', 'Reparación y reemplazo', 'number', 'USD', 'usd'), P('rental_usd', 'Rental assistance', 'Asistencia de alquiler', 'number', 'USD', 'usd'),
+    P('major_damage_homes', 'Homes with major or substantial damage', 'Viviendas con daño mayor o sustancial', 'number', 'homes', 'int'),
+  ]),
+  // ---- tracks ----
+  T('aircraft', 'track', 'tracks', 'Aircraft', 'Aeronave', 'Aircraft', 'Aeronaves', 'icao24', 'plane', '#e8ecf2', [
+    P('callsign', 'Callsign', 'Indicativo', 'string', null, null, true), P('aircraft_type', 'Type', 'Tipo', 'string', null, null, true), P('registration', 'Registration', 'Matrícula', 'string'),
+    P('altitude_m', 'Altitude', 'Altitud', 'number', 'm', 'int', true), P('ground_speed_kt', 'Ground speed', 'Velocidad', 'number', 'kt', 'int'), P('track_deg', 'Track', 'Rumbo', 'number', 'deg', 'int'),
+    P('vertical_rate_ms', 'Vertical rate', 'Régimen vertical', 'number', 'm/s', 'fixed1'), P('squawk', 'Squawk', 'Squawk', 'string'), P('emergency', 'Emergency', 'Emergencia', 'string'),
+  ], { ephemeral: true }),
+];
+
+const LT = (id, en, es, ien, ies, from, to) => ({ id, label: L(en, es), inverse: L(ien, ies), from, to });
+const linkTypes = [
+  LT('located_in', 'is located in', 'está en', 'contains', 'contiene', ['*'], ['municipio', 'barrio']),
+  LT('part_of', 'is part of', 'es parte de', 'includes', 'incluye', ['municipio', 'barrio'], ['municipio', 'power_region', 'forecast_zone']),
+  LT('affects', 'affects', 'afecta a', 'is affected by', 'afectado por', ['weather_alert', 'earthquake', 'tropical_cyclone', 'disaster_declaration'], ['municipio', 'forecast_zone', 'shelter', 'public_housing', 'hospital']),
+  LT('monitors', 'monitors', 'monitorea', 'is monitored by', 'monitoreado por', ['stream_gauge', 'tide_station', 'buoy', 'weather_station', 'reservoir'], ['municipio', 'reservoir']),
+  LT('nearest', 'nearest sensor is', 'sensor más cercano', 'is nearest sensor to', 'es el sensor más cercano a', ['shelter', 'public_housing', 'assisted_housing', 'hospital', 'municipio'], ['stream_gauge', 'tide_station', 'weather_station', 'buoy']),
+  LT('serves', 'serves', 'sirve a', 'is served by', 'servido por', ['power_region', 'hospital', 'airport', 'seaport'], ['municipio']),
+  LT('record_of', 'is a record of', 'es un registro de', 'has record', 'tiene registro', ['disaster_impact'], ['disaster_declaration', 'municipio']),
+  LT('same_as', 'may be the same as', 'podría ser igual a', 'may be the same as', 'podría ser igual a', ['*'], ['*']),
+  LT('housed_at', 'is housed at', 'se ubica en', 'houses', 'alberga', ['shelter'], ['school', 'public_housing']),
+];
+
+const S = (id, name, org, url, license, kind, cadence_s, note) => ({ id, name, org, url, license, kind, ...(cadence_s ? { cadence_s } : {}), ...(note ? { note } : {}) });
+const sources = [
+  S('census_tiger', 'TIGER/Line boundaries (TIGERweb)', 'US Census Bureau', 'https://tigerweb.geo.census.gov/', 'Public domain', 'baked'),
+  S('census_acs5', 'American Community Survey 5-year', 'US Census Bureau', 'https://www.census.gov/programs-surveys/acs', 'Public domain', 'baked'),
+  S('osm', 'OpenStreetMap (Geofabrik Puerto Rico extract)', 'OpenStreetMap contributors', 'https://www.openstreetmap.org/copyright', 'ODbL 1.0', 'baked'),
+  S('usgs_3dep', 'USGS 3DEP elevation via AWS Terrain Tiles', 'USGS / Mapzen', 'https://registry.opendata.aws/terrain-tiles/', 'Public domain; attribution per Terrain Tiles', 'baked'),
+  S('usgs_imagery', 'The National Map orthoimagery', 'USGS', 'https://www.usgs.gov/programs/national-geospatial-program/national-map', 'Public domain', 'baked'),
+  S('fema_nfhl', 'National Flood Hazard Layer', 'FEMA', 'https://www.fema.gov/flood-maps/national-flood-hazard-layer', 'Public domain', 'baked'),
+  S('noaa_slr', 'Sea Level Rise Viewer inundation layers', 'NOAA Office for Coastal Management', 'https://coast.noaa.gov/slr/', 'Public domain', 'live'),
+  S('hud_public_housing', 'Public Housing Developments', 'HUD', 'https://hudgis-hud.opendata.arcgis.com/', 'Public domain', 'baked'),
+  S('hud_multifamily', 'Multifamily Properties - Assisted', 'HUD', 'https://hudgis-hud.opendata.arcgis.com/', 'Public domain', 'baked'),
+  S('hud_lihtc', 'Low-Income Housing Tax Credit properties', 'HUD', 'https://hudgis-hud.opendata.arcgis.com/', 'Public domain', 'baked'),
+  S('prdoh_shelters', 'Refugios, Temporada de Huracanes 2026', 'Departamento de la Vivienda de Puerto Rico', 'https://docs.pr.gov/files/Vivienda/vivienda.pr.gov/Home/DVAVP_Refugios_Temporada_de_Huracanes_2026.pdf', 'Public record', 'baked'),
+  S('openfema_declarations', 'Disaster Declarations Summaries', 'FEMA (OpenFEMA)', 'https://www.fema.gov/openfema-data-page/disaster-declarations-summaries-v2', 'Public domain', 'live', 86400),
+  S('openfema_housing', 'Housing Assistance Program Data, owners and renters', 'FEMA (OpenFEMA)', 'https://www.fema.gov/about/openfema/data-sets', 'Public domain', 'baked'),
+  S('coops_meta', 'Tide station datums, flood thresholds, sea level projections', 'NOAA CO-OPS', 'https://tidesandcurrents.noaa.gov/', 'Public domain', 'baked'),
+  S('nws_alerts', 'Active watches, warnings and advisories', 'NWS San Juan', 'https://www.weather.gov/sju/', 'Public domain', 'live', 120),
+  S('nws_obs', 'Surface observations', 'NWS', 'https://www.weather.gov/documentation/services-web-api', 'Public domain', 'live', 600),
+  S('usgs_quakes', 'Earthquake catalog (ComCat), includes PR Seismic Network', 'USGS', 'https://earthquake.usgs.gov/fdsnws/event/1/', 'Public domain', 'live', 300),
+  S('usgs_nwis', 'Instantaneous values, stream and reservoir gauges', 'USGS Caribbean-Florida Water Science Center', 'https://waterdata.usgs.gov/pr/nwis/rt', 'Public domain', 'live', 900),
+  S('nwps', 'National Water Prediction Service gauges and flood stages', 'NOAA NWS', 'https://water.noaa.gov/', 'Public domain', 'live', 900),
+  S('coops', 'Water levels and tide predictions', 'NOAA CO-OPS', 'https://tidesandcurrents.noaa.gov/', 'Public domain', 'live', 360),
+  S('open_meteo', 'Weather, marine and air quality model output', 'Open-Meteo', 'https://open-meteo.com/', 'CC BY 4.0', 'live', 900, 'Model output, not observations.'),
+  S('rainviewer', 'Radar mosaic tiles', 'RainViewer', 'https://www.rainviewer.com/api.html', 'Free with attribution', 'live', 600),
+  S('nasa_gibs', 'GOES-East GeoColor imagery', 'NASA GIBS / NOAA', 'https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api', 'Public domain', 'live', 600),
+  S('adsb', 'Aircraft positions (ADS-B, community receivers)', 'adsb.lol / adsb.fi / airplanes.live', 'https://adsb.lol/', 'ODbL / community terms', 'relay', 600),
+  S('nhc', 'Active tropical cyclones', 'NOAA National Hurricane Center', 'https://www.nhc.noaa.gov/', 'Public domain', 'relay', 600),
+  S('ndbc', 'Buoy observations', 'NOAA National Data Buoy Center', 'https://www.ndbc.noaa.gov/', 'Public domain', 'relay', 600),
+  S('luma', 'Customers without service by region', 'LUMA Energy', 'https://miluma.lumapr.com/outages/outageMap', 'Public web data', 'relay', 600),
+  S('hurdat2', 'Atlantic hurricane best tracks (HURDAT2)', 'NOAA National Hurricane Center', 'https://www.nhc.noaa.gov/data/#hurdat', 'Public domain', 'baked'),
+  S('garita_derived', 'Derived by Garita (spatial joins, elevation sampling, scenario counts)', 'Garita', 'https://github.com/jasonMatney/pr-digital-twin', 'MIT', 'derived', undefined, 'Computed from the sources above. Screening-level; not an engineering model.'),
+  S('user', 'Notes and status set in this browser', 'You', '', 'Local to this browser', 'user'),
+];
+const out = { version: '2026.10.1', objectTypes, linkTypes, sources };
+writeFileSync(new URL('../src/ontology/ontology.json', import.meta.url), JSON.stringify(out, null, 1));
+console.log(objectTypes.length, 'object types;', linkTypes.length, 'link types;', sources.length, 'sources;', objectTypes.reduce((n, t) => n + t.properties.length, 0), 'properties');

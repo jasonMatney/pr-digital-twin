@@ -1,0 +1,28 @@
+/* Garita design tokens. One dark look: the 3D scene is the page, panels are instruments laid over it.
+   Layout: full-bleed scene; 44px top bar; 48px layer rail left; 380px dock right; 56px timeline bottom. */
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+:root {
+  color-scheme: dark;
+  /* surfaces: night sea */
+  --sea-0: #050f15; --sea-1: #0a1b24; --sea-2: #10262f; --sea-3: #183640;
+  --glass: rgba(7, 20, 27, 0.78); --glass-strong: rgba(6, 16, 22, 0.92); --glass-soft: rgba(10, 28, 36, 0.55);
+  --line: rgba(190, 232, 236, 0.13); --line-strong: rgba(190, 232, 236, 0.26);
+  /* text */
+  --fg: #e9f2ef; --fg-2: #a8c1c3; --fg-3: #6d8b90;
+  /* accents: flamboyan in flower, reef water, noon sun */
+  --flame: #ff6a3d; --flame-dim: #b9472a; --reef: #3fd6c4; --reef-dim: #1d8f86; --sun: #f5b31b;
+  /* state (never used as decoration) */
+  --sev-4: #ff3b5c; --sev-3: #ff7a3d; --sev-2: #f5b31b; --sev-1: #f0e27a; --sev-0: #7fa0a6; --ok: #5bd692; --info: #6fb7ff;
+  /* type */
+  --font-ui: 'Archivo Variable', 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fs-0: 10px; --fs-1: 11px; --fs-2: 12.5px; --fs-3: 14px; --fs-4: 17px; --fs-5: 22px; --fs-6: 30px;
+  --radius: 3px; --blur: blur(18px) saturate(125%);
+  --bar-h: 44px; --rail-w: 48px; --dock-w: 380px; --timeline-h: 56px;
+}
+/* Labels: condensed caps. Numbers: mono, tabular. */
+.label { font: 600 var(--fs-0)/1.2 var(--font-ui); font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-3); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.wordmark { font: 800 15px/1 var(--font-ui); font-stretch: 122%; letter-spacing: 0.2em; }
