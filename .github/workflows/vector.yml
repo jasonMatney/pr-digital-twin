@@ -61,7 +61,7 @@ jobs:
         if: ${{ !cancelled() && hashFiles('pipeline/vector/nfhl.mjs') != '' }}
         run: node --max-old-space-size=10000 pipeline/vector/nfhl.mjs 2>&1 | tee -a "$OUT_DIR/vector_log.txt"
       - name: Save download cache
-        if: ${{ !cancelled() }}
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: work/cache
