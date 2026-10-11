@@ -111,14 +111,14 @@ const ALBEDO = /* glsl */`
     vec2 cell = vWxz / 30.0, ci = floor(cell), cf = fract(cell) - 0.5;
     float r1 = gHash(ci), r2 = gHash(ci + 71.7);
     vec2 off = (vec2(r2, fract(r2 * 7.31)) - 0.5) * 0.55;
-    float p = mix(0.025, 0.46, wd);
+    float p = mix(0.02, 0.28, wd);
     float pt = step(1.0 - p, r1) * smoothstep(0.42, 0.04, length(cf - off)) * 5.0;
     float fw = max(length(dFdx(vWxz)), length(dFdy(vWxz)));
     float far = smoothstep(7.0, 40.0, fw);
     vec3 col = mix(mix(vec3(1.0, 0.56, 0.22), vec3(0.92, 0.90, 0.80), step(0.68, r2)), vec3(1.0, 0.68, 0.38), far);
     // (the glow is at full strength only from far enough that a pixel covers a block: closer, it would wash the
     //  whole built-up area in one flat cream instead of leaving dark ground between lights)
-    float glow = (0.12 + 1.7 * wd) * mix(0.35, 1.0, smoothstep(40.0, 220.0, fw));
+    float glow = (0.12 + 1.7 * wd) * mix(0.12, 1.0, smoothstep(40.0, 250.0, fw));   // (0.12: about the mean of the points it replaces)
     gEmit = col * lit * mix(pt * (0.30 + 0.70 * wd), glow, far) * uNight * uLightGain * (1.0 - ov.a * uOvOpacity * 0.7);
   }
 }

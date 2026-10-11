@@ -19,7 +19,7 @@ import { SceneOceanPass, SKY_GLSL, OVER_WATER_LAYER } from './ocean';
 
 // Scene lights by sun elevation (after procedural-sanjuan's tables). A sunlit white wall is about 1 in scene units.
 const DAY = { hemi: 0.45, sun: 3.4, sunColor: new THREE.Color(0xfff0dc), exposure: 0.95, bloom: 0.25 };
-const NIGHT = { hemi: 0.16, sun: 0.38, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.2, bloom: 0.5 };   // a readable night (moonlight even at new moon), dark enough that the town lights carry it
+const NIGHT = { hemi: 0.10, sun: 0.26, sunColor: new THREE.Color(0x9fb4e0), exposure: 3.2, bloom: 0.5 };   // a readable night (moonlight even at new moon), dark enough that the town lights carry it
 const SUNSET = new THREE.Color(0xff9a52);
 // Low sun: expose for the sky (a small lift only), more from orbit where the frame is all ground; richer colour.
 const LOW = { lift: 0.15, orbit: 0.3, sat: 0.2, curve: 0.3, darkPow: 2.0, shadows: 0.11 };
@@ -373,6 +373,7 @@ ${mask}`)
     oin.seaLevel = world.seaLevel; oin.time = frame.now; oin.windMs = w.windMs; oin.windDirDeg = w.windDirDeg;
     oin.waveH = w.waveHeightM; oin.wavePeriod = w.wavePeriodS; oin.waveDirDeg = w.waveDirDeg;
     ocean.update(oin);
+    ocean.uniforms.uRise.value = S.scenario.value.seaLevelM;   // (the scenario's rise alone, without the tide: marks flooded land)
     // Volumetric clouds up to ~60 km camera height; from there to 150 km they give way to the 2D field (specks otherwise).
     const cloudsWanted = wantClouds && q !== 'low' && S.layerOn.value.clouds !== false && !observed;
     const orbit = cloudsWanted ? sstep(ocean.uniforms.uCamH.value, 60000, 150000) : 0;

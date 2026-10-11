@@ -40,7 +40,7 @@ const FRAG = /* glsl */`
   varying vec2 vUv;
   uniform sampler2D tColor;
   uniform sampler2D tDepth;
-  uniform float uNear, uFar, uCamH, uTime, uPix, uOcean, uBasic, uMss, uWindMs, uWaveH, uNight, uDeepGain;
+  uniform float uNear, uFar, uCamH, uTime, uPix, uOcean, uBasic, uMss, uWindMs, uWaveH, uNight, uDeepGain, uRise;
   uniform vec2 uTan, uOR, uWrap;
   uniform float uOrbit, uDbgAlpha;
   uniform vec4 uCloud2;   // threshold, softness, ground shadow strength, cover bias
@@ -172,6 +172,11 @@ const FRAG = /* glsl */`
       vec3 deep = uDeepR * uEd * uDeepGain;          // radiance leaving optically deep water, just below the surface
       vec3 Lw = col * att + deep * (1.0 - exp(-K * (pathW + dV) * 0.5));
       if (sky) Lw = deep;
+      // Scenario water over what is land today (ground above present sea level, under the raised one): clear
+      // water a few decimetres deep would be invisible over the photo, so it is drawn as an opaque-ish blue wash.
+      // A map convention, not optics: it marks the bathtub extent the Scenario panel counts.
+      float flood = step(0.05, uRise) * (1.0 - smoothstep(uRise - 0.30, uRise - 0.12, dV)) * smoothstep(eps, eps + 0.05, dV) * (sky ? 0.0 : 1.0);
+      Lw = mix(Lw, vec3(0.055, 0.26, 0.50) * (uEd.g * 1.6 + 0.02), 0.72 * flood);
 
       // ---- reflection
       float F = fresnelAir(nv) * avgFresnelScale(nv, resid);
@@ -286,7 +291,7 @@ export class SceneOceanPass extends Pass {
     this.uniforms = {
       tColor: { value: this.target.texture }, tDepth: { value: depthTexture },
       uNear: { value: 1 }, uFar: { value: 1e6 }, uCamH: { value: 100 }, uTime: { value: 0 }, uPix: { value: 0.001 },
-      uOcean: { value: 1 }, uBasic: { value: 0 }, uMss: { value: 0.03 }, uWindMs: { value: 6 }, uWaveH: { value: 1 }, uNight: { value: 0 }, uDeepGain: { value: 1 },
+      uOcean: { value: 1 }, uBasic: { value: 0 }, uMss: { value: 0.03 }, uWindMs: { value: 6 }, uWaveH: { value: 1 }, uNight: { value: 0 }, uDeepGain: { value: 1 }, uRise: { value: 0 },
       uOrbit: { value: 0 }, uDbgAlpha: { value: 0 }, uCloud2: { value: new THREE.Vector4(0.60, 0.24, 0.62, 0) },
       uTan: { value: new THREE.Vector2(1, 1) }, uOR: { value: new THREE.Vector2() }, uWrap: { value: new THREE.Vector2() },
       uCamPos: { value: v3() }, uRight: { value: v3() }, uUp: { value: v3() }, uFwd: { value: v3() },
